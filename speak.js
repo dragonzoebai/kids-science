@@ -64,7 +64,10 @@
     if (custom) return { el: custom, text: custom.getAttribute("data-speak") };
 
     if (/^(INPUT|SELECT|TEXTAREA)$/.test(target.tagName)) return { el: target, text: controlText(target) };
-    if (target.tagName === "IMG") return { el: target, text: target.alt || target.title };
+    // Icons must not inherit speech from a parent card, button or title.
+    // Explicit data-speak above still allows opting an image into speech.
+    if (target.closest("svg, img, [aria-hidden='true'], [role='img']")) return null;
+    if (!/[\p{L}\p{N}]/u.test(clean(target.innerText))) return null;
 
     // 优先整块读：最近的按钮/卡片/标题等
     const block = target.closest(BLOCK_SELECTOR);
