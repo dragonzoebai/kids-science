@@ -1,0 +1,853 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>全球地震可视化 · 三维地球</title>
+    <link
+      href="../vendor/mapbox-gl-3.4.0/dist/mapbox-gl.css"
+      rel="stylesheet"
+    />
+    <script src="../vendor/mapbox-gl-3.4.0/dist/mapbox-gl.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        background: #050a14;
+        font-family: "Segoe UI", system-ui, sans-serif;
+        color: #e0e8f0;
+        height: 100vh;
+        overflow: hidden;
+      }
+
+      #map {
+        width: 100vw;
+        height: 100vh;
+      }
+
+      /* ── 顶部标题栏 ── */
+      #header {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 24px;
+        background: linear-gradient(
+          180deg,
+          rgba(5, 10, 20, 0.9) 60%,
+          transparent
+        );
+        pointer-events: none;
+      }
+
+      #header h1 {
+        font-size: 20px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        color: #fff;
+      }
+
+      #header h1 span {
+        color: #f97316;
+      }
+
+      #update-time {
+        font-size: 12px;
+        color: #94a3b8;
+      }
+
+      /* ── 筛选面板 ── */
+      #controls {
+        position: absolute;
+        top: 64px;
+        left: 16px;
+        z-index: 10;
+        background: rgba(10, 18, 32, 0.82);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        padding: 16px;
+        width: 200px;
+      }
+
+      #controls h3 {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 1.2px;
+        color: #64748b;
+        margin-bottom: 12px;
+      }
+
+      .filter-row {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-bottom: 14px;
+      }
+
+      .filter-row label {
+        font-size: 12px;
+        color: #94a3b8;
+      }
+
+      .filter-row input[type="range"] {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 100%;
+        height: 4px;
+        border-radius: 2px;
+        background: linear-gradient(
+          90deg,
+          #f97316 var(--pct, 0%),
+          #1e293b var(--pct, 0%)
+        );
+        outline: none;
+      }
+
+      .filter-row input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: #f97316;
+        cursor: pointer;
+        border: 2px solid #fff;
+        box-shadow: 0 0 6px rgba(249, 115, 22, 0.6);
+      }
+
+      .filter-row .val {
+        font-size: 13px;
+        font-weight: 600;
+        color: #f97316;
+        text-align: right;
+      }
+
+      .switch-row {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .switch-row label {
+        cursor: pointer;
+      }
+
+      .switch {
+        position: relative;
+        width: 38px;
+        height: 20px;
+      }
+
+      .switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+
+      .switch span {
+        position: absolute;
+        inset: 0;
+        border-radius: 999px;
+        background: #1e293b;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+
+      .switch span::before {
+        content: "";
+        position: absolute;
+        width: 16px;
+        height: 16px;
+        left: 2px;
+        top: 2px;
+        border-radius: 50%;
+        background: #cbd5e1;
+        transition: transform 0.2s, background 0.2s;
+      }
+
+      .switch input:checked + span {
+        background: #f97316;
+      }
+
+      .switch input:checked + span::before {
+        transform: translateX(18px);
+        background: #fff;
+      }
+
+      .btn-group {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+
+      .btn-group button {
+        flex: 1;
+        min-width: 60px;
+        padding: 6px 8px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 6px;
+        background: rgba(255, 255, 255, 0.05);
+        color: #cbd5e1;
+        font-size: 11px;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .btn-group button:hover,
+      .btn-group button.active {
+        background: #f97316;
+        border-color: #f97316;
+        color: #fff;
+      }
+
+      /* ── 图例 ── */
+      #legend {
+        position: absolute;
+        bottom: 36px;
+        left: 16px;
+        z-index: 10;
+        background: rgba(10, 18, 32, 0.82);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        padding: 14px 16px;
+      }
+
+      #legend h3 {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 1.2px;
+        color: #64748b;
+        margin-bottom: 10px;
+      }
+
+      .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 6px;
+        font-size: 12px;
+        color: #cbd5e1;
+      }
+
+      .legend-dot {
+        border-radius: 50%;
+        flex-shrink: 0;
+        opacity: 0.9;
+      }
+
+      /* ── 统计卡片 ── */
+      #stats {
+        position: absolute;
+        top: 64px;
+        right: 16px;
+        z-index: 10;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .stat-card {
+        background: rgba(10, 18, 32, 0.82);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 10px;
+        padding: 12px 16px;
+        min-width: 130px;
+      }
+
+      .stat-card .num {
+        font-size: 24px;
+        font-weight: 700;
+        color: #fff;
+        line-height: 1;
+      }
+
+      .stat-card .lbl {
+        font-size: 11px;
+        color: #64748b;
+        margin-top: 4px;
+      }
+
+      .stat-card .num.orange {
+        color: #f97316;
+      }
+      .stat-card .num.red {
+        color: #ef4444;
+      }
+      .stat-card .num.yellow {
+        color: #eab308;
+      }
+
+      /* ── Popup ── */
+      .mapboxgl-popup-content {
+        background: rgba(10, 18, 32, 0.95) !important;
+        border: 1px solid rgba(255, 255, 255, 0.12) !important;
+        border-radius: 10px !important;
+        color: #e2e8f0 !important;
+        padding: 14px 16px !important;
+        font-family: "Segoe UI", system-ui, sans-serif;
+        min-width: 220px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6) !important;
+      }
+
+      .mapboxgl-popup-tip {
+        display: none;
+      }
+
+      .popup-title {
+        font-size: 13px;
+        font-weight: 600;
+        color: #fff;
+        margin-bottom: 8px;
+        line-height: 1.4;
+      }
+
+      .popup-row {
+        display: flex;
+        justify-content: space-between;
+        font-size: 12px;
+        color: #94a3b8;
+        margin-bottom: 4px;
+      }
+
+      .popup-row span:last-child {
+        color: #e2e8f0;
+        font-weight: 500;
+      }
+
+      .popup-mag {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-weight: 700;
+        font-size: 13px;
+      }
+
+      /* ── 加载指示 ── */
+      #loading {
+        position: absolute;
+        bottom: 36px;
+        right: 16px;
+        z-index: 10;
+        font-size: 12px;
+        color: #64748b;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      .spinner {
+        width: 14px;
+        height: 14px;
+        border: 2px solid #334155;
+        border-top-color: #f97316;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+
+@media (max-width: 900px) {
+  #header { padding: 10px 12px; flex-wrap: wrap; gap: 4px; }
+  #header h1 { font-size: 18px; }
+  #controls { top: 72px; left: 8px; width: 180px; padding: 10px; max-height: 35dvh; overflow-y: auto; }
+  #stats { top: 72px; right: 8px; }
+  .stat-card { padding: 8px; min-width: 88px; }
+  .stat-card .num { font-size: 20px; }
+  #legend { left: 64px; bottom: 28px; padding: 8px; max-width: calc(100vw - 80px); max-height: 18dvh; overflow-y: auto; }
+  #zone-card { top: 72px; right: 8px; width: 150px; padding: 10px; }
+  #zone-card .hint { display: none; }
+  #hotel-times { top: auto; bottom: 28px; right: 8px; width: min(250px, 52vw); max-height: 28dvh; padding: 8px; }
+}
+@media (max-width: 500px) {
+  #controls { width: 155px; }
+  #zone-card { width: 140px; }
+  #hotel-times { width: 48vw; }
+}
+</style>
+    <script src="../map-interactions.js"></script>
+  <link rel="stylesheet" href="../touch.css">
+<script src="../touch.js"></script>
+</head>
+  <body>
+    <div id="map"></div>
+
+    <!-- 顶部标题 -->
+    <div id="header">
+      <h1>🌍 全球地震实时监测 · <span>三维地球</span></h1>
+      <div id="update-time">数据来源：USGS · 加载中…</div>
+    </div>
+
+    <!-- 筛选控件 -->
+    <div id="controls">
+      <h3>筛选条件</h3>
+      <div class="filter-row">
+        <label>最小震级 <span class="val" id="mag-val">1.0</span></label>
+        <input
+          type="range"
+          id="mag-slider"
+          min="0"
+          max="9"
+          step="0.5"
+          value="1"
+        />
+      </div>
+      <div class="filter-row">
+        <label>时间范围</label>
+        <div class="btn-group">
+          <button data-period="week">7天</button>
+          <button class="active" data-period="month">30天</button>
+        </div>
+      </div>
+      <div class="filter-row switch-row">
+        <label for="equator-toggle">赤道</label>
+        <label class="switch">
+          <input type="checkbox" id="equator-toggle" checked />
+          <span></span>
+        </label>
+      </div>
+    </div>
+
+    <!-- 统计卡片 -->
+    <div id="stats">
+      <div class="stat-card">
+        <div class="num orange" id="stat-total">-</div>
+        <div class="lbl">显示地震数</div>
+      </div>
+      <div class="stat-card">
+        <div class="num red" id="stat-max">-</div>
+        <div class="lbl">最大震级</div>
+      </div>
+      <div class="stat-card">
+        <div class="num yellow" id="stat-today">-</div>
+        <div class="lbl">24h 内</div>
+      </div>
+    </div>
+
+    <!-- 图例 -->
+    <div id="legend">
+      <h3>震级图例</h3>
+      <div class="legend-item">
+        <div
+          class="legend-dot"
+          style="width: 8px; height: 8px; background: #fef08a"
+        ></div>
+        &lt; 4.0
+      </div>
+      <div class="legend-item">
+        <div
+          class="legend-dot"
+          style="width: 12px; height: 12px; background: #fb923c"
+        ></div>
+        4.0 – 5.9
+      </div>
+      <div class="legend-item">
+        <div
+          class="legend-dot"
+          style="width: 16px; height: 16px; background: #ef4444"
+        ></div>
+        6.0 – 6.9
+      </div>
+      <div class="legend-item">
+        <div
+          class="legend-dot"
+          style="width: 20px; height: 20px; background: #a855f7"
+        ></div>
+        7.0 – 7.9
+      </div>
+      <div class="legend-item">
+        <div
+          class="legend-dot"
+          style="width: 24px; height: 24px; background: #fff"
+        ></div>
+        ≥ 8.0
+      </div>
+    </div>
+
+    <div id="loading" style="display: none">
+      <div class="spinner"></div>
+      正在加载地震数据…
+    </div>
+
+    <script>
+      mapboxgl.accessToken =
+        "pk.eyJ1IjoiZHJhZ29uem9lYmFpIiwiYSI6ImNrcDZlZjd3ODAwN2Uyd21qdWlpdGRqdWUifQ.-4OIwa9MuCxHvVxS0mbV0g";
+
+      /* ── 全局状态 ── */
+      let map,
+        allFeatures = [],
+        currentPeriod = "month",
+        currentMag = 1.0;
+      const USGS = {
+        week: "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_week.geojson",
+        month:
+          "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_month.geojson",
+      };
+
+      /* ── 震级 → 颜色 & 半径 ── */
+      function magColor(mag) {
+        if (mag >= 8.0) return "#ffffff";
+        if (mag >= 7.0) return "#a855f7";
+        if (mag >= 6.0) return "#ef4444";
+        if (mag >= 4.0) return "#fb923c";
+        return "#fef08a";
+      }
+
+      function magRadius(mag) {
+        if (mag >= 8.0) return 24;
+        if (mag >= 7.0) return 18;
+        if (mag >= 6.0) return 12;
+        if (mag >= 4.0) return 7;
+        return 4;
+      }
+
+      /* ── 初始化地图 ── */
+      (function initMap() {
+        map = new mapboxgl.Map({
+          container: "map",
+          style: "mapbox://styles/mapbox/satellite-streets-v12",
+          center: [104, 35],
+          zoom: 2.3,
+          projection: "globe", // 三维地球投影
+          antialias: true,
+        });
+
+        /* 导航控件 */
+        map.addControl(
+          new mapboxgl.NavigationControl({ visualizePitch: true }),
+          "bottom-right",
+        );
+        map.addControl(new mapboxgl.ScaleControl(), "bottom-right");
+
+        map.on("style.load", () => {
+          /* 大气层 & 星空背景 */
+          map.setFog({
+            // color: 地平线附近的大气散射颜色（低空雾霾色），支持 CSS 颜色字符串或表达式
+            color: "rgb(228, 238, 255)",
+            // high-color: 高空大气层颜色，与 color 形成渐变，模拟从低空到高空的颜色过渡
+            "high-color": "rgb(245, 248, 255)",
+            // horizon-blend: 地平线处雾效的混合强度，范围 0–1；值越大雾越厚、边界越模糊
+            "horizon-blend": 0.015,
+            // space-color: 太空背景颜色，仅在 3D 地球视图（globe projection）下可见
+            "space-color": "rgb(5, 10, 20)",
+            // star-intensity: 星空亮度，范围 0–1；0 为无星空，1 为最亮；仅在 3D 地球视图下可见
+            "star-intensity": 0.6,
+          });
+
+          /* 地图标注改为中文 */
+          map.getStyle().layers.forEach((layer) => {
+            if (layer.type === 'symbol' && layer.layout?.['text-field']) {
+              map.setLayoutProperty(layer.id, 'text-field', [
+                'coalesce',
+                ['get', 'name_zh-Hans'],
+                ['get', 'name_zh'],
+                ['get', 'name'],
+              ]);
+            }
+          });
+
+          setupLayers();
+          loadData();
+        });
+
+        /* 控件事件 */
+        setupControls();
+      })();
+
+      /* ── 添加图层 ── */
+      function setupLayers() {
+        /* 地球板块边界（Peter Bird 2002，fraxen/tectonicplates） */
+        map.addSource("plates", {
+          type: "geojson",
+          data: "https://raw.githubusercontent.com/fraxen/tectonicplates/master/GeoJSON/PB2002_boundaries.json",
+        });
+
+        /* 板块边界线 */
+        map.addLayer({
+          id: "plates-line",
+          type: "line",
+          source: "plates",
+          paint: {
+            "line-color": "#38bdf8",
+            "line-width": 2.5,
+            "line-opacity": 0.75,
+          },
+        });
+
+        /* 赤道线 */
+        map.addSource("equator", {
+          type: "geojson",
+          data: {
+            type: "Feature",
+            geometry: {
+              type: "LineString",
+              coordinates: Array.from({ length: 361 }, (_, i) => [i - 180, 0]),
+            },
+          },
+        });
+
+        map.addLayer({
+          id: "equator-line",
+          type: "line",
+          source: "equator",
+          paint: {
+            "line-color": "#22d3ee",
+            "line-width": 2,
+            "line-opacity": 0.9,
+            "line-dasharray": [2, 2],
+          },
+        });
+
+        map.addSource("quakes", {
+          type: "geojson",
+          data: { type: "FeatureCollection", features: [] },
+        });
+
+        /* 光晕圆圈（pulse 效果） */
+        map.addLayer({
+          id: "quakes-halo",
+          type: "circle",
+          source: "quakes",
+          paint: {
+            "circle-radius": [
+              "interpolate",
+              ["linear"],
+              ["get", "mag"],
+              0,
+              6,
+              4,
+              10,
+              6,
+              18,
+              7,
+              26,
+              8,
+              34,
+            ],
+            "circle-color": [
+              "interpolate",
+              ["linear"],
+              ["get", "mag"],
+              0,
+              "#fef08a",
+              4,
+              "#fb923c",
+              6,
+              "#ef4444",
+              7,
+              "#a855f7",
+              8,
+              "#ffffff",
+            ],
+            "circle-opacity": 0.18,
+            "circle-blur": 1,
+          },
+        });
+
+        /* 实心点 */
+        map.addLayer({
+          id: "quakes-point",
+          type: "circle",
+          source: "quakes",
+          paint: {
+            "circle-radius": [
+              "interpolate",
+              ["linear"],
+              ["get", "mag"],
+              0,
+              3,
+              4,
+              6,
+              6,
+              10,
+              7,
+              14,
+              8,
+              20,
+            ],
+            "circle-color": [
+              "interpolate",
+              ["linear"],
+              ["get", "mag"],
+              0,
+              "#fef08a",
+              4,
+              "#fb923c",
+              6,
+              "#ef4444",
+              7,
+              "#a855f7",
+              8,
+              "#ffffff",
+            ],
+            "circle-opacity": 0.88,
+            "circle-stroke-width": 0.8,
+            "circle-stroke-color": "rgba(255,255,255,0.25)",
+          },
+        });
+
+        /* Popup */
+        const popup = new mapboxgl.Popup({
+          offset: 10,
+          closeButton: false,
+          closeOnClick: false,
+          maxWidth: "280px",
+        });
+
+        bindMapPopup(map, popup, {
+          layers: ["quakes-point"],
+          hover: "mouseenter",
+          onSelect: (e) => {
+            const [lng, lat] = e.features[0].geometry.coordinates;
+            map.flyTo({
+              center: [lng, lat],
+              zoom: 6,
+              duration: 1200,
+              essential: true,
+            });
+          },
+          show: (e) => {
+            map.getCanvas().style.cursor = "pointer";
+            const p = e.features[0].properties;
+            const mag = (+p.mag).toFixed(1);
+            const depth = p.depth ? (+p.depth).toFixed(1) : "—";
+            const time = new Date(p.time).toLocaleString("zh-CN", {
+              timeZone: "Asia/Shanghai",
+            });
+            const color = magColor(+mag);
+
+            popup
+              .setLngLat(e.features[0].geometry.coordinates.slice(0, 2))
+              .setHTML(
+                `
+            <div class="popup-title">${p.place || "未知位置"}</div>
+            <div class="popup-row"><span>震级</span>
+              <span><span class="popup-mag" style="background:${color}20;color:${color}">M ${mag}</span></span>
+            </div>
+            <div class="popup-row"><span>深度</span><span>${depth} km</span></div>
+            <div class="popup-row"><span>时间（北京）</span><span>${time}</span></div>
+          `,
+              )
+              .addTo(map);
+          },
+        });
+
+        /* 点击飞到该位置 */
+      }
+
+      /* ── 加载 USGS 数据 ── */
+      function loadData() {
+        document.getElementById("loading").style.display = "flex";
+
+        fetch(USGS[currentPeriod])
+          .then((r) => r.json())
+          .then((data) => {
+            allFeatures = data.features.map((f) => ({
+              ...f,
+              properties: {
+                ...f.properties,
+                mag: f.properties.mag ?? 0,
+                depth: f.geometry?.coordinates?.[2] ?? 0,
+              },
+            }));
+
+            const t = new Date(data.metadata.generated);
+            document.getElementById("update-time").textContent =
+              `数据来源：USGS · 更新于 ${t.toLocaleString("zh-CN")}`;
+
+            applyFilter();
+          })
+          .catch(() => {
+            document.getElementById("loading").innerHTML =
+              "⚠ 数据加载失败，请检查网络";
+          });
+      }
+
+      /* ── 应用筛选 ── */
+      function applyFilter() {
+        const filtered = allFeatures.filter(
+          (f) => f.properties.mag >= currentMag,
+        );
+
+        map.getSource("quakes").setData({
+          type: "FeatureCollection",
+          features: filtered,
+        });
+
+        /* 更新统计 */
+        const now = Date.now();
+        const today = filtered.filter(
+          (f) => now - f.properties.time < 86400000,
+        );
+        const maxMag = filtered.reduce(
+          (m, f) => Math.max(m, f.properties.mag),
+          0,
+        );
+
+        document.getElementById("stat-total").textContent =
+          filtered.length.toLocaleString();
+        document.getElementById("stat-max").textContent =
+          maxMag > 0 ? "M " + maxMag.toFixed(1) : "—";
+        document.getElementById("stat-today").textContent = today.length;
+        document.getElementById("loading").style.display = "none";
+      }
+
+      /* ── 控件绑定 ── */
+      function setupControls() {
+        /* 震级滑块 */
+        const slider = document.getElementById("mag-slider");
+        const val = document.getElementById("mag-val");
+
+        slider.addEventListener("input", () => {
+          currentMag = +slider.value;
+          val.textContent = currentMag.toFixed(1);
+          const pct = (
+            ((currentMag - +slider.min) / (+slider.max - +slider.min)) *
+            100
+          ).toFixed(1);
+          slider.style.setProperty("--pct", pct + "%");
+          if (map && map.getSource("quakes")) applyFilter();
+        });
+
+        // 初始化滑块背景
+        slider.dispatchEvent(new Event("input"));
+
+        /* 时间范围按钮 */
+        document.querySelectorAll(".btn-group button").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            document
+              .querySelectorAll(".btn-group button")
+              .forEach((b) => b.classList.remove("active"));
+            btn.classList.add("active");
+            currentPeriod = btn.dataset.period;
+            if (map && map.getSource("quakes")) loadData();
+          });
+        });
+
+        /* 赤道开关 */
+        document.getElementById("equator-toggle").addEventListener("change", (e) => {
+          if (!map || !map.getLayer("equator-line")) return;
+          map.setLayoutProperty(
+            "equator-line",
+            "visibility",
+            e.target.checked ? "visible" : "none",
+          );
+        });
+      }
+    </script>
+  <script src="../speak.js"></script>
+  </body>
+</html>

@@ -1,0 +1,1029 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>中国省份与省会 · 三维地球</title>
+    <link
+      href="../vendor/mapbox-gl-3.4.0/dist/mapbox-gl.css"
+      rel="stylesheet"
+    />
+    <script src="../vendor/mapbox-gl-3.4.0/dist/mapbox-gl.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        background: #050714;
+        font-family: "Segoe UI", "PingFang SC", system-ui, sans-serif;
+        color: #f8fafc;
+        height: 100vh;
+        overflow: hidden;
+      }
+
+      #map {
+        width: 100vw;
+        height: 100vh;
+      }
+
+      #header {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 26px 42px;
+        background:
+          radial-gradient(circle at 18% 0%, rgba(34, 211, 238, 0.24), transparent 28%),
+          linear-gradient(180deg, rgba(5, 7, 20, 0.94) 54%, transparent);
+        pointer-events: none;
+      }
+
+      #header h1 {
+        font-size: 21px;
+        font-weight: 650;
+        letter-spacing: 0.6px;
+        color: #fff;
+        text-shadow: 0 0 24px rgba(34, 211, 238, 0.34);
+      }
+
+      #header h1 span {
+        color: #67e8f9;
+      }
+
+      #update-time {
+        font-size: 12px;
+        color: #cbd5e1;
+      }
+
+      #controls,
+      #province-panel,
+      #legend {
+        background: rgba(8, 13, 30, 0.84);
+        backdrop-filter: blur(14px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 18px 45px rgba(0, 0, 0, 0.28);
+      }
+
+      #controls {
+        position: absolute;
+        top: 76px;
+        left: 18px;
+        z-index: 10;
+        border-radius: 16px;
+        padding: 16px;
+        width: 246px;
+      }
+
+      #controls h3,
+      #legend h3,
+      #province-panel h3 {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 1.4px;
+        color: #94a3b8;
+        margin-bottom: 12px;
+      }
+
+      .filter-row {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-bottom: 14px;
+      }
+
+      .filter-row:last-child {
+        margin-bottom: 0;
+      }
+
+      .filter-row label {
+        font-size: 12px;
+        color: #cbd5e1;
+      }
+
+      .switch-row {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .switch-row label {
+        cursor: pointer;
+      }
+
+      .switch {
+        position: relative;
+        width: 40px;
+        height: 22px;
+      }
+
+      .switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+
+      .switch span {
+        position: absolute;
+        inset: 0;
+        border-radius: 999px;
+        background: #172033;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+
+      .switch span::before {
+        content: "";
+        position: absolute;
+        width: 18px;
+        height: 18px;
+        left: 2px;
+        top: 2px;
+        border-radius: 50%;
+        background: #94a3b8;
+        transition: transform 0.2s, background 0.2s;
+      }
+
+      .switch input:checked + span {
+        background: linear-gradient(90deg, #06b6d4, #2563eb);
+      }
+
+      .switch input:checked + span::before {
+        transform: translateX(18px);
+        background: #ecfeff;
+      }
+
+      .search-box {
+        margin: 4px 0 14px;
+      }
+
+      .search-box input {
+        width: 100%;
+        border: 0;
+        outline: 0;
+        border-radius: 13px;
+        padding: 10px 12px;
+        color: #f8fafc;
+        background: rgba(15, 23, 42, 0.74);
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+        font: 12px "Segoe UI", "PingFang SC", system-ui, sans-serif;
+      }
+
+      .search-box input::placeholder {
+        color: #64748b;
+      }
+
+      .hint {
+        padding-top: 10px;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        font-size: 11px;
+        line-height: 1.65;
+        color: #94a3b8;
+      }
+
+      #province-panel {
+        position: absolute;
+        top: 76px;
+        right: 18px;
+        bottom: 34px;
+        z-index: 10;
+        width: 342px;
+        border-radius: 18px;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .panel-summary {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+
+      .stat-card {
+        border-radius: 13px;
+        padding: 12px 13px;
+        background: rgba(255, 255, 255, 0.055);
+        border: 1px solid rgba(255, 255, 255, 0.07);
+      }
+
+      .stat-card .num {
+        font-size: 25px;
+        font-weight: 750;
+        color: #67e8f9;
+        line-height: 1;
+      }
+
+      .stat-card .lbl {
+        font-size: 11px;
+        color: #94a3b8;
+        margin-top: 5px;
+      }
+
+      #province-list {
+        min-height: 0;
+        overflow: auto;
+        padding-right: 4px;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(34, 211, 238, 0.72) rgba(15, 23, 42, 0.6);
+      }
+
+      #province-list::-webkit-scrollbar {
+        width: 6px;
+      }
+
+      #province-list::-webkit-scrollbar-thumb {
+        background: rgba(34, 211, 238, 0.72);
+        border-radius: 999px;
+      }
+
+      .province-card {
+        width: 100%;
+        display: grid;
+        grid-template-columns: 36px 1fr auto;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 8px;
+        padding: 10px;
+        color: #e2e8f0;
+        background: rgba(15, 23, 42, 0.7);
+        border: 1px solid rgba(255, 255, 255, 0.07);
+        border-radius: 14px;
+        cursor: pointer;
+        text-align: left;
+        font-family: inherit;
+        transition:
+          transform 0.18s ease,
+          border-color 0.18s ease,
+          background 0.18s ease,
+          box-shadow 0.18s ease;
+      }
+
+      .province-card:hover,
+      .province-card.active {
+        transform: translateX(-4px);
+        border-color: rgba(34, 211, 238, 0.58);
+        background: linear-gradient(90deg, rgba(34, 211, 238, 0.2), rgba(15, 23, 42, 0.82));
+        box-shadow: 0 0 26px rgba(34, 211, 238, 0.15);
+      }
+
+      .province-card.active .rank {
+        background: #22d3ee;
+        color: #111827;
+      }
+
+      .rank {
+        display: grid;
+        place-items: center;
+        width: 32px;
+        height: 32px;
+        border-radius: 10px;
+        background: rgba(148, 163, 184, 0.16);
+        color: #67e8f9;
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .province-main {
+        min-width: 0;
+      }
+
+      .province-title {
+        display: flex;
+        align-items: baseline;
+        gap: 6px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .province-title strong {
+        font-size: 15px;
+      }
+
+      .province-title span {
+        font-size: 11px;
+        color: #94a3b8;
+      }
+
+      .province-subtitle {
+        margin-top: 3px;
+        font-size: 11px;
+        color: #94a3b8;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .region-pill {
+        border-radius: 999px;
+        padding: 5px 8px;
+        color: #cffafe;
+        background: rgba(14, 165, 233, 0.16);
+        font-size: 11px;
+        white-space: nowrap;
+      }
+
+      #legend {
+        position: absolute;
+        bottom: 34px;
+        left: 18px;
+        z-index: 10;
+        border-radius: 16px;
+        padding: 15px 17px;
+        min-width: 226px;
+      }
+
+      .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 8px;
+        font-size: 12px;
+        color: #dbeafe;
+      }
+
+      .legend-item:last-child {
+        margin-bottom: 0;
+      }
+
+      .swatch {
+        display: inline-block;
+        flex-shrink: 0;
+        width: 24px;
+        height: 14px;
+        border-radius: 5px;
+        background: rgba(34, 211, 238, 0.34);
+        border: 1px solid rgba(103, 232, 249, 0.58);
+      }
+
+      .swatch.active {
+        background: rgba(125, 249, 255, 0.72);
+        border-color: #7df9ff;
+      }
+
+      .bubble {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: radial-gradient(circle at 32% 28%, #ecfeff, #22d3ee 46%, #164e63 100%);
+        box-shadow: 0 0 18px rgba(34, 211, 238, 0.74);
+        border: 1px solid rgba(255, 255, 255, 0.72);
+        flex-shrink: 0;
+      }
+
+      .mapboxgl-popup-content {
+        background: rgba(8, 13, 30, 0.95);
+        color: #f8fafc;
+        border: 1px solid rgba(34, 211, 238, 0.4);
+        border-radius: 14px;
+        box-shadow: 0 20px 48px rgba(0, 0, 0, 0.38);
+        padding: 14px 16px;
+      }
+
+      .mapboxgl-popup-tip {
+        border-top-color: rgba(8, 13, 30, 0.95) !important;
+        border-bottom-color: rgba(8, 13, 30, 0.95) !important;
+      }
+
+      .popup-title {
+        font-size: 16px;
+        font-weight: 750;
+        margin-bottom: 5px;
+      }
+
+      .popup-meta {
+        color: #cbd5e1;
+        font-size: 12px;
+        line-height: 1.55;
+      }
+
+      @media (max-width: 900px) {
+        #header {
+          align-items: flex-start;
+          flex-direction: column;
+          gap: 4px;
+          padding: 14px 18px 36px;
+        }
+
+        #controls {
+          display: none;
+        }
+
+        #province-panel {
+          top: auto;
+          left: 14px;
+          right: 14px;
+          bottom: 26px;
+          width: auto;
+          max-height: 42vh;
+        }
+
+        #legend {
+          display: none;
+        }
+      }
+    </style>
+    <script src="../map-interactions.js"></script>
+  <link rel="stylesheet" href="../touch.css">
+<script src="../touch.js"></script>
+</head>
+  <body>
+    <div id="map"></div>
+
+    <div id="header">
+      <h1>🛰️ 中国省份与省会 · <span>三维地球行政区图谱</span></h1>
+      <div id="update-time">在地球上绘制省级行政区边界与省会/首府/驻地点 · 再点当前省份恢复全国视角</div>
+    </div>
+
+    <div id="controls">
+      <h3>图层开关</h3>
+      <div class="search-box">
+        <input id="search" type="search" placeholder="搜索省份或省会：浙江 / 杭州" autocomplete="off" />
+      </div>
+      <div class="filter-row switch-row">
+        <label for="province-toggle">省份填色</label>
+        <label class="switch">
+          <input type="checkbox" id="province-toggle" checked />
+          <span></span>
+        </label>
+      </div>
+      <div class="filter-row switch-row">
+        <label for="boundary-toggle">省界线</label>
+        <label class="switch">
+          <input type="checkbox" id="boundary-toggle" checked />
+          <span></span>
+        </label>
+      </div>
+      <div class="filter-row switch-row">
+        <label for="capital-toggle">省会/首府图标</label>
+        <label class="switch">
+          <input type="checkbox" id="capital-toggle" checked />
+          <span></span>
+        </label>
+      </div>
+      <div class="filter-row switch-row">
+        <label for="label-toggle">省会名称标注</label>
+        <label class="switch">
+          <input type="checkbox" id="label-toggle" checked />
+          <span></span>
+        </label>
+      </div>
+      <div class="filter-row switch-row">
+        <label for="base-label-toggle">地图底图地名</label>
+        <label class="switch">
+          <input type="checkbox" id="base-label-toggle" checked />
+          <span></span>
+        </label>
+      </div>
+      <div class="hint">
+        省界来自公开 GeoJSON 边界数据，省会坐标为近似城市中心点；台湾、香港、澳门按省级行政区展示。
+      </div>
+    </div>
+
+    <aside id="province-panel">
+      <h3>省份与省会名录</h3>
+      <div class="panel-summary">
+        <div class="stat-card">
+          <div class="num" id="stat-province">34</div>
+          <div class="lbl">省级行政区</div>
+        </div>
+        <div class="stat-card">
+          <div class="num" id="stat-capital">34</div>
+          <div class="lbl">省会/首府/驻地</div>
+        </div>
+      </div>
+      <div id="province-list" aria-label="中国省份和省会列表"></div>
+    </aside>
+
+    <div id="legend">
+      <h3>图例</h3>
+      <div class="legend-item"><span class="swatch"></span>省级行政区填色</div>
+      <div class="legend-item"><span class="swatch active"></span>当前选中省份</div>
+      <div class="legend-item"><span class="bubble"></span>省会 / 首府 / 驻地</div>
+    </div>
+
+    <script>
+      mapboxgl.accessToken =
+        "pk.eyJ1IjoiZHJhZ29uem9lYmFpIiwiYSI6ImNrcDZlZjd3ODAwN2Uyd21qdWlpdGRqdWUifQ.-4OIwa9MuCxHvVxS0mbV0g";
+
+      const DEFAULT_VIEW = {
+        center: [104, 35],
+        zoom: 3.2,
+        pitch: 0,
+        bearing: 0,
+      };
+      const CHINA_GEOJSON_URL = "https://geo.datav.aliyun.com/areas_v3/bound/100000_full.json";
+      const baseLabelLayerIds = [];
+      const provinceLayers = ["province-fill"];
+      const boundaryLayers = ["province-line"];
+      const capitalLayers = ["capital-halo", "capital-point"];
+      const labelLayers = ["capital-label"];
+      const REGION_COLORS = {
+        华北: "#22d3ee",
+        东北: "#38bdf8",
+        华东: "#06b6d4",
+        华中: "#818cf8",
+        华南: "#2dd4bf",
+        西南: "#14b8a6",
+        西北: "#60a5fa",
+      };
+      const REGIONS = [
+        { province: "北京", fullName: "北京市", capital: "北京", region: "华北", coordinates: [116.4074, 39.9042] },
+        { province: "天津", fullName: "天津市", capital: "天津", region: "华北", coordinates: [117.2009, 39.0842] },
+        { province: "河北", fullName: "河北省", capital: "石家庄", region: "华北", coordinates: [114.5149, 38.0428] },
+        { province: "山西", fullName: "山西省", capital: "太原", region: "华北", coordinates: [112.5492, 37.8706] },
+        { province: "内蒙古", fullName: "内蒙古自治区", capital: "呼和浩特", region: "华北", coordinates: [111.7492, 40.8426] },
+        { province: "辽宁", fullName: "辽宁省", capital: "沈阳", region: "东北", coordinates: [123.4315, 41.8057] },
+        { province: "吉林", fullName: "吉林省", capital: "长春", region: "东北", coordinates: [125.3235, 43.8171] },
+        { province: "黑龙江", fullName: "黑龙江省", capital: "哈尔滨", region: "东北", coordinates: [126.6424, 45.7567] },
+        { province: "上海", fullName: "上海市", capital: "上海", region: "华东", coordinates: [121.4737, 31.2304] },
+        { province: "江苏", fullName: "江苏省", capital: "南京", region: "华东", coordinates: [118.7969, 32.0603] },
+        { province: "浙江", fullName: "浙江省", capital: "杭州", region: "华东", coordinates: [120.1551, 30.2741] },
+        { province: "安徽", fullName: "安徽省", capital: "合肥", region: "华东", coordinates: [117.2272, 31.8206] },
+        { province: "福建", fullName: "福建省", capital: "福州", region: "华东", coordinates: [119.2965, 26.0745] },
+        { province: "江西", fullName: "江西省", capital: "南昌", region: "华东", coordinates: [115.8582, 28.6829] },
+        { province: "山东", fullName: "山东省", capital: "济南", region: "华东", coordinates: [117.1201, 36.6512] },
+        { province: "河南", fullName: "河南省", capital: "郑州", region: "华中", coordinates: [113.6254, 34.7466] },
+        { province: "湖北", fullName: "湖北省", capital: "武汉", region: "华中", coordinates: [114.3054, 30.5931] },
+        { province: "湖南", fullName: "湖南省", capital: "长沙", region: "华中", coordinates: [112.9388, 28.2282] },
+        { province: "广东", fullName: "广东省", capital: "广州", region: "华南", coordinates: [113.2644, 23.1291] },
+        { province: "广西", fullName: "广西壮族自治区", capital: "南宁", region: "华南", coordinates: [108.3669, 22.817] },
+        { province: "海南", fullName: "海南省", capital: "海口", region: "华南", coordinates: [110.1983, 20.0444] },
+        { province: "重庆", fullName: "重庆市", capital: "重庆", region: "西南", coordinates: [106.5516, 29.563] },
+        { province: "四川", fullName: "四川省", capital: "成都", region: "西南", coordinates: [104.0665, 30.5723] },
+        { province: "贵州", fullName: "贵州省", capital: "贵阳", region: "西南", coordinates: [106.6302, 26.647] },
+        { province: "云南", fullName: "云南省", capital: "昆明", region: "西南", coordinates: [102.8329, 24.8801] },
+        { province: "西藏", fullName: "西藏自治区", capital: "拉萨", region: "西南", coordinates: [91.1175, 29.6475] },
+        { province: "陕西", fullName: "陕西省", capital: "西安", region: "西北", coordinates: [108.9402, 34.3416] },
+        { province: "甘肃", fullName: "甘肃省", capital: "兰州", region: "西北", coordinates: [103.8343, 36.0611] },
+        { province: "青海", fullName: "青海省", capital: "西宁", region: "西北", coordinates: [101.7782, 36.6171] },
+        { province: "宁夏", fullName: "宁夏回族自治区", capital: "银川", region: "西北", coordinates: [106.2309, 38.4872] },
+        { province: "新疆", fullName: "新疆维吾尔自治区", capital: "乌鲁木齐", region: "西北", coordinates: [87.6168, 43.8256] },
+        { province: "台湾", fullName: "台湾省", capital: "台北", region: "华东", coordinates: [121.5654, 25.033] },
+        { province: "香港", fullName: "香港特别行政区", capital: "香港", region: "华南", coordinates: [114.1694, 22.3193] },
+        { province: "澳门", fullName: "澳门特别行政区", capital: "澳门", region: "华南", coordinates: [113.5439, 22.1987] },
+      ];
+      let visibleRegions = [...REGIONS];
+      let activeProvinceName = null;
+
+      const map = new mapboxgl.Map({
+        container: "map",
+        style: "mapbox://styles/mapbox/satellite-streets-v12",
+        center: DEFAULT_VIEW.center,
+        zoom: DEFAULT_VIEW.zoom,
+        pitch: DEFAULT_VIEW.pitch,
+        bearing: DEFAULT_VIEW.bearing,
+        projection: "globe",
+        antialias: true,
+      });
+
+      map.addControl(
+        new mapboxgl.NavigationControl({ visualizePitch: true }),
+        "bottom-right",
+      );
+      map.addControl(new mapboxgl.ScaleControl(), "bottom-right");
+
+      map.on("style.load", () => {
+        map.setFog({
+          color: "rgb(206, 251, 255)",
+          "high-color": "rgb(115, 232, 255)",
+          "horizon-blend": 0.018,
+          "space-color": "rgb(2, 6, 23)",
+          "star-intensity": 0.82,
+        });
+
+        map.getStyle().layers.forEach((layer) => {
+          if (layer.type === "symbol" && layer.layout?.["text-field"]) {
+            map.setLayoutProperty(layer.id, "text-field", [
+              "coalesce",
+              ["get", "name_zh-Hans"],
+              ["get", "name_zh"],
+              ["get", "name"],
+            ]);
+
+            if (isBaseLabelLayer(layer)) {
+              baseLabelLayerIds.push(layer.id);
+            }
+          }
+        });
+
+        setupProvinceLayers();
+        setupCapitalLayers();
+        setupControls();
+        setupMapInteractions();
+        renderProvinceList();
+        updateStats();
+      });
+
+      function isBaseLabelLayer(layer) {
+        const sourceLayer = layer["source-layer"] || "";
+        const id = layer.id || "";
+        return (
+          sourceLayer.includes("place_label") ||
+          id.includes("place-label") ||
+          id.includes("settlement") ||
+          id.includes("country-label") ||
+          id.includes("state-label")
+        );
+      }
+
+      function normalizeProvinceName(name = "") {
+        return name
+          .replace(/特别行政区|维吾尔自治区|壮族自治区|回族自治区|自治区|省|市/g, "")
+          .replace("内蒙古古", "内蒙古");
+      }
+
+      function regionForProvinceName(name) {
+        const normalized = normalizeProvinceName(name);
+        return REGIONS.find((item) => item.province === normalized);
+      }
+
+      function makeCapitalCollection() {
+        return {
+          type: "FeatureCollection",
+          features: visibleRegions.map((item, index) => ({
+            type: "Feature",
+            properties: {
+              name: item.capital,
+              province: item.province,
+              fullName: item.fullName,
+              region: item.region,
+              color: REGION_COLORS[item.region] || "#22d3ee",
+              rank: index + 1,
+              label: `${item.province} · ${item.capital}`,
+            },
+            geometry: { type: "Point", coordinates: item.coordinates },
+          })),
+        };
+      }
+
+      function setupProvinceLayers() {
+        map.addSource("china-provinces", {
+          type: "geojson",
+          data: CHINA_GEOJSON_URL,
+        });
+
+        map.addLayer({
+          id: "province-fill",
+          type: "fill",
+          source: "china-provinces",
+          paint: {
+            "fill-color": [
+              "case",
+              ["==", ["get", "name"], ["literal", activeProvinceName || ""]],
+              "rgba(125, 249, 255, 0.72)",
+              "rgba(34, 211, 238, 0.28)",
+            ],
+            "fill-opacity": [
+              "case",
+              ["==", ["get", "name"], ["literal", activeProvinceName || ""]],
+              0.74,
+              0.38,
+            ],
+          },
+        });
+
+        map.addLayer({
+          id: "province-line",
+          type: "line",
+          source: "china-provinces",
+          paint: {
+            "line-color": [
+              "case",
+              ["==", ["get", "name"], ["literal", activeProvinceName || ""]],
+              "#7df9ff",
+              "rgba(125, 249, 255, 0.96)",
+            ],
+            "line-width": [
+              "case",
+              ["==", ["get", "name"], ["literal", activeProvinceName || ""]],
+              3.4,
+              1.8,
+            ],
+            "line-opacity": 1,
+          },
+        });
+      }
+
+      function setupCapitalLayers() {
+        map.addSource("china-capitals", {
+          type: "geojson",
+          data: makeCapitalCollection(),
+        });
+
+        map.addLayer({
+          id: "capital-halo",
+          type: "circle",
+          source: "china-capitals",
+          paint: {
+            "circle-radius": [
+              "case",
+              ["==", ["get", "province"], ["literal", normalizeProvinceName(activeProvinceName || "")]],
+              24,
+              15,
+            ],
+            "circle-color": ["get", "color"],
+            "circle-blur": 0.78,
+            "circle-opacity": 0.76,
+          },
+        });
+
+        map.addLayer({
+          id: "capital-point",
+          type: "circle",
+          source: "china-capitals",
+          paint: {
+            "circle-radius": [
+              "case",
+              ["==", ["get", "province"], ["literal", normalizeProvinceName(activeProvinceName || "")]],
+              8.5,
+              5.2,
+            ],
+            "circle-color": [
+              "case",
+              ["==", ["get", "province"], ["literal", normalizeProvinceName(activeProvinceName || "")]],
+              "#7df9ff",
+              "#22d3ee",
+            ],
+            "circle-stroke-color": "rgba(255, 255, 255, 0.9)",
+            "circle-stroke-width": [
+              "case",
+              ["==", ["get", "province"], ["literal", normalizeProvinceName(activeProvinceName || "")]],
+              2.8,
+              1.2,
+            ],
+            "circle-opacity": 0.98,
+          },
+        });
+
+        map.addLayer({
+          id: "capital-label",
+          type: "symbol",
+          source: "china-capitals",
+          layout: {
+            "text-field": ["get", "label"],
+            "text-size": [
+              "case",
+              ["==", ["get", "province"], ["literal", normalizeProvinceName(activeProvinceName || "")]],
+              14,
+              11.2,
+            ],
+            "text-font": ["Open Sans Semibold", "Arial Unicode MS Bold"],
+            "text-allow-overlap": false,
+            "text-ignore-placement": false,
+            "text-anchor": "left",
+            "text-offset": [1.05, 0.02],
+          },
+          paint: {
+            "text-color": "#ecfeff",
+            "text-halo-color": "rgba(5, 7, 20, 0.96)",
+            "text-halo-width": 1.7,
+            "text-opacity": 0.97,
+          },
+        });
+      }
+
+      function setupMapInteractions() {
+        const popup = new mapboxgl.Popup({
+          closeButton: false,
+          closeOnClick: false,
+          maxWidth: "270px",
+        });
+
+        bindMapPopup(map, popup, {
+          layers: ["province-fill"],
+          hover: "mouseenter",
+          onSelect: (e) => {
+            const region = regionForProvinceName(e.features[0].properties.name);
+            toggleProvinceFocus(region);
+          },
+          show: (e) => {
+            map.getCanvas().style.cursor = "pointer";
+            const region = regionForProvinceName(e.features[0].properties.name);
+            if (!region) return;
+            popup.setLngLat(e.lngLat).setHTML(makePopupHtml(region)).addTo(map);
+          },
+        });
+
+        bindMapPopup(map, popup, {
+          layers: ["capital-point", "capital-label"],
+          hover: "mouseenter",
+          onSelect: (e) => {
+            const region = REGIONS.find((item) => item.province === e.features[0].properties.province);
+            toggleProvinceFocus(region);
+          },
+          show: (e) => {
+            map.getCanvas().style.cursor = "pointer";
+            const region = REGIONS.find((item) => item.province === e.features[0].properties.province);
+            if (!region) return;
+            popup
+              .setLngLat(e.features[0].geometry.coordinates.slice())
+              .setHTML(makePopupHtml(region))
+              .addTo(map);
+          },
+        });
+      }
+
+      function makePopupHtml(region) {
+        return `<div class="popup-title">${region.province} <span style="color:#67e8f9">${region.fullName}</span></div>
+          <div class="popup-meta">区域：${region.region}<br />省会/首府/驻地：<strong>${region.capital}</strong><br />坐标：${region.coordinates[0].toFixed(3)}, ${region.coordinates[1].toFixed(3)}</div>`;
+      }
+
+      function renderProvinceList(items = visibleRegions) {
+        const list = document.getElementById("province-list");
+        const activeShortName = normalizeProvinceName(activeProvinceName || "");
+        list.innerHTML = items
+          .map(
+            (item, index) => `
+              <button class="province-card ${item.province === activeShortName ? "active" : ""}" type="button" data-province="${item.province}" aria-label="跳转到${item.province}">
+                <span class="rank">${String(index + 1).padStart(2, "0")}</span>
+                <span class="province-main">
+                  <span class="province-title"><strong>${item.province}</strong><span>${item.fullName}</span></span>
+                  <span class="province-subtitle">省会/首府/驻地 · ${item.capital}</span>
+                </span>
+                <span class="region-pill">${item.region}</span>
+              </button>`,
+          )
+          .join("");
+
+        list.querySelectorAll(".province-card").forEach((card) => {
+          card.addEventListener("click", () => {
+            const region = REGIONS.find((item) => item.province === card.dataset.province);
+            toggleProvinceFocus(region);
+          });
+        });
+      }
+
+      function toggleProvinceFocus(region) {
+        if (!region) return;
+        if (activeProvinceName === region.fullName) {
+          resetView();
+          return;
+        }
+
+        activeProvinceName = region.fullName;
+        updateActiveProvince();
+        map.flyTo({
+          center: region.coordinates,
+          zoom: region.province === "新疆" || region.province === "西藏" || region.province === "内蒙古" ? 4.1 : 5.05,
+          pitch: 38,
+          bearing: 0,
+          speed: 0.72,
+          curve: 1.35,
+          essential: true,
+        });
+      }
+
+      function resetView() {
+        activeProvinceName = null;
+        updateActiveProvince();
+        map.flyTo({
+          center: DEFAULT_VIEW.center,
+          zoom: DEFAULT_VIEW.zoom,
+          pitch: DEFAULT_VIEW.pitch,
+          bearing: DEFAULT_VIEW.bearing,
+          speed: 0.82,
+          curve: 1.25,
+          essential: true,
+        });
+      }
+
+      function updateActiveProvince() {
+        const activeShortName = normalizeProvinceName(activeProvinceName || "");
+        document.querySelectorAll(".province-card").forEach((card) => {
+          card.classList.toggle("active", card.dataset.province === activeShortName);
+        });
+
+        if (map.getLayer("province-fill")) {
+          map.setPaintProperty("province-fill", "fill-color", [
+            "case",
+            ["==", ["get", "name"], ["literal", activeProvinceName || ""]],
+            "rgba(125, 249, 255, 0.72)",
+            "rgba(34, 211, 238, 0.28)",
+          ]);
+          map.setPaintProperty("province-fill", "fill-opacity", [
+            "case",
+            ["==", ["get", "name"], ["literal", activeProvinceName || ""]],
+            0.74,
+            0.38,
+          ]);
+          map.setPaintProperty("province-line", "line-color", [
+            "case",
+            ["==", ["get", "name"], ["literal", activeProvinceName || ""]],
+            "#7df9ff",
+            "rgba(103, 232, 249, 0.82)",
+          ]);
+          map.setPaintProperty("province-line", "line-width", [
+            "case",
+            ["==", ["get", "name"], ["literal", activeProvinceName || ""]],
+            2.6,
+            1.1,
+          ]);
+        }
+
+        if (map.getLayer("capital-point")) {
+          map.setPaintProperty("capital-halo", "circle-radius", [
+            "case",
+            ["==", ["get", "province"], ["literal", activeShortName]],
+            24,
+            15,
+          ]);
+          map.setPaintProperty("capital-point", "circle-radius", [
+            "case",
+            ["==", ["get", "province"], ["literal", activeShortName]],
+            8.5,
+            5.2,
+          ]);
+          map.setPaintProperty("capital-point", "circle-color", [
+            "case",
+            ["==", ["get", "province"], ["literal", activeShortName]],
+            "#7df9ff",
+            "#22d3ee",
+          ]);
+          map.setPaintProperty("capital-point", "circle-stroke-width", [
+            "case",
+            ["==", ["get", "province"], ["literal", activeShortName]],
+            2.8,
+            1.2,
+          ]);
+          map.setLayoutProperty("capital-label", "text-size", [
+            "case",
+            ["==", ["get", "province"], ["literal", activeShortName]],
+            14,
+            11.2,
+          ]);
+        }
+      }
+
+      function setLayerGroupVisibility(layerIds, visible) {
+        layerIds.forEach((id) => {
+          if (map.getLayer(id)) {
+            map.setLayoutProperty(id, "visibility", visible ? "visible" : "none");
+          }
+        });
+      }
+
+      function setupControls() {
+        document.getElementById("province-toggle").addEventListener("change", (e) => {
+          setLayerGroupVisibility(provinceLayers, e.target.checked);
+        });
+
+        document.getElementById("boundary-toggle").addEventListener("change", (e) => {
+          setLayerGroupVisibility(boundaryLayers, e.target.checked);
+        });
+
+        document.getElementById("capital-toggle").addEventListener("change", (e) => {
+          setLayerGroupVisibility(capitalLayers, e.target.checked);
+        });
+
+        document.getElementById("label-toggle").addEventListener("change", (e) => {
+          setLayerGroupVisibility(labelLayers, e.target.checked);
+        });
+
+        document.getElementById("base-label-toggle").addEventListener("change", (e) => {
+          setLayerGroupVisibility(baseLabelLayerIds, e.target.checked);
+        });
+
+        document.getElementById("search").addEventListener("input", (event) => {
+          const keyword = event.target.value.trim();
+          visibleRegions = keyword
+            ? REGIONS.filter(
+                (item) =>
+                  item.province.includes(keyword) ||
+                  item.fullName.includes(keyword) ||
+                  item.capital.includes(keyword) ||
+                  item.region.includes(keyword),
+              )
+            : [...REGIONS];
+
+          const activeShortName = normalizeProvinceName(activeProvinceName || "");
+          if (activeShortName && !visibleRegions.some((item) => item.province === activeShortName)) {
+            activeProvinceName = null;
+            updateActiveProvince();
+          }
+
+          const source = map.getSource("china-capitals");
+          if (source) {
+            source.setData(makeCapitalCollection());
+          }
+          renderProvinceList(visibleRegions);
+        });
+      }
+
+      function updateStats() {
+        document.getElementById("stat-province").textContent = REGIONS.length;
+        document.getElementById("stat-capital").textContent = REGIONS.length;
+      }
+    </script>
+  <script src="../speak.js"></script>
+  </body>
+</html>

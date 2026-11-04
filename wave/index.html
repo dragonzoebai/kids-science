@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>海浪粒子流动画 · 复现 Demo</title>
+    <link
+      rel="stylesheet"
+      href="../vendor/leaflet-1.9.4/dist/leaflet.css"
+    />
+    <script src="../vendor/leaflet-1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="./style.css" />
+  <link rel="stylesheet" href="../touch.css">
+<script src="../touch.js"></script>
+</head>
+  <body>
+    <div id="map"></div>
+    <canvas id="particleCanvas"></canvas>
+
+    <div id="header">
+      <h1>海浪<span>粒子流</span>动画 · 复现 Demo</h1>
+      <p id="dataStatus">正在获取中国海洋预报网实时海浪数据…</p>
+    </div>
+
+    <div id="panel">
+      <h2>图层控制</h2>
+      <label><input type="checkbox" id="chkMagnitude" checked /> 大小（着色）</label>
+      <label><input type="checkbox" id="chkDirection" /> 方向（箭头）</label>
+      <label><input type="checkbox" id="chkAnimation" checked /> 动画（粒子）</label>
+      <div class="row">
+        <span>粒子数</span>
+        <input type="range" id="rngParticles" min="200" max="3000" step="100" value="800" />
+      </div>
+      <div class="row">
+        <span>速度倍率</span>
+        <input type="range" id="rngSpeed" min="0.25" max="3" step="0.25" value="1" />
+      </div>
+    </div>
+
+    <div id="legend">
+      <div class="title">浪高（单位 m）</div>
+      <div class="bar" id="legendBar"></div>
+      <div class="ticks" id="legendTicks"></div>
+    </div>
+
+    <div id="note">
+      <b>说明：</b>矢量场数据实时拉取自中国海洋预报网公开接口
+      <code>hyyj2/index/getVersion</code> + <code>obs.oceanguide.org.cn</code>
+      的 ESRI ASCII Grid 文件（<code>_u_2.asc</code> / <code>_v_2.asc</code>），
+      渲染方式（粒子轨迹 + Canvas 淡出叠加）为对原站技术的复现，非官方页面。
+    </div>
+
+    <script src="./wave.js"></script>
+  <script src="../speak.js"></script>
+  </body>
+</html>

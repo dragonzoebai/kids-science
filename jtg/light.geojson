@@ -1,0 +1,11 @@
+{
+"type": "FeatureCollection",
+"name": "light",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "id": null, "name": "灯3" }, "geometry": { "type": "Point", "coordinates": [ 119.000765545876789, 39.213116100306486 ] } },
+{ "type": "Feature", "properties": { "id": null, "name": "灯4" }, "geometry": { "type": "Point", "coordinates": [ 119.000997798964349, 39.212049864061164 ] } },
+{ "type": "Feature", "properties": { "id": null, "name": "灯1" }, "geometry": { "type": "Point", "coordinates": [ 119.000229899999979, 39.215559825000341 ] } },
+{ "type": "Feature", "properties": { "id": null, "name": "灯2" }, "geometry": { "type": "Point", "coordinates": [ 119.000462750000011, 39.214494415000303 ] } }
+]
+}

@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>页面目录</title>
+<style>
+  :root {
+    --bg: #f5f6f8; --card: #fff; --text: #1f2328; --muted: #6b7280;
+    --border: #e5e7eb; --accent: #2563eb;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f1115; --card: #181b21; --text: #e6e8eb; --muted: #9aa1ab;
+      --border: #2a2f37; --accent: #60a5fa;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 15px/1.6 system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  }
+  main { max-width: 1080px; margin: 0 auto; padding: 32px 16px 64px; }
+  h1 { margin: 0 0 4px; font-size: 26px; }
+  .sub { color: var(--muted); margin-bottom: 28px; }
+  .group { margin-top: 20px; }
+  .group summary {
+    display: flex; align-items: center; gap: 10px; min-height: 44px;
+    cursor: pointer; list-style: none; touch-action: manipulation; border-radius: 6px;
+  }
+  .group summary::-webkit-details-marker { display: none; }
+  .group summary::before {
+    content: ''; width: 8px; height: 8px; flex-shrink: 0;
+    border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted);
+    transform: rotate(-45deg); transition: transform .3s cubic-bezier(.22, 1, .36, 1);
+  }
+  .group.is-expanded > summary::before { transform: rotate(45deg); }
+  .group summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+  .group-content { overflow: hidden; }
+  .group-content > .grid { padding-top: 8px; }
+  @media (prefers-reduced-motion: reduce) {
+    .group summary::before { transition: none; }
+  }
+  h2 { font-size: 17px; margin: 0; display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px; }
+  h2 small { color: var(--muted); font-weight: normal; font-size: 13px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+  a.card {
+    display: block; padding: 14px 16px; background: var(--card); border: 1px solid var(--border);
+    border-radius: 10px; color: inherit; text-decoration: none; transition: border-color .15s, transform .15s;
+  }
+  a.card:hover { border-color: var(--accent); transform: translateY(-1px); }
+  .title { font-weight: 600; }
+  .path { color: var(--muted); font-size: 12px; font-family: ui-monospace, Consolas, monospace; margin-top: 4px; }
+</style>
+<link rel="stylesheet" href="touch.css">
+<script src="touch.js"></script>
+</head>
+<body>
+<main>
+  <h1>页面目录</h1>
+  <div class="sub" id="count"></div>
+  <div id="list"></div>
+</main>
+<script>
+  const groups = [
+    { dir: 'biology', name: '生物', pages: [
+      ['biology/food-chain.html', '食物链小森林 · 能量接力赛'],
+      ['biology/plant.html', '植物生长模拟 · 小种子花园'],
+    ]},
+    { dir: 'earth', name: '地球与地图', pages: [
+      ['earth/beijing-subway.html', '北京地铁图'],
+      ['earth/china.html', '中国省份与省会 · 三维地球'],
+      ['earth/city-china.html', '中国城市人口排行 · 三维地球'],
+      ['earth/city.html', '全球城市人口排行 · 三维地球'],
+      ['earth/earthquake.html', '全球地震可视化 · 三维地球'],
+      ['earth/hsr.html', '中国高速铁路 · 三维地球'],
+      ['earth/highway.html', '全国主要高速公路 · 三维地球'],
+      ['earth/longitude.html', '经纬网可视化 · 三维地球'],
+      ['earth/subway.html', '中国地铁城市 · 三维地球'],
+      ['earth/timezone.html', '理论标准时区边界线 · 三维地球'],
+    ]},
+    { dir: 'jtg', name: '港区堆场', pages: [
+      ['jtg/index.html', '堆场 & 路网 GeoJSON 地图'],
+      ['jtg/three.html', '小堆场 3857 - Three.js'],
+      ['jtg/three1.html', '小堆场 3857 - Three.js（1）'],
+      ['jtg/three2.html', '小堆场 3857 - Three.js（2）'],
+      ['jtg/threebox.html', '小堆场 3857 - Threebox'],
+    ]},
+    { dir: 'physics', name: '物理', pages: [
+      ['physics/rainbow.html', '彩虹形成实验 · 光的魔法小剧场'],
+      ['physics/sound.html', '声音是怎么传播的 · 声波小剧场'],
+    ]},
+    { dir: 'threejs', name: '天文与气象（Three.js）', pages: [
+      ['threejs/ar-earth.html', 'AR 地球 · 转动手机看地球'],
+      ['threejs/hours.html', '北京时间 · 地球自转'],
+      ['threejs/moon.html', '月相 Moon Phases'],
+      ['threejs/season.html', '地球公转与四季 - 黄赤交角'],
+      ['threejs/solar.html', '太阳系 Solar System'],
+      ['threejs/typhoon.html', '台风路径 · 西北太平洋到华南'],
+      ['threejs/watercycle.html', '水循环 · 从太平洋到中国'],
+    ]},
+    { dir: 'wave', name: '海浪', pages: [
+      ['wave/index.html', '海浪粒子流动画 · 复现 Demo'],
+    ]},
+  ];
+
+  const list = document.getElementById('list');
+  let total = 0;
+  for (const g of groups) {
+    total += g.pages.length;
+    const group = document.createElement('details');
+    group.className = 'group';
+    group.open = g.dir !== 'jtg';
+    group.classList.toggle('is-expanded', group.open);
+    const summary = document.createElement('summary');
+    const h = document.createElement('h2');
+    h.innerHTML = `${g.name} <small>${g.dir}/ · ${g.pages.length}</small>`;
+    const grid = document.createElement('div');
+    grid.className = 'grid';
+    for (const [href, title] of g.pages) {
+      const a = document.createElement('a');
+      a.className = 'card';
+      a.href = href;
+      a.innerHTML = `<div class="title">${title}</div><div class="path">${href}</div>`;
+      grid.appendChild(a);
+    }
+    summary.appendChild(h);
+    const content = document.createElement('div');
+    content.className = 'group-content';
+    content.appendChild(grid);
+    group.append(summary, content);
+    list.appendChild(group);
+
+    let expanded = group.open;
+    let animation = null;
+    summary.setAttribute('aria-expanded', String(expanded));
+    summary.addEventListener('click', (event) => {
+      event.preventDefault();
+      const wasOpen = group.open;
+      const startHeight = wasOpen ? content.getBoundingClientRect().height : 0;
+      const startOpacity = wasOpen ? getComputedStyle(content).opacity : '0';
+      if (animation) {
+        animation.cancel();
+        animation = null;
+      }
+      expanded = !expanded;
+      group.classList.toggle('is-expanded', expanded);
+      summary.setAttribute('aria-expanded', String(expanded));
+      // Keep native details open until the closing animation finishes.
+      group.open = true;
+      content.inert = !expanded;
+      if (matchMedia('(prefers-reduced-motion: reduce)').matches || !content.animate) {
+        group.open = expanded;
+        return;
+      }
+      animation = content.animate([
+        { height: `${startHeight}px`, opacity: startOpacity },
+        { height: `${expanded ? content.scrollHeight : 0}px`, opacity: expanded ? 1 : 0 },
+      ], { duration: 320, easing: 'cubic-bezier(.22, 1, .36, 1)' });
+      animation.onfinish = () => {
+        group.open = expanded;
+        animation = null;
+      };
+    });
+  }
+  document.getElementById('count').textContent = `共 ${groups.length} 个目录，${total} 个页面`;
+</script>
+<script src="speak.js"></script>
+</body>
+</html>

@@ -1,0 +1,741 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>全国主要高速公路 · 三维地球</title>
+    <link
+      rel="stylesheet"
+      href="../vendor/mapbox-gl-3.4.0/dist/mapbox-gl.css"
+    />
+    <script src="../vendor/mapbox-gl-3.4.0/dist/mapbox-gl.js"></script>
+    <script src="highway-data.js"></script>
+    <script src="../map-interactions.js"></script>
+    <link rel="stylesheet" href="../touch.css" />
+    <script src="../touch.js"></script>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #050b18;
+        color: #eef9ff;
+        font:
+          14px/1.6 system-ui,
+          "PingFang SC",
+          sans-serif;
+      }
+      #map {
+        position: absolute;
+        inset: 0;
+      }
+      .mapboxgl-ctrl-top-left {
+        top: 94px;
+        left: 8px;
+      }
+      header {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        padding: 18px 24px 35px;
+        background: linear-gradient(#050b18ee, transparent);
+        pointer-events: none;
+      }
+      h1 {
+        margin: 0;
+        font-size: 23px;
+      }
+      h1 span {
+        color: #6ee7b7;
+      }
+      header p {
+        margin: 3px 0;
+        color: #b6c8d8;
+        font-size: 12px;
+      }
+      .panel {
+        position: absolute;
+        right: 18px;
+        top: 102px;
+        width: 320px;
+        max-height: calc(100dvh - 130px);
+        display: flex;
+        flex-direction: column;
+        background: #081526ed;
+        border: 1px solid #294356;
+        border-radius: 18px;
+        box-shadow: 0 16px 50px #0006;
+        backdrop-filter: blur(12px);
+      }
+      .tools {
+        padding: 16px;
+        border-bottom: 1px solid #294356;
+      }
+      input,
+      select,
+      button {
+        font: inherit;
+        color: inherit;
+        background: #14273b;
+        border: 1px solid #35516a;
+        border-radius: 10px;
+        min-height: 44px;
+      }
+      input,
+      select {
+        padding: 9px;
+        width: 100%;
+        margin-bottom: 8px;
+      }
+      button {
+        cursor: pointer;
+        padding: 8px 12px;
+      }
+      button:focus-visible,
+      input:focus-visible,
+      select:focus-visible {
+        outline: 3px solid #6ee7b7;
+        outline-offset: 2px;
+      }
+      .row {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      .row button {
+        flex: 1;
+      }
+      #summary {
+        color: #98b3c7;
+        font-size: 12px;
+        margin-top: 9px;
+      }
+      #list {
+        overflow: auto;
+        padding: 10px;
+        overscroll-behavior: contain;
+      }
+      .route {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        text-align: left;
+        margin-bottom: 8px;
+        background: #102237;
+        border-color: #263e51;
+        padding: 12px;
+      }
+      .route.active {
+        border-color: #6ee7b7;
+        background: #174237;
+      }
+      .shield {
+        background: #147a47;
+        color: white;
+        border: 2px solid #d8f5e6;
+        border-top: 6px solid #e23c43;
+        border-radius: 5px;
+        min-width: 53px;
+        text-align: center;
+        font-size: 14px;
+        font-weight: 800;
+        line-height: 1.7;
+      }
+      .route strong {
+        display: block;
+        font-size: 15px;
+      }
+      .route small {
+        display: block;
+        color: #a8bed0;
+      }
+      .note {
+        position: absolute;
+        left: 18px;
+        bottom: 35px;
+        width: 280px;
+        background: #081526e8;
+        border: 1px solid #294356;
+        border-radius: 14px;
+        padding: 14px;
+        font-size: 12px;
+        color: #a8bed0;
+      }
+      .note p {
+        margin: 7px 0;
+      }
+      .note a {
+        color: #6ee7b7;
+      }
+      .key {
+        display: inline-block;
+        width: 18px;
+        height: 4px;
+        margin-right: 6px;
+        vertical-align: middle;
+      }
+      #detail {
+        padding: 0 16px 12px;
+        color: #c9e2ed;
+        font-size: 13px;
+      }
+      #detail:empty {
+        display: none;
+      }
+      .cities {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        padding-top: 8px;
+      }
+      .cities button {
+        font-size: 12px;
+        min-height: 44px;
+      }
+      .mapboxgl-popup-content {
+        background: #0d2135;
+        color: #eef9ff;
+        border: 1px solid #4c8a9b;
+        border-radius: 12px;
+        padding: 15px;
+      }
+      .mapboxgl-popup-close-button {
+        color: white;
+      }
+      .car {
+        font-size: 29px;
+        filter: drop-shadow(0 0 6px #fff);
+        pointer-events: none;
+      }
+      #status {
+        position: absolute;
+        left: 18px;
+        top: 110px;
+        background: #081526dd;
+        padding: 8px 12px;
+        border-radius: 10px;
+        max-width: 280px;
+      }
+      label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+      }
+      label input {
+        width: 20px;
+        min-height: 24px;
+        margin: 0;
+      }
+      @media (max-width: 900px) {
+        header {
+          padding: 12px 14px 28px;
+        }
+        h1 {
+          font-size: 19px;
+        }
+        header p {
+          max-width: 95%;
+          font-size: 11px;
+        }
+        .panel {
+          left: 10px;
+          right: 10px;
+          top: auto;
+          bottom: 26px;
+          width: auto;
+          max-height: 46dvh;
+        }
+        .tools {
+          padding: 10px;
+        }
+        .tools input {
+          margin-bottom: 6px;
+        }
+        .tools select {
+          width: 48%;
+          margin: 0;
+        }
+        .tools .filters {
+          display: flex;
+          gap: 8px;
+          align-items: center;
+        }
+        .tools .filters label {
+          flex: 1;
+        }
+        .row {
+          margin-top: 6px;
+        }
+        .note {
+          display: none;
+        }
+        #list {
+          min-height: 60px;
+        }
+        #detail {
+          max-height: 16dvh;
+          overflow: auto;
+        }
+        #status {
+          top: 90px;
+          font-size: 12px;
+        }
+        .route {
+          padding: 8px 12px;
+          margin-bottom: 6px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="map" aria-label="全国主要高速公路三维地图"></div>
+    <header>
+      <h1>🛣️ 全国主要高速公路 · <span>跟着公路认识中国</span></h1>
+      <p>
+        轻触线路或名录，查看沿线城市 · 拖动地球、双指缩放 ·
+        主要高速单线图（融合版）
+      </p>
+    </header>
+    <div id="status" role="status">正在加载地球底图…</div>
+    <aside class="panel" aria-label="高速公路名录">
+      <div class="tools">
+        <input
+          id="search"
+          type="search"
+          aria-label="搜索高速公路或城市"
+          placeholder="搜索 G4 / 京港澳 / 长沙"
+        />
+        <div class="filters">
+          <select id="category" aria-label="线路类型">
+            <option value="">全部类型</option>
+            <option>放射线</option>
+            <option>南北纵线</option>
+            <option>东西横线</option></select
+          ><label
+            ><input id="motion" type="checkbox" checked />小汽车巡游</label
+          >
+        </div>
+        <div class="row">
+          <button id="reset" type="button">← 返回全国</button
+          ><button
+            id="toggle-list"
+            type="button"
+            aria-expanded="true"
+            aria-controls="list"
+          >
+            收起名录
+          </button>
+          <button id="download-lines" type="button">下载线路</button>
+        </div>
+        <div id="summary" aria-live="polite"></div>
+      </div>
+      <div id="detail"></div>
+      <div id="list"></div>
+    </aside>
+    <aside class="note">
+      <b>认识国家高速公路编号</b>
+      <p>
+        <i class="key" style="background: #fb7185"></i
+        >放射线：从北京出发，编号为一位数
+      </p>
+      <p>
+        <i class="key" style="background: #38bdf8"></i
+        >南北纵线：两位数，通常为奇数
+      </p>
+      <p>
+        <i class="key" style="background: #fbbf24"></i
+        >东西横线：两位数，通常为偶数
+      </p>
+      <p>
+        精选 23 条主要高速。以明确编号的 OSM 主线为准，使用本地数据
+        补充可确认的短缺口，去重并省略匝道和短分叉；两类源均缺失的路段仍保留断口，不用于导航。
+      </p>
+      <a
+        href="https://www.ndrc.gov.cn/xxgk/zcfb/ghwb/202207/P020220712348051707026.pdf"
+        target="_blank"
+        rel="noopener"
+        >参考：国家公路网规划（2022）↗</a
+      >
+      <p>
+        补充道路 ©
+        <a
+          href="https://www.openstreetmap.org/copyright"
+          target="_blank"
+          rel="noopener"
+          >OpenStreetMap 贡献者 · ODbL</a
+        >
+      </p>
+    </aside>
+    <script>
+      mapboxgl.accessToken =
+        "pk.eyJ1IjoiZHJhZ29uem9lYmFpIiwiYSI6ImNrcDZlZjd3ODAwN2Uyd21qdWlpdGRqdWUifQ.-4OIwa9MuCxHvVxS0mbV0g";
+      const $ = (id) => document.getElementById(id),
+        colors = {
+          放射线: "#fb7185",
+          南北纵线: "#38bdf8",
+          东西横线: "#fbbf24",
+        };
+      const routes = window.HIGHWAY_DATA.map(
+        ([code, name, type, path, note = ""], id) => ({
+          id,
+          code,
+          name,
+          type,
+          note,
+          cities: path.split(" "),
+          coords: path.split(" ").map((n) => window.HIGHWAY_CITIES[n]),
+        }),
+      );
+      const fc = (features) => ({ type: "FeatureCollection", features }),
+        point = (coordinates, properties) => ({
+          type: "Feature",
+          properties,
+          geometry: { type: "Point", coordinates },
+        });
+
+      const segments = routes.flatMap((r) =>
+        (window.HIGHWAY_GEOMETRY[r.code] || []).map((coordinates) => ({
+          type: "Feature",
+          properties: { id: r.id, color: colors[r.type] },
+          geometry: { type: "LineString", coordinates },
+        })),
+      );
+      let ready = false,
+        active = -1,
+        start = 0,
+        carTrack = [];
+      const map = new mapboxgl.Map({
+        container: "map",
+        style: "mapbox://styles/mapbox/dark-v11",
+        center: [106, 34],
+        zoom: 3.1,
+        projection: "globe",
+        antialias: true,
+      });
+      map.addControl(new mapboxgl.NavigationControl(), "top-left");
+      const popup = new mapboxgl.Popup({
+        closeButton: true,
+        closeOnClick: false,
+        maxWidth: "270px",
+      });
+      const carEl = document.createElement("div");
+      carEl.className = "car";
+      carEl.textContent = "🚗";
+      carEl.setAttribute("aria-hidden", "true");
+      const car = new mapboxgl.Marker({ element: carEl });
+      function matching() {
+        const q = $("search").value.trim().toLowerCase();
+        return routes.filter(
+          (r) =>
+            (!$("category").value || r.type === $("category").value) &&
+            (!q ||
+              [r.code, r.name, ...r.cities]
+                .join(" ")
+                .toLowerCase()
+                .includes(q)),
+        );
+      }
+      function render() {
+        const shown = matching();
+        $("summary").textContent =
+          `精选 ${routes.length} 条主要通道 · 当前显示 ${shown.length} 条 · 融合单线主干`;
+        $("list").replaceChildren(
+          ...shown.map((r) => {
+            const b = document.createElement("button");
+            b.type = "button";
+            b.className = "route" + (r.id === active ? " active" : "");
+            b.setAttribute("aria-pressed", String(r.id === active));
+            b.innerHTML = `<span class="shield">${r.code}</span><span><strong>${r.name}</strong><small>${r.cities[0]} → ${r.cities.at(-1)} · ${r.type}</small></span>`;
+            b.onclick = () => select(r.id);
+            return b;
+          }),
+        );
+        if (!shown.length)
+          $("list").textContent = "没有找到，试试公路编号或城市名称。";
+        if (ready) {
+          const ids = shown.map((r) => r.id);
+          for (const layer of ["road-glow", "road"])
+            map.setFilter(layer, ["in", ["get", "id"], ["literal", ids]]);
+        }
+      }
+      function distance(a, b) {
+        return Math.hypot(
+          (b[0] - a[0]) * Math.cos(((a[1] + b[1]) * Math.PI) / 360),
+          b[1] - a[1],
+        );
+      }
+      function makeCarTrack(r) {
+        const parts = window.HIGHWAY_GEOMETRY[r.code] || [];
+        const longest = parts.reduce(
+          (best, p) => {
+            const length = p
+              .slice(1)
+              .reduce((n, b, i) => n + distance(p[i], b), 0);
+            return length > best.length ? { p, length } : best;
+          },
+          { p: [], length: 0 },
+        ).p;
+        const track = [];
+        for (let i = 1; i < longest.length; i++) {
+          const a = longest[i - 1],
+            b = longest[i],
+            steps = Math.max(1, Math.ceil(distance(a, b) / 0.003));
+          for (let k = 0; k < steps; k++)
+            track.push([
+              a[0] + ((b[0] - a[0]) * k) / steps,
+              a[1] + ((b[1] - a[1]) * k) / steps,
+            ]);
+        }
+        return track;
+      }
+      function select(id) {
+        active = id;
+        popup.remove();
+        const r = routes[id];
+        $("detail").replaceChildren();
+        const title = document.createElement("strong");
+        title.textContent = `${r.code} ${r.name} · ${r.cities.length} 个参考城市`;
+        $("detail").append(title);
+        const note = document.createElement("div");
+        note.textContent =
+          r.note ||
+          "按编号核对的融合单线；仍有待核实路段，缺口不代表实际断路，参考城市不是出入口。";
+        $("detail").append(note);
+        const cityRow = document.createElement("div");
+        cityRow.className = "cities";
+        r.cities.forEach((n, i) => {
+          const b = document.createElement("button");
+          b.type = "button";
+          b.textContent = n;
+          b.onclick = () => {
+            if (!ready) return;
+            map.flyTo({ center: r.coords[i], zoom: 6 });
+            popup
+              .setLngLat(r.coords[i])
+              .setText(`${n} · ${r.code} ${r.name}沿线参考城市`)
+              .addTo(map);
+            popup.getElement().setAttribute("data-speak-ignore", "");
+            window.kidSpeak?.(`${n}，${r.name}`);
+          };
+          cityRow.append(b);
+        });
+        $("detail").append(cityRow);
+        if (ready) {
+          for (const layer of ["road-glow", "road"])
+            map.setPaintProperty(layer, "line-opacity", [
+              "case",
+              ["==", ["get", "id"], id],
+              1,
+              0.13,
+            ]);
+          map
+            .getSource("cities")
+            .setData(
+              fc(r.coords.map((p, i) => point(p, { name: r.cities[i] }))),
+            );
+          const bounds = new mapboxgl.LngLatBounds();
+          (window.HIGHWAY_GEOMETRY[r.code] || []).forEach((part) =>
+            part.forEach((p) => bounds.extend(p)),
+          );
+          const mobile = innerWidth <= 900;
+          map.fitBounds(bounds, {
+            padding: mobile
+              ? { top: 120, bottom: innerHeight * 0.48, left: 35, right: 35 }
+              : { top: 115, bottom: 70, left: 75, right: 365 },
+            maxZoom: 7,
+            duration: 1000,
+          });
+        }
+        carTrack = makeCarTrack(r);
+        start = performance.now();
+        render();
+        window.kidSpeak?.(
+          `${r.code}，${r.name}，从${r.cities[0]}到${r.cities.at(-1)}`,
+        );
+      }
+      function reset() {
+        active = -1;
+        car.remove();
+        popup.remove();
+        $("detail").replaceChildren();
+        if (ready) {
+          map.getSource("cities").setData(fc([]));
+          for (const layer of ["road-glow", "road"])
+            map.setPaintProperty(
+              layer,
+              "line-opacity",
+              layer === "road" ? 0.85 : 0.35,
+            );
+          map.flyTo({ center: [106, 34], zoom: 3.1, pitch: 0, bearing: 0 });
+        }
+        render();
+      }
+      map.on("load", () => {
+        ready = true;
+        map.setFog({ "space-color": "#020617", "star-intensity": 0.6 });
+        map
+          .getStyle()
+          .layers.filter((l) => l.type === "symbol" && l.layout?.["text-field"])
+          .forEach((l) =>
+            map.setLayoutProperty(l.id, "text-field", [
+              "coalesce",
+              ["get", "name_zh-Hans"],
+              ["get", "name_zh"],
+              ["get", "name"],
+            ]),
+          );
+        map.addSource("roads", { type: "geojson", data: fc(segments) });
+        for (const [id, width, opacity, blur] of [
+          ["road-glow", 8, 0.3, 4],
+          ["road", 2, 0.85, 0],
+        ])
+          map.addLayer({
+            id,
+            type: "line",
+            source: "roads",
+            layout: { "line-join": "round", "line-cap": "round" },
+            paint: {
+              "line-color": ["get", "color"],
+              "line-width": width,
+              "line-opacity": opacity,
+              "line-blur": blur,
+            },
+          });
+        map.addSource("cities", { type: "geojson", data: fc([]) });
+        map.addLayer({
+          id: "city-dot",
+          type: "circle",
+          source: "cities",
+          paint: {
+            "circle-radius": 5,
+            "circle-color": "#6ee7b7",
+            "circle-stroke-color": "#fff",
+            "circle-stroke-width": 2,
+          },
+        });
+        map.addLayer({
+          id: "city-name",
+          type: "symbol",
+          source: "cities",
+          layout: {
+            "text-field": ["get", "name"],
+            "text-size": 14,
+            "text-anchor": "top",
+            "text-offset": [0, 0.7],
+          },
+          paint: {
+            "text-color": "#fff",
+            "text-halo-color": "#081526",
+            "text-halo-width": 2,
+          },
+        });
+        window.bindMapPopup(map, popup, {
+          layers: ["road"],
+          onSelect: (e) => select(e.features[0].properties.id),
+          show: (e) => {
+            const r = routes[e.features[0].properties.id];
+            popup
+              .setLngLat(e.lngLat)
+              .setText(`${r.code} ${r.name}｜${r.type}｜融合单线主干`)
+              .addTo(map);
+          },
+        });
+        window.bindMapPopup(map, popup, {
+          layers: ["city-dot", "city-name"],
+          show: (e) =>
+            popup
+              .setLngLat(e.features[0].geometry.coordinates)
+              .setText(`${e.features[0].properties.name} · 沿线参考城市`)
+              .addTo(map),
+        });
+        $("status").hidden = true;
+        render();
+        if (active >= 0) select(active);
+        fetch("china-bound.json")
+          .then((r) => {
+            if (!r.ok) throw Error(r.status);
+            return r.json();
+          })
+          .then((data) => {
+            map.addSource("border", { type: "geojson", data });
+            map.addLayer(
+              {
+                id: "border",
+                type: "line",
+                source: "border",
+                paint: {
+                  "line-color": "#6ee7b7",
+                  "line-width": 1,
+                  "line-opacity": 0.6,
+                },
+              },
+              "road-glow",
+            );
+          })
+          .catch(() => {});
+      });
+      map.on("error", () => {
+        if (!ready) {
+          $("status").hidden = false;
+          $("status").textContent =
+            "底图加载遇到问题，请检查网络后刷新；仍可浏览线路名录。";
+        }
+      });
+      $("search").oninput = $("category").onchange = () => {
+        if (active >= 0 && !matching().some((r) => r.id === active)) reset();
+        else render();
+      };
+      $("reset").onclick = reset;
+      $("motion").onchange = () => {
+        if (!$("motion").checked) car.remove();
+      };
+      $("toggle-list").onclick = () => {
+        const hidden = !$("list").hidden;
+        $("list").hidden = hidden;
+        $("toggle-list").textContent = hidden ? "展开名录" : "收起名录";
+        $("toggle-list").setAttribute("aria-expanded", String(!hidden));
+      };
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") reset();
+      });
+      const reduced = matchMedia("(prefers-reduced-motion: reduce)");
+      if (reduced.matches) $("motion").checked = false;
+      function animate(t) {
+        if (
+          ready &&
+          active >= 0 &&
+          $("motion").checked &&
+          carTrack.length &&
+          !document.hidden
+        ) {
+          car.setLngLat(
+            carTrack[Math.floor(Math.max(0, t - start) / 80) % carTrack.length],
+          );
+          if (!carEl.isConnected) car.addTo(map);
+        } else car.remove();
+        requestAnimationFrame(animate);
+      }
+      $("download-lines").addEventListener("click", (event) => {
+        event.preventDefault();
+        const blob = new Blob([JSON.stringify(window.createHighwayGeoJSON())], {
+          type: "application/geo+json;charset=utf-8",
+        });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "中国主要高速_融合单线.geojson";
+        document.body.append(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      });
+      render();
+      requestAnimationFrame(animate);
+    </script>
+    <script src="../speak.js"></script>
+  </body>
+</html>

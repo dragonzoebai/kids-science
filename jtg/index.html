@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>堆场 & 路网 GeoJSON 地图</title>
+    <link rel="stylesheet" href="../vendor/leaflet-1.9.4/dist/leaflet.css" />
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { font-family: "Microsoft YaHei", sans-serif; }
+      #map { width: 100vw; height: 100vh; }
+
+      #legend {
+        position: absolute;
+        bottom: 30px;
+        right: 10px;
+        z-index: 1000;
+        background: rgba(255,255,255,0.92);
+        border-radius: 6px;
+        padding: 12px 16px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+        font-size: 13px;
+        line-height: 1.8;
+      }
+      #legend h4 { margin-bottom: 6px; font-size: 14px; }
+      .legend-item { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+      .legend-item input { cursor: pointer; }
+      .swatch { width: 28px; height: 12px; border-radius: 2px; border: 1px solid #ccc; flex-shrink: 0; }
+      .swatch.polygon { height: 14px; border-width: 2px; }
+
+      #info {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        z-index: 1000;
+        background: rgba(255,255,255,0.9);
+        padding: 8px 12px;
+        border-radius: 6px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        font-size: 12px;
+        color: #555;
+        display: none;
+      }
+
+      /* ===== 路径规划面板 ===== */
+      #planner {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        z-index: 1000;
+        background: rgba(255,255,255,0.95);
+        border-radius: 8px;
+        padding: 14px 16px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.25);
+        font-size: 13px;
+        width: 240px;
+      }
+      #planner h4 {
+        margin-bottom: 10px;
+        font-size: 14px;
+        color: #1a3a6b;
+        border-bottom: 2px solid #1a6fdb;
+        padding-bottom: 6px;
+      }
+      .planner-row { margin-bottom: 8px; }
+      .planner-row label { display: block; font-size: 12px; color: #666; margin-bottom: 3px; }
+      .planner-row input[type="text"] {
+        width: 100%;
+        padding: 6px 8px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 13px;
+        font-family: inherit;
+        outline: none;
+      }
+      .planner-row input[type="text"]:focus { border-color: #1a6fdb; }
+      .planner-btn {
+        display: inline-block;
+        padding: 6px 10px;
+        border: none;
+        border-radius: 4px;
+        font-size: 12px;
+        cursor: pointer;
+        font-family: inherit;
+        transition: background 0.15s;
+      }
+      .btn-primary { background: #1a6fdb; color: #fff; }
+      .btn-primary:hover { background: #1558b0; }
+      .btn-secondary { background: #f0f0f0; color: #333; }
+      .btn-secondary:hover { background: #ddd; }
+      .btn-danger { background: #e04040; color: #fff; }
+      .btn-danger:hover { background: #c03030; }
+      .btn-success { background: #28a745; color: #fff; }
+      .btn-success:hover { background: #208035; }
+      #path-info {
+        margin-top: 8px;
+        font-size: 12px;
+        color: #333;
+        background: #f8f8f8;
+        border-radius: 4px;
+        padding: 6px 8px;
+        display: none;
+      }
+      #path-info.error { background: #fff0f0; color: #c00; }
+      #path-info.ok { background: #f0fff4; color: #060; }
+      .planner-actions { display: flex; gap: 6px; margin-top: 4px; }
+    </style>
+  <link rel="stylesheet" href="../touch.css">
+<script src="../touch.js"></script>
+</head>
+  <body>
+    <div id="map"></div>
+
+    <!-- 路径规划面板 -->
+    <div id="planner">
+      <h4>路径规划</h4>
+      <div class="planner-row">
+        <label>堆位编号</label>
+        <input type="text" id="heap-input" placeholder="如 G01、F03、E12" />
+      </div>
+      <div class="planner-actions">
+        <button class="planner-btn btn-primary" id="btn-plan">规划路径</button>
+        <button class="planner-btn btn-danger" id="btn-clear">清除</button>
+      </div>
+      <div id="path-info"></div>
+    </div>
+
+    <div id="legend">
+      <h4>图层控制</h4>
+      <label class="legend-item">
+        <input type="checkbox" id="chk-duichang" checked />
+        <span class="swatch polygon" style="background:rgba(255,165,0,0.4);border-color:#e07b00"></span>
+        小堆场（面）
+      </label>
+      <label class="legend-item" style="margin-top:4px">
+        <input type="checkbox" id="chk-luwang" checked />
+        <span class="swatch" style="background:#1a6fdb"></span>
+        路网编号（线）
+      </label>
+    </div>
+
+    <div id="info"></div>
+
+    <script src="../vendor/leaflet-1.9.4/dist/leaflet.js"></script>
+    <!-- 路径规划算法模块（无 DOM/Leaflet 依赖） -->
+    <script src="pathPlanner.js"></script>
+    <script>
+      // ===== 地图初始化 =====
+      const map = L.map("map");
+
+      L.tileLayer(
+        "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+        {}
+      ).addTo(map);
+
+      // ===== 图层样式 =====
+      const duichangStyle = { color:"#e07b00", weight:1.5, fillColor:"#ffa500", fillOpacity:0.35 };
+      const luwangStyle   = { color:"#1a6fdb", weight:2.5, opacity:0.85 };
+
+      let duichangLayer, luwangLayer;
+      const infoEl = document.getElementById("info");
+
+      // 堆场面要素：悬停高亮 + 信息栏 + 点击弹窗
+      function onEachDuichang(feature, layer) {
+        const name = feature.properties?.name ?? "未知";
+        layer.bindTooltip(name, { permanent:false, direction:"center", className:"leaflet-tooltip-small" });
+        layer.on({
+          mouseover(e) {
+            e.target.setStyle({ fillOpacity:0.65, weight:2.5 });
+            infoEl.style.display = "block";
+            infoEl.textContent = `堆场：${name}`;
+          },
+          mouseout(e) {
+            duichangLayer.resetStyle(e.target);
+            infoEl.style.display = "none";
+          },
+          click() { layer.bindPopup(`<b>小堆场</b><br>编号：${name}`).openPopup(); },
+        });
+      }
+
+      // 路网线要素：悬停高亮 + 信息栏 + 点击弹窗
+      function onEachLuwang(feature, layer) {
+        const name = feature.properties?.name ?? "未知";
+        layer.on({
+          mouseover(e) {
+            e.target.setStyle({ weight:4, color:"#ff4444" });
+            infoEl.style.display = "block";
+            infoEl.textContent = `路网：${name}`;
+          },
+          mouseout(e) {
+            luwangLayer.resetStyle(e.target);
+            infoEl.style.display = "none";
+          },
+          click() { layer.bindPopup(`<b>路网</b><br>编号：${name}`).openPopup(); },
+        });
+      }
+
+      // 通用 GeoJSON 加载器，失败时抛出带 URL 的错误
+      async function loadGeoJSON(url) {
+        const resp = await fetch(url);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}: ${url}`);
+        return resp.json();
+      }
+
+      // ===== 路径规划 UI 状态 =====
+      let roadGraph    = null;  // PathPlanner.buildGraph 返回的图
+      let luwangFeats  = null;  // 路网 GeoJSON features 列表
+      let exitNodeKey  = null;  // 出口节点在图中的 key
+      let exitMarker   = null;  // 出口标注 Marker
+      let pathPolyline = null;  // 当前规划路径折线
+      let startMarker  = null;  // 当前起点标注
+
+      // 清除已绘制的路径和起点标注，重置输入框
+      function clearPath() {
+        if (pathPolyline) { map.removeLayer(pathPolyline); pathPolyline = null; }
+        if (startMarker)  { map.removeLayer(startMarker);  startMarker  = null; }
+        document.getElementById("path-info").style.display = "none";
+        document.getElementById("heap-input").value = "";
+      }
+
+      // 在路网图中定位"出口"要素，并在地图上放置红色标注
+      function initExit() {
+        const key = PathPlanner.heapNodeKey(roadGraph, luwangFeats, "出口");
+        if (!key) { console.warn('未找到名称为"出口"的路网要素'); return; }
+        exitNodeKey = key;
+        const [eLng, eLat] = roadGraph[key].coord;
+        exitMarker = L.marker([eLat, eLng], {
+          icon: L.divIcon({
+            className: "",
+            html: `<div style="background:#e04040;color:#fff;font-size:12px;font-weight:bold;
+              padding:4px 8px;border-radius:4px;white-space:nowrap;
+              box-shadow:0 2px 6px rgba(0,0,0,0.4);border:1px solid #c00;">出口</div>`,
+            iconAnchor: [20, 14],
+          }),
+        }).addTo(map).bindPopup("<b>出口</b>");
+      }
+
+      // 读取输入框堆位编号，调用 Dijkstra 规划到出口的最短路径并绘制
+      function planPath() {
+        const info = document.getElementById("path-info");
+        info.className = "";
+        info.style.display = "block";
+
+        if (!roadGraph)  { info.className = "error"; info.textContent = "路网数据尚未加载"; return; }
+        if (!exitNodeKey){ info.className = "error"; info.textContent = '路网中未找到"出口"要素'; return; }
+
+        const name = document.getElementById("heap-input").value.trim();
+        if (!name) { info.className = "error"; info.textContent = "请输入堆位编号"; return; }
+
+        const startKey = PathPlanner.heapNodeKey(roadGraph, luwangFeats, name);
+        if (!startKey) { info.className = "error"; info.textContent = `未找到堆位"${name}"，请检查编号`; return; }
+
+        const result = PathPlanner.dijkstra(roadGraph, startKey, exitNodeKey);
+
+        if (pathPolyline) { map.removeLayer(pathPolyline); pathPolyline = null; }
+        if (startMarker)  { map.removeLayer(startMarker);  startMarker  = null; }
+
+        if (!result) { info.className = "error"; info.textContent = `未找到从"${name}"到出口的可达路径`; return; }
+
+        const latlngs = result.coords.map(([lng, lat]) => [lat, lng]);
+        pathPolyline = L.polyline(latlngs, {
+          color: "#ff6a00", weight: 5, opacity: 0.9, lineJoin: "round", lineCap: "round",
+        }).addTo(map);
+
+        const [sLng, sLat] = roadGraph[startKey].coord;
+        startMarker = L.circleMarker([sLat, sLng], {
+          radius: 8, color: "#fff", weight: 2, fillColor: "#ff6a00", fillOpacity: 1,
+        }).addTo(map).bindPopup(`<b>起点</b><br>堆位：${name}`);
+
+        map.fitBounds(pathPolyline.getBounds(), { padding: [60, 60] });
+        info.className = "ok";
+        info.textContent = `规划成功：${result.dist.toFixed(0)} 米，经过 ${result.coords.length} 个节点`;
+      }
+
+      // ===== 按钮事件绑定 =====
+      document.getElementById("btn-plan").addEventListener("click", planPath);
+      document.getElementById("btn-clear").addEventListener("click", () => {
+        clearPath();
+        document.getElementById("path-info").style.display = "none";
+      });
+      // 支持回车键触发规划
+      document.getElementById("heap-input").addEventListener("keydown", (e) => {
+        if (e.key === "Enter") planPath();
+      });
+
+      // ===== 数据加载 =====
+      // 并行加载两个 GeoJSON，构建路网图，注册图层切换事件
+      async function init() {
+        try {
+          const [duichangData, luwangData] = await Promise.all([
+            loadGeoJSON("duiwei.geojson"), // 新数据
+            loadGeoJSON("路网-切割20260910.geojson"),
+          ]);
+
+          duichangLayer = L.geoJSON(duichangData, {
+            style: duichangStyle,
+            onEachFeature: onEachDuichang,
+          }).addTo(map);
+
+          luwangLayer = L.geoJSON(luwangData, {
+            style: luwangStyle,
+            onEachFeature: onEachLuwang,
+          }).addTo(map);
+
+          const bounds = duichangLayer.getBounds().extend(luwangLayer.getBounds());
+          map.fitBounds(bounds, { padding: [30, 30] });
+
+          luwangFeats = luwangData.features;
+          roadGraph   = PathPlanner.buildGraph(luwangFeats);
+          console.log(`路网图已构建：${Object.keys(roadGraph).length} 个节点`);
+          initExit();
+
+        } catch (err) {
+          document.body.innerHTML = `
+            <div style="padding:40px;font-family:sans-serif;color:#c00;">
+              <h2>加载失败</h2>
+              <p style="margin:12px 0">${err.message}</p>
+              <p>请通过本地 HTTP 服务器打开此页面，而不是直接双击打开。</p>
+              <p style="margin-top:16px;">快速启动方法：双击 <b>启动服务器.bat</b>，然后在浏览器访问
+                <a href="http://localhost:8080">http://localhost:8080</a>
+              </p>
+            </div>`;
+        }
+      }
+
+      // ===== 图层显示/隐藏 =====
+      document.getElementById("chk-duichang").addEventListener("change", function () {
+        if (duichangLayer) this.checked ? map.addLayer(duichangLayer) : map.removeLayer(duichangLayer);
+      });
+      document.getElementById("chk-luwang").addEventListener("change", function () {
+        if (luwangLayer) this.checked ? map.addLayer(luwangLayer) : map.removeLayer(luwangLayer);
+      });
+
+      init();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,722 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>经纬网可视化 · 三维地球</title>
+    <link
+      href="../vendor/mapbox-gl-3.4.0/dist/mapbox-gl.css"
+      rel="stylesheet"
+    />
+    <script src="../vendor/mapbox-gl-3.4.0/dist/mapbox-gl.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        background: #050a14;
+        font-family: "Segoe UI", system-ui, sans-serif;
+        color: #e0e8f0;
+        height: 100vh;
+        overflow: hidden;
+      }
+
+      #map {
+        width: 100vw;
+        height: 100vh;
+      }
+
+      /* ── 顶部标题栏 ── */
+      #header {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 24px;
+        background: linear-gradient(
+          180deg,
+          rgba(5, 10, 20, 0.9) 60%,
+          transparent
+        );
+        pointer-events: none;
+      }
+
+      #header h1 {
+        font-size: 20px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        color: #fff;
+      }
+
+      #header h1 span {
+        color: #22d3ee;
+      }
+
+      #update-time {
+        font-size: 12px;
+        color: #94a3b8;
+      }
+
+      /* ── 控制面板 ── */
+      #controls {
+        position: absolute;
+        top: 64px;
+        left: 16px;
+        z-index: 10;
+        background: rgba(10, 18, 32, 0.82);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        padding: 16px;
+        width: 216px;
+      }
+
+      #controls h3,
+      #legend h3 {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 1.2px;
+        color: #64748b;
+        margin-bottom: 12px;
+      }
+
+      .filter-row {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-bottom: 14px;
+      }
+
+      .filter-row:last-child {
+        margin-bottom: 0;
+      }
+
+      .filter-row label {
+        font-size: 12px;
+        color: #94a3b8;
+      }
+
+      .switch-row {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .switch-row label {
+        cursor: pointer;
+      }
+
+      .switch {
+        position: relative;
+        width: 38px;
+        height: 20px;
+      }
+
+      .switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+
+      .switch span {
+        position: absolute;
+        inset: 0;
+        border-radius: 999px;
+        background: #1e293b;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+
+      .switch span::before {
+        content: "";
+        position: absolute;
+        width: 16px;
+        height: 16px;
+        left: 2px;
+        top: 2px;
+        border-radius: 50%;
+        background: #cbd5e1;
+        transition: transform 0.2s, background 0.2s;
+      }
+
+      .switch input:checked + span {
+        background: #22d3ee;
+      }
+
+      .switch input:checked + span::before {
+        transform: translateX(18px);
+        background: #fff;
+      }
+
+      .hint {
+        padding-top: 8px;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        font-size: 11px;
+        line-height: 1.6;
+        color: #64748b;
+      }
+
+      /* ── 图例 ── */
+      #legend {
+        position: absolute;
+        bottom: 36px;
+        left: 16px;
+        z-index: 10;
+        background: rgba(10, 18, 32, 0.82);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        padding: 14px 16px;
+        min-width: 180px;
+      }
+
+      .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 7px;
+        font-size: 12px;
+        color: #cbd5e1;
+      }
+
+      .legend-line {
+        width: 28px;
+        height: 0;
+        border-top: 2px solid;
+        flex-shrink: 0;
+      }
+
+      .legend-line.longitude {
+        border-color: #22d3ee;
+      }
+
+      .legend-line.latitude {
+        border-color: #f59e0b;
+      }
+
+      .legend-line.major {
+        border-style: dashed;
+        border-color: #fff;
+      }
+
+      .legend-line.special {
+        border-width: 3px 0 0;
+        border-color: #ec4899;
+        box-shadow: 0 0 10px rgba(236, 72, 153, 0.7);
+      }
+
+      /* ── 统计卡片 ── */
+      #stats {
+        position: absolute;
+        top: 64px;
+        right: 16px;
+        z-index: 10;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .stat-card {
+        background: rgba(10, 18, 32, 0.82);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 10px;
+        padding: 12px 16px;
+        min-width: 130px;
+      }
+
+      .stat-card .num {
+        font-size: 24px;
+        font-weight: 700;
+        color: #fff;
+        line-height: 1;
+      }
+
+      .stat-card .num.cyan {
+        color: #22d3ee;
+      }
+
+      .stat-card .num.amber {
+        color: #f59e0b;
+      }
+
+      .stat-card .lbl {
+        font-size: 11px;
+        color: #64748b;
+        margin-top: 4px;
+      }
+
+@media (max-width: 900px) {
+  #header { padding: 10px 12px; flex-wrap: wrap; gap: 4px; }
+  #header h1 { font-size: 18px; }
+  #controls { top: 72px; left: 8px; width: 180px; padding: 10px; max-height: 35dvh; overflow-y: auto; }
+  #stats { top: 72px; right: 8px; }
+  .stat-card { padding: 8px; min-width: 88px; }
+  .stat-card .num { font-size: 20px; }
+  #legend { left: 64px; bottom: 28px; padding: 8px; max-width: calc(100vw - 80px); max-height: 18dvh; overflow-y: auto; }
+  #zone-card { top: 72px; right: 8px; width: 150px; padding: 10px; }
+  #zone-card .hint { display: none; }
+  #hotel-times { top: auto; bottom: 28px; right: 8px; width: min(250px, 52vw); max-height: 28dvh; padding: 8px; }
+}
+@media (max-width: 500px) {
+  #controls { width: 155px; }
+  #zone-card { width: 140px; }
+  #hotel-times { width: 48vw; }
+}
+</style>
+  <link rel="stylesheet" href="../touch.css">
+<script src="../touch.js"></script>
+</head>
+  <body>
+    <div id="map"></div>
+
+    <!-- 顶部标题 -->
+    <div id="header">
+      <h1>🌍 地球经纬网 · <span>三维地球</span></h1>
+      <div id="update-time">经度 / 纬度分层显示 · 每 15° 一条线</div>
+    </div>
+
+    <!-- 图层控件 -->
+    <div id="controls">
+      <h3>图层开关</h3>
+      <div class="filter-row switch-row">
+        <label for="longitude-toggle">经度图层</label>
+        <label class="switch">
+          <input type="checkbox" id="longitude-toggle" checked />
+          <span></span>
+        </label>
+      </div>
+      <div class="filter-row switch-row">
+        <label for="latitude-toggle">纬度图层</label>
+        <label class="switch">
+          <input type="checkbox" id="latitude-toggle" checked />
+          <span></span>
+        </label>
+      </div>
+      <div class="filter-row switch-row">
+        <label for="special-toggle">特殊纬线图层</label>
+        <label class="switch">
+          <input type="checkbox" id="special-toggle" checked />
+          <span></span>
+        </label>
+      </div>
+      <div class="filter-row switch-row">
+        <label for="city-label-toggle">城市标注图层</label>
+        <label class="switch">
+          <input type="checkbox" id="city-label-toggle" checked />
+          <span></span>
+        </label>
+      </div>
+      <div class="hint">
+        青色为经线，橙色为普通纬线；赤道、南北回归线、南北极圈为独立图层。
+      </div>
+    </div>
+
+    <!-- 统计卡片 -->
+    <div id="stats">
+      <div class="stat-card">
+        <div class="num cyan" id="stat-longitude">25</div>
+        <div class="lbl">经线数量</div>
+      </div>
+      <div class="stat-card">
+        <div class="num amber" id="stat-latitude">11</div>
+        <div class="lbl">纬线数量</div>
+      </div>
+    </div>
+
+    <!-- 图例 -->
+    <div id="legend">
+      <h3>网格图例</h3>
+      <div class="legend-item">
+        <div class="legend-line longitude"></div>
+        经度线（南北向）
+      </div>
+      <div class="legend-item">
+        <div class="legend-line latitude"></div>
+        纬度线（东西向）
+      </div>
+      <div class="legend-item">
+        <div class="legend-line major"></div>
+        重要刻度线
+      </div>
+      <div class="legend-item">
+        <div class="legend-line special"></div>
+        赤道 / 回归线 / 极圈
+      </div>
+    </div>
+
+    <script>
+      mapboxgl.accessToken =
+        "pk.eyJ1IjoiZHJhZ29uem9lYmFpIiwiYSI6ImNrcDZlZjd3ODAwN2Uyd21qdWlpdGRqdWUifQ.-4OIwa9MuCxHvVxS0mbV0g";
+
+      const STEP = 15;
+      const cityLabelLayerIds = [];
+      const SPECIAL_LATITUDES = [
+        { value: 0, label: "赤道 0°" },
+        { value: 23.436, label: "北回归线 23.4°N" },
+        { value: -23.436, label: "南回归线 23.4°S" },
+        { value: 66.564, label: "北极圈 66.6°N" },
+        { value: -66.564, label: "南极圈 66.6°S" },
+      ];
+      const map = new mapboxgl.Map({
+        container: "map",
+        style: "mapbox://styles/mapbox/satellite-streets-v12",
+        center: [104, 0],
+        zoom: 2.3,
+        projection: "globe",
+        antialias: true,
+      });
+
+      map.addControl(
+        new mapboxgl.NavigationControl({ visualizePitch: true }),
+        "bottom-right",
+      );
+      map.addControl(new mapboxgl.ScaleControl(), "bottom-right");
+
+      map.on("style.load", () => {
+        map.setFog({
+          color: "rgb(228, 238, 255)",
+          "high-color": "rgb(245, 248, 255)",
+          "horizon-blend": 0.015,
+          "space-color": "rgb(5, 10, 20)",
+          "star-intensity": 0.6,
+        });
+
+        /* 地图标注改为中文 */
+        map.getStyle().layers.forEach((layer) => {
+          if (layer.type === "symbol" && layer.layout?.["text-field"]) {
+            map.setLayoutProperty(layer.id, "text-field", [
+              "coalesce",
+              ["get", "name_zh-Hans"],
+              ["get", "name_zh"],
+              ["get", "name"],
+            ]);
+
+            if (isCityLabelLayer(layer)) {
+              cityLabelLayerIds.push(layer.id);
+            }
+          }
+        });
+
+        setupGridLayers();
+        setupControls();
+      });
+
+      function isCityLabelLayer(layer) {
+        const sourceLayer = layer["source-layer"] || "";
+        const id = layer.id || "";
+        return (
+          sourceLayer.includes("place_label") ||
+          id.includes("place-label") ||
+          id.includes("settlement")
+        );
+      }
+
+      function formatLongitude(lng) {
+        if (lng === 0) return "0° 本初子午线";
+        if (Math.abs(lng) === 180) return "180°";
+        return `${Math.abs(lng)}°${lng > 0 ? "E" : "W"}`;
+      }
+
+      function formatLatitude(lat) {
+        if (lat === 0) return "0° 赤道";
+        return `${Math.abs(lat)}°${lat > 0 ? "N" : "S"}`;
+      }
+
+      function makeLongitudeGrid() {
+        const features = [];
+        for (let lng = -180; lng <= 180; lng += STEP) {
+          const coordinates = [];
+          for (let lat = -90; lat <= 90; lat += 1) {
+            coordinates.push([lng, lat]);
+          }
+          features.push({
+            type: "Feature",
+            properties: {
+              value: lng,
+              label: formatLongitude(lng),
+              major: lng % 45 === 0,
+            },
+            geometry: { type: "LineString", coordinates },
+          });
+        }
+        return { type: "FeatureCollection", features };
+      }
+
+      function makeLatitudeGrid() {
+        const features = [];
+        for (let lat = -75; lat <= 75; lat += STEP) {
+          if (lat === 0) continue;
+          const coordinates = [];
+          for (let lng = -180; lng <= 180; lng += 1) {
+            coordinates.push([lng, lat]);
+          }
+          features.push({
+            type: "Feature",
+            properties: {
+              value: lat,
+              label: formatLatitude(lat),
+              major: lat % 45 === 0,
+            },
+            geometry: { type: "LineString", coordinates },
+          });
+        }
+        return { type: "FeatureCollection", features };
+      }
+
+      function makeLongitudeLabels() {
+        const features = [];
+        for (let lng = -180; lng <= 180; lng += STEP) {
+          features.push({
+            type: "Feature",
+            properties: {
+              label: formatLongitude(lng),
+              major: lng % 45 === 0,
+            },
+            geometry: { type: "Point", coordinates: [lng, -62] },
+          });
+        }
+        return { type: "FeatureCollection", features };
+      }
+
+      function makeLatitudeLabels() {
+        const features = [];
+        for (let lat = -75; lat <= 75; lat += STEP) {
+          if (lat === 0) continue;
+          features.push({
+            type: "Feature",
+            properties: {
+              label: formatLatitude(lat),
+              major: lat % 45 === 0,
+            },
+            geometry: { type: "Point", coordinates: [-168, lat] },
+          });
+        }
+        return { type: "FeatureCollection", features };
+      }
+
+      function makeSpecialLatitudeGrid() {
+        return {
+          type: "FeatureCollection",
+          features: SPECIAL_LATITUDES.map((item) => {
+            const coordinates = [];
+            for (let lng = -180; lng <= 180; lng += 1) {
+              coordinates.push([lng, item.value]);
+            }
+            return {
+              type: "Feature",
+              properties: item,
+              geometry: { type: "LineString", coordinates },
+            };
+          }),
+        };
+      }
+
+      function makeSpecialLatitudeLabels() {
+        return {
+          type: "FeatureCollection",
+          features: SPECIAL_LATITUDES.map((item) => ({
+            type: "Feature",
+            properties: item,
+            geometry: { type: "Point", coordinates: [18, item.value] },
+          })),
+        };
+      }
+
+      function setupGridLayers() {
+        map.addSource("longitude-grid", {
+          type: "geojson",
+          data: makeLongitudeGrid(),
+        });
+        map.addSource("latitude-grid", {
+          type: "geojson",
+          data: makeLatitudeGrid(),
+        });
+        map.addSource("longitude-labels", {
+          type: "geojson",
+          data: makeLongitudeLabels(),
+        });
+        map.addSource("latitude-labels", {
+          type: "geojson",
+          data: makeLatitudeLabels(),
+        });
+        map.addSource("special-latitude-grid", {
+          type: "geojson",
+          data: makeSpecialLatitudeGrid(),
+        });
+        map.addSource("special-latitude-labels", {
+          type: "geojson",
+          data: makeSpecialLatitudeLabels(),
+        });
+
+        map.addLayer({
+          id: "longitude-line",
+          type: "line",
+          source: "longitude-grid",
+          paint: {
+            "line-color": [
+              "case",
+              ["get", "major"],
+              "#cffafe",
+              "#67e8f9",
+            ],
+            "line-width": ["case", ["get", "major"], 3.1, 1.8],
+            "line-opacity": ["case", ["get", "major"], 1, 0.82],
+            "line-dasharray": [
+              "case",
+              ["get", "major"],
+              ["literal", [2, 1.2]],
+              ["literal", [1, 0]],
+            ],
+          },
+        });
+
+        map.addLayer({
+          id: "latitude-line",
+          type: "line",
+          source: "latitude-grid",
+          paint: {
+            "line-color": [
+              "case",
+              ["get", "major"],
+              "#fef3c7",
+              "#fbbf24",
+            ],
+            "line-width": ["case", ["get", "major"], 3.1, 1.8],
+            "line-opacity": ["case", ["get", "major"], 1, 0.84],
+            "line-dasharray": [
+              "case",
+              ["get", "major"],
+              ["literal", [2, 1.2]],
+              ["literal", [1, 0]],
+            ],
+          },
+        });
+
+        map.addLayer({
+          id: "special-latitude-line",
+          type: "line",
+          source: "special-latitude-grid",
+          paint: {
+            "line-color": "#ec4899",
+            "line-width": 3.2,
+            "line-opacity": 0.95,
+            "line-dasharray": [3, 1.2],
+            "line-blur": 0.25,
+          },
+        });
+
+        map.addLayer({
+          id: "longitude-label",
+          type: "symbol",
+          source: "longitude-labels",
+          layout: {
+            "text-field": ["get", "label"],
+            "text-size": ["case", ["get", "major"], 13, 11],
+            "text-font": ["Open Sans Semibold", "Arial Unicode MS Bold"],
+            "text-allow-overlap": false,
+            "text-ignore-placement": false,
+            "text-anchor": "center",
+          },
+          paint: {
+            "text-color": "#a5f3fc",
+            "text-halo-color": "rgba(5, 10, 20, 0.95)",
+            "text-halo-width": 1.4,
+            "text-opacity": 0.95,
+          },
+        });
+
+        map.addLayer({
+          id: "latitude-label",
+          type: "symbol",
+          source: "latitude-labels",
+          layout: {
+            "text-field": ["get", "label"],
+            "text-size": ["case", ["get", "major"], 13, 11],
+            "text-font": ["Open Sans Semibold", "Arial Unicode MS Bold"],
+            "text-allow-overlap": true,
+            "text-anchor": "left",
+            "text-offset": [0.4, 0],
+          },
+          paint: {
+            "text-color": "#fde68a",
+            "text-halo-color": "rgba(5, 10, 20, 0.95)",
+            "text-halo-width": 1.4,
+            "text-opacity": 0.95,
+          },
+        });
+
+        map.addLayer({
+          id: "special-latitude-label",
+          type: "symbol",
+          source: "special-latitude-labels",
+          layout: {
+            "text-field": ["get", "label"],
+            "text-size": 13,
+            "text-font": ["Open Sans Semibold", "Arial Unicode MS Bold"],
+            "text-allow-overlap": true,
+            "text-anchor": "left",
+            "text-offset": [0.35, 0],
+          },
+          paint: {
+            "text-color": "#fbcfe8",
+            "text-halo-color": "rgba(5, 10, 20, 0.95)",
+            "text-halo-width": 1.6,
+            "text-opacity": 0.98,
+          },
+        });
+      }
+
+      function setLayerGroupVisibility(layerIds, visible) {
+        layerIds.forEach((id) => {
+          if (map.getLayer(id)) {
+            map.setLayoutProperty(id, "visibility", visible ? "visible" : "none");
+          }
+        });
+      }
+
+      function setupControls() {
+        document
+          .getElementById("longitude-toggle")
+          .addEventListener("change", (e) => {
+            setLayerGroupVisibility(
+              ["longitude-line", "longitude-label"],
+              e.target.checked,
+            );
+          });
+
+        document
+          .getElementById("latitude-toggle")
+          .addEventListener("change", (e) => {
+            setLayerGroupVisibility(
+              ["latitude-line", "latitude-label"],
+              e.target.checked,
+            );
+          });
+
+        document
+          .getElementById("special-toggle")
+          .addEventListener("change", (e) => {
+            setLayerGroupVisibility(
+              ["special-latitude-line", "special-latitude-label"],
+              e.target.checked,
+            );
+          });
+
+        document
+          .getElementById("city-label-toggle")
+          .addEventListener("change", (e) => {
+            setLayerGroupVisibility(cityLabelLayerIds, e.target.checked);
+          });
+      }
+    </script>
+  <script src="../speak.js"></script>
+  </body>
+</html>

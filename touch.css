@@ -1,0 +1,12 @@
+/* 触屏上扩大操作区域，同时保留桌面布局。 */
+@media (any-pointer: coarse) {
+  button, select, input[type="range"], .list-card, .city-card, .province-card, .city-time { min-height: 44px; }
+  button, select, a, input, label { touch-action: manipulation; }
+  input[type="checkbox"], input[type="radio"] { min-width: 22px; min-height: 22px; }
+  .switch-row { min-height: 44px; }
+  .switch { min-height: 32px; display: inline-flex; align-items: center; }
+  #bodies .item { min-height: 44px; }
+  input, select { font-size: 16px; }
+}
+.mapboxgl-popup-content { max-height: 45vh; max-height: 45dvh; overflow-y: auto; }
+@supports (height: 100dvh) { #map { height: 100dvh; } }

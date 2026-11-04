@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>彩虹形成实验 · 光的魔法小剧场</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --ink: #16304a;
+      --soft-ink: rgba(22, 48, 74, .72);
+      --cream: #fff8dd;
+      --sun: #ffd84d;
+      --water: #7dd7ff;
+      --panel: rgba(255, 255, 255, .72);
+      --panel-line: rgba(49, 116, 159, .18);
+      --red: #ff4b4b;
+      --orange: #ff9a2e;
+      --yellow: #ffe15a;
+      --green: #54d769;
+      --cyan: #4bd7ff;
+      --blue: #5b73ff;
+      --violet: #b96cff;
+    }
+
+    body {
+      min-height: 100vh;
+      overflow: hidden;
+      color: var(--ink);
+      font-family: "YouYuan", "幼圆", "LXGW WenKai", "Microsoft YaHei", sans-serif;
+      background:
+        radial-gradient(circle at 14% 14%, rgba(255, 237, 128, .45), transparent 22%),
+        radial-gradient(circle at 78% 14%, rgba(124, 214, 255, .35), transparent 24%),
+        linear-gradient(180deg, #9ee9ff 0%, #d8f8ff 44%, #fff8dd 100%);
+    }
+
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: .18;
+      background-image:
+        radial-gradient(circle at 20% 30%, #fff 0 1px, transparent 1.4px),
+        radial-gradient(circle at 80% 20%, #fff 0 1px, transparent 1.5px),
+        radial-gradient(circle at 65% 70%, #fff 0 1px, transparent 1.4px);
+      background-size: 54px 54px, 72px 72px, 96px 96px;
+      mix-blend-mode: soft-light;
+    }
+
+    canvas {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      display: block;
+    }
+
+    #title-card {
+      position: absolute;
+      left: 24px;
+      top: 22px;
+      z-index: 3;
+      width: min(390px, calc(100vw - 48px));
+      padding: 22px 24px 20px;
+      border: 2px solid rgba(255, 255, 255, .7);
+      border-radius: 30px 30px 30px 10px;
+      background: linear-gradient(145deg, rgba(255,255,255,.82), rgba(255,248,221,.68));
+      box-shadow:
+        0 24px 80px rgba(70, 147, 180, .24),
+        inset 0 1px 0 rgba(255,255,255,.9);
+      backdrop-filter: blur(18px);
+    }
+
+    #title-card::before {
+      content: "🌈";
+      position: absolute;
+      right: 20px;
+      top: -20px;
+      width: 58px;
+      height: 58px;
+      display: grid;
+      place-items: center;
+      border-radius: 20px;
+      background: #fff;
+      font-size: 31px;
+      transform: rotate(8deg);
+      box-shadow: 0 14px 36px rgba(255, 144, 64, .24);
+    }
+
+    #title-card .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(125, 215, 255, .26);
+      color: #25749a;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .14em;
+    }
+
+    #title-card h1 {
+      margin-top: 13px;
+      color: #16304a;
+      font-size: 34px;
+      line-height: 1.08;
+      letter-spacing: .08em;
+      text-shadow: 0 3px 0 rgba(255, 255, 255, .8);
+    }
+
+    #title-card h1 span {
+      color: #ff7a30;
+    }
+
+    #title-card p {
+      margin-top: 12px;
+      color: var(--soft-ink);
+      font-size: 14px;
+      line-height: 1.75;
+    }
+
+    #controls {
+      position: absolute;
+      right: 24px;
+      top: 22px;
+      z-index: 3;
+      width: 306px;
+      padding: 18px 18px 16px;
+      border: 2px solid rgba(255, 255, 255, .72);
+      border-radius: 28px;
+      background: var(--panel);
+      box-shadow: 0 24px 72px rgba(53, 136, 176, .22), inset 0 1px 0 rgba(255,255,255,.86);
+      backdrop-filter: blur(18px);
+    }
+
+    .control-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .control-head strong {
+      font-size: 16px;
+      letter-spacing: .08em;
+    }
+
+    #play {
+      border: 0;
+      border-radius: 999px;
+      padding: 9px 13px;
+      color: #fff;
+      background: linear-gradient(135deg, #ff8f3a, #ff4b67);
+      font: 800 12px/1 "YouYuan", "Microsoft YaHei", sans-serif;
+      cursor: pointer;
+      box-shadow: 0 10px 20px rgba(255, 91, 73, .24);
+      transition: transform .18s ease, filter .18s ease;
+    }
+
+    #play:hover { transform: translateY(-2px) rotate(-1deg); filter: saturate(1.12); }
+
+    .control-row {
+      display: grid;
+      grid-template-columns: 76px 1fr 48px;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 0;
+      border-top: 1px dashed rgba(49, 116, 159, .22);
+      font-size: 13px;
+      color: rgba(22,48,74,.78);
+    }
+
+    .control-row:first-of-type { border-top: 0; }
+
+    .control-row input[type="range"] {
+      width: 100%;
+      accent-color: #ff9a2e;
+      cursor: pointer;
+    }
+
+    .val {
+      text-align: right;
+      color: #ff7a30;
+      font-weight: 900;
+      font-variant-numeric: tabular-nums;
+    }
+
+    #tip {
+      margin-top: 8px;
+      padding: 12px 13px;
+      border-radius: 18px;
+      background: rgba(255, 216, 77, .22);
+      color: rgba(22,48,74,.68);
+      font-size: 12px;
+      line-height: 1.65;
+    }
+
+    #story {
+      position: absolute;
+      left: 24px;
+      right: 24px;
+      bottom: 22px;
+      z-index: 3;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      pointer-events: none;
+    }
+
+    .step {
+      min-height: 110px;
+      padding: 15px 16px 14px;
+      border: 2px solid rgba(255, 255, 255, .66);
+      border-radius: 24px;
+      background: rgba(255, 255, 255, .58);
+      backdrop-filter: blur(12px);
+      box-shadow: 0 14px 36px rgba(53, 136, 176, .14);
+      transition: transform .28s ease, background .28s ease, border-color .28s ease;
+    }
+
+    .step.active {
+      transform: translateY(-9px);
+      border-color: rgba(255, 216, 77, .9);
+      background: rgba(255, 251, 220, .84);
+      box-shadow: 0 20px 52px rgba(255, 164, 56, .22);
+    }
+
+    .num {
+      display: inline-grid;
+      place-items: center;
+      width: 28px;
+      height: 28px;
+      margin-bottom: 9px;
+      color: #fff;
+      border-radius: 12px;
+      background: #16304a;
+      font-size: 13px;
+      font-weight: 900;
+      box-shadow: 4px 4px 0 rgba(125, 215, 255, .42);
+    }
+
+    .step strong {
+      display: block;
+      color: #16304a;
+      font-size: 15px;
+      letter-spacing: .08em;
+    }
+
+    .step span:last-child {
+      display: block;
+      margin-top: 7px;
+      color: rgba(22,48,74,.66);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    #bubble {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      z-index: 4;
+      transform: translate(-50%, -50%);
+      max-width: 260px;
+      padding: 14px 16px;
+      border: 2px solid rgba(255,255,255,.78);
+      border-radius: 22px 22px 22px 6px;
+      background: rgba(255,255,255,.74);
+      box-shadow: 0 18px 46px rgba(44, 121, 167, .18);
+      backdrop-filter: blur(14px);
+      color: rgba(22,48,74,.76);
+      font-size: 13px;
+      line-height: 1.65;
+      pointer-events: none;
+    }
+
+    #bubble strong {
+      display: block;
+      margin-bottom: 3px;
+      color: #ff7a30;
+      font-size: 15px;
+    }
+
+    @media (max-width: 900px) {
+      body { overflow: auto; }
+      canvas { position: fixed; }
+      #title-card, #controls {
+        left: 14px;
+        right: 14px;
+        width: auto;
+      }
+      #title-card { top: 14px; }
+      #title-card h1 { font-size: 28px; }
+      #controls { top: auto; bottom: 14px; }
+      #story, #bubble { display: none; }
+    }
+  </style>
+<link rel="stylesheet" href="../touch.css">
+<script src="../touch.js"></script>
+</head>
+<body>
+  <canvas id="stage" aria-label="彩虹形成实验画布"></canvas>
+
+  <section id="title-card">
+    <div class="eyebrow">LIGHT LAB · 儿童科普</div>
+    <h1>彩虹形成<span>实验</span></h1>
+    <p>白色阳光钻进小雨滴，会先折弯，再在雨滴里反射，最后分成红橙黄绿青蓝紫。拖动右侧按钮，观察彩虹什么时候最亮！</p>
+  </section>
+
+  <section id="controls" aria-label="实验控制台">
+    <div class="control-head">
+      <strong>小小实验台</strong>
+      <button id="play" type="button">暂停动画</button>
+    </div>
+    <div class="control-row">
+      <label for="sunAngle">太阳高度</label>
+      <input id="sunAngle" type="range" min="8" max="56" step="1" value="28">
+      <span class="val" id="sunAngleVal">28°</span>
+    </div>
+    <div class="control-row">
+      <label for="rainAmount">小雨滴</label>
+      <input id="rainAmount" type="range" min="15" max="90" step="1" value="52">
+      <span class="val" id="rainAmountVal">52</span>
+    </div>
+    <div class="control-row">
+      <label for="beamPower">阳光强度</label>
+      <input id="beamPower" type="range" min="35" max="100" step="1" value="82">
+      <span class="val" id="beamPowerVal">82%</span>
+    </div>
+    <div id="tip">试试看：太阳低一点、雨滴多一点、阳光强一点，彩虹会更清楚。点击画面里的大雨滴，还会出现光点！</div>
+  </section>
+
+  <section id="bubble">
+    <strong id="bubble-title">白光进雨滴</strong>
+    <span id="bubble-text">太阳光看起来是白色，其实里面藏着许多颜色。</span>
+  </section>
+
+  <section id="story" aria-label="彩虹形成步骤">
+    <div class="step active"><span class="num">1</span><strong>阳光进入</strong><span>白光斜着钻进雨滴，方向发生改变。</span></div>
+    <div class="step"><span class="num">2</span><strong>发生折射</strong><span>不同颜色弯曲程度不同，开始慢慢分开。</span></div>
+    <div class="step"><span class="num">3</span><strong>内部反射</strong><span>光在雨滴背面弹一下，像照到小镜子。</span></div>
+    <div class="step"><span class="num">4</span><strong>飞出彩虹</strong><span>颜色排好队飞出，天空就出现彩虹弧。</span></div>
+  </section>
+
+  <script>
+    const canvas = document.getElementById('stage');
+    const ctx = canvas.getContext('2d');
+    const sunAngle = document.getElementById('sunAngle');
+    const rainAmount = document.getElementById('rainAmount');
+    const beamPower = document.getElementById('beamPower');
+    const sunAngleVal = document.getElementById('sunAngleVal');
+    const rainAmountVal = document.getElementById('rainAmountVal');
+    const beamPowerVal = document.getElementById('beamPowerVal');
+    const play = document.getElementById('play');
+    const steps = [...document.querySelectorAll('.step')];
+    const bubbleTitle = document.getElementById('bubble-title');
+    const bubbleText = document.getElementById('bubble-text');
+
+    const colors = [
+      ['#ff4b4b', '红色弯得最少，排在彩虹外侧。'],
+      ['#ff9a2e', '橙色紧跟着红色，是暖暖的果汁色。'],
+      ['#ffe15a', '黄色像小太阳，藏在白光里面。'],
+      ['#54d769', '绿色在中间，像雨后的草地。'],
+      ['#4bd7ff', '青色和蓝色弯得更多一点。'],
+      ['#5b73ff', '蓝色更靠内侧。'],
+      ['#b96cff', '紫色弯得最多，所以在彩虹最里面。']
+    ];
+
+    const story = [
+      ['白光进雨滴', '太阳光看起来是白色，其实里面藏着许多颜色。'],
+      ['折射：光拐弯', '光从空气进入水滴时会变慢，所以方向会折一下。'],
+      ['反射：弹回来', '一部分光碰到雨滴背面，会像弹力球一样反射。'],
+      ['色散：排彩队', '不同颜色弯曲程度不同，飞出雨滴时就分成彩虹。']
+    ];
+
+    let w = 0;
+    let h = 0;
+    let dpr = 1;
+    let t = 0;
+    let paused = false;
+    let droplets = [];
+    let sparkles = [];
+    let lastRainCount = -1;
+
+    function resize() {
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      w = window.innerWidth;
+      h = window.innerHeight;
+      canvas.width = Math.floor(w * dpr);
+      canvas.height = Math.floor(h * dpr);
+      canvas.style.width = w + 'px';
+      canvas.style.height = h + 'px';
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      makeDroplets();
+    }
+
+    function makeDroplets() {
+      const count = Number(rainAmount.value);
+      lastRainCount = count;
+      droplets = [];
+      for (let i = 0; i < count; i++) {
+        const band = i / Math.max(count - 1, 1);
+        droplets.push({
+          x: w * (.42 + Math.sin(i * 9.71) * .24 + (Math.random() - .5) * .06),
+          y: h * (.20 + band * .48 + (Math.random() - .5) * .10),
+          r: 3 + Math.random() * 6,
+          speed: .22 + Math.random() * .55,
+          wobble: Math.random() * Math.PI * 2,
+          big: false
+        });
+      }
+      droplets.push({ x: w * .55, y: h * .48, r: Math.max(58, Math.min(w, h) * .072), speed: 0, wobble: 0, big: true });
+    }
+
+    function roundedBlob(x, y, scale) {
+      ctx.beginPath();
+      ctx.arc(x - 46 * scale, y + 8 * scale, 34 * scale, Math.PI * .88, Math.PI * 1.98);
+      ctx.arc(x - 8 * scale, y - 10 * scale, 44 * scale, Math.PI * 1.08, Math.PI * 2.08);
+      ctx.arc(x + 42 * scale, y + 8 * scale, 32 * scale, Math.PI * 1.12, Math.PI * 2.12);
+      ctx.quadraticCurveTo(x + 72 * scale, y + 42 * scale, x - 74 * scale, y + 40 * scale);
+      ctx.closePath();
+    }
+
+    function drawSky() {
+      const sky = ctx.createLinearGradient(0, 0, 0, h);
+      sky.addColorStop(0, '#93e7ff');
+      sky.addColorStop(.48, '#d8f8ff');
+      sky.addColorStop(1, '#fff6cf');
+      ctx.fillStyle = sky;
+      ctx.fillRect(0, 0, w, h);
+
+      ctx.save();
+      ctx.globalAlpha = .34;
+      for (let i = 0; i < 7; i++) {
+        const x = (i * 230 + t * 8) % (w + 260) - 130;
+        const y = 90 + Math.sin(i * 2.1) * 30 + (i % 3) * 38;
+        roundedBlob(x, y, .48 + (i % 4) * .08);
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+      }
+      ctx.restore();
+
+      const hill = ctx.createLinearGradient(0, h * .72, 0, h);
+      hill.addColorStop(0, '#a6e6a4');
+      hill.addColorStop(1, '#5fbd78');
+      ctx.fillStyle = hill;
+      ctx.beginPath();
+      ctx.moveTo(0, h);
+      ctx.lineTo(0, h * .78);
+      for (let x = 0; x <= w; x += 80) {
+        ctx.quadraticCurveTo(x + 40, h * (.68 + Math.sin(x * .011) * .025), x + 80, h * .78);
+      }
+      ctx.lineTo(w, h);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    function drawSun() {
+      const angle = Number(sunAngle.value);
+      const sx = w * .12;
+      const sy = h * (.60 - angle / 110);
+      const power = Number(beamPower.value) / 100;
+
+      ctx.save();
+      ctx.translate(sx, sy);
+      ctx.rotate(t * .18);
+      for (let i = 0; i < 18; i++) {
+        ctx.rotate(Math.PI * 2 / 18);
+        ctx.beginPath();
+        ctx.moveTo(42, 0);
+        ctx.lineTo(74 + Math.sin(t * 2 + i) * 5, 9);
+        ctx.lineTo(74 + Math.sin(t * 2 + i) * 5, -9);
+        ctx.closePath();
+        ctx.fillStyle = `rgba(255, 195, 56, ${.16 + power * .18})`;
+        ctx.fill();
+      }
+      const glow = ctx.createRadialGradient(0, 0, 8, 0, 0, 98);
+      glow.addColorStop(0, 'rgba(255,255,210,1)');
+      glow.addColorStop(.38, 'rgba(255,216,77,.95)');
+      glow.addColorStop(1, 'rgba(255,154,46,0)');
+      ctx.fillStyle = glow;
+      ctx.beginPath();
+      ctx.arc(0, 0, 98, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#ffd84d';
+      ctx.beginPath();
+      ctx.arc(0, 0, 43, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#7b4b12';
+      ctx.beginPath();
+      ctx.arc(-15, -7, 4, 0, Math.PI * 2);
+      ctx.arc(14, -7, 4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.lineWidth = 4;
+      ctx.strokeStyle = '#7b4b12';
+      ctx.beginPath();
+      ctx.arc(0, 7, 16, .18, Math.PI - .18);
+      ctx.stroke();
+      ctx.restore();
+
+      return { sx, sy, power, angle };
+    }
+
+    function drawRain() {
+      const amount = Number(rainAmount.value);
+      if (amount !== lastRainCount) makeDroplets();
+
+      for (const d of droplets) {
+        if (!d.big && !paused) {
+          d.y += d.speed * (1 + amount / 120);
+          d.x += Math.sin(t * 1.5 + d.wobble) * .08;
+          if (d.y > h * .76) {
+            d.y = h * .17 + Math.random() * 50;
+            d.x = w * (.35 + Math.random() * .44);
+          }
+        }
+
+        ctx.save();
+        const grad = ctx.createRadialGradient(d.x - d.r * .35, d.y - d.r * .5, d.r * .1, d.x, d.y, d.r * 1.2);
+        grad.addColorStop(0, 'rgba(255,255,255,.92)');
+        grad.addColorStop(.45, 'rgba(125,215,255,.38)');
+        grad.addColorStop(1, 'rgba(42,139,201,.18)');
+        ctx.fillStyle = grad;
+        ctx.strokeStyle = d.big ? 'rgba(255,255,255,.86)' : 'rgba(255,255,255,.42)';
+        ctx.lineWidth = d.big ? 3 : 1;
+        ctx.beginPath();
+        ctx.moveTo(d.x, d.y - d.r * 1.25);
+        ctx.bezierCurveTo(d.x + d.r, d.y - d.r * .35, d.x + d.r * .85, d.y + d.r * .9, d.x, d.y + d.r);
+        ctx.bezierCurveTo(d.x - d.r * .85, d.y + d.r * .9, d.x - d.r, d.y - d.r * .35, d.x, d.y - d.r * 1.25);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = 'rgba(255,255,255,.72)';
+        ctx.beginPath();
+        ctx.ellipse(d.x - d.r * .32, d.y - d.r * .38, d.r * .18, d.r * .34, .4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+
+    function line(x1, y1, x2, y2, color, width, alpha = 1) {
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.strokeStyle = color;
+      ctx.lineWidth = width;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawOptics(sun) {
+      const d = droplets[droplets.length - 1];
+      const power = sun.power;
+      const entrance = { x: d.x - d.r * .56, y: d.y - d.r * .28 };
+      const mirror = { x: d.x + d.r * .42, y: d.y + d.r * .10 };
+      const exit = { x: d.x - d.r * .10, y: d.y + d.r * .70 };
+
+      for (let i = 0; i < 7; i++) {
+        line(sun.sx + 44, sun.sy + i * 6 - 18, entrance.x, entrance.y + i * 2 - 6, 'rgba(255,255,255,.72)', 2.4, power * .8);
+      }
+      line(entrance.x, entrance.y, mirror.x, mirror.y, '#fff7c4', 5, .68 * power);
+      line(mirror.x, mirror.y, exit.x, exit.y, '#fff7c4', 5, .58 * power);
+
+      colors.forEach(([c], i) => {
+        const spread = (i - 3) * 7.2;
+        const endX = d.x + d.r * (2.05 + i * .055);
+        const endY = d.y + d.r * (.56 + i * .09) + spread;
+        line(exit.x, exit.y, endX, endY, c, 4.5, power * .78);
+      });
+
+      ctx.save();
+      ctx.fillStyle = '#16304a';
+      ctx.font = '900 14px "YouYuan", "Microsoft YaHei", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('折射', d.x - d.r * .42, d.y - d.r * .50);
+      ctx.fillText('反射', d.x + d.r * .62, d.y + d.r * .08);
+      ctx.fillText('色散', d.x + d.r * 1.38, d.y + d.r * .83);
+      ctx.restore();
+    }
+
+    function drawRainbow(sun) {
+      const base = Math.min(w, h);
+      const cx = w * .73;
+      const cy = h * (.88 + (Number(sunAngle.value) - 28) * .004);
+      const radius = base * (.54 + Number(sunAngle.value) * .0022);
+      const power = Number(beamPower.value) / 100;
+      const rainBoost = Math.min(1, Number(rainAmount.value) / 72);
+      const alpha = (.16 + power * .48) * (.45 + rainBoost * .55);
+
+      ctx.save();
+      ctx.lineCap = 'round';
+      ctx.shadowColor = 'rgba(255,255,255,.48)';
+      ctx.shadowBlur = 12;
+      colors.forEach(([c], i) => {
+        ctx.beginPath();
+        ctx.strokeStyle = c;
+        ctx.globalAlpha = alpha - i * .012;
+        ctx.lineWidth = Math.max(9, base * .015);
+        ctx.arc(cx, cy, radius - i * ctx.lineWidth * 1.12, Math.PI * 1.05, Math.PI * 1.84, false);
+        ctx.stroke();
+      });
+      ctx.restore();
+
+      ctx.save();
+      ctx.globalAlpha = .18 * power;
+      ctx.fillStyle = '#fff';
+      ctx.beginPath();
+      ctx.arc(cx - radius * .12, cy - radius * .64, radius * .34, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawSparkles() {
+      for (let i = sparkles.length - 1; i >= 0; i--) {
+        const s = sparkles[i];
+        s.life -= .018;
+        s.x += s.vx;
+        s.y += s.vy;
+        if (s.life <= 0) {
+          sparkles.splice(i, 1);
+          continue;
+        }
+        ctx.save();
+        ctx.globalAlpha = s.life;
+        ctx.strokeStyle = s.color;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(s.x - s.size, s.y);
+        ctx.lineTo(s.x + s.size, s.y);
+        ctx.moveTo(s.x, s.y - s.size);
+        ctx.lineTo(s.x, s.y + s.size);
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+
+    function updateUI() {
+      sunAngleVal.textContent = sunAngle.value + '°';
+      rainAmountVal.textContent = rainAmount.value;
+      beamPowerVal.textContent = beamPower.value + '%';
+
+      const phase = Math.floor((t * .36) % 4);
+      steps.forEach((el, i) => el.classList.toggle('active', i === phase));
+      bubbleTitle.textContent = story[phase][0];
+      bubbleText.textContent = story[phase][1];
+    }
+
+    function draw() {
+      if (!paused) t += .016;
+      updateUI();
+      drawSky();
+      const sun = drawSun();
+      drawRainbow(sun);
+      drawRain();
+      drawOptics(sun);
+      drawSparkles();
+      requestAnimationFrame(draw);
+    }
+
+    function burst(x, y) {
+      for (let i = 0; i < 28; i++) {
+        const a = Math.PI * 2 * i / 28;
+        sparkles.push({
+          x, y,
+          vx: Math.cos(a) * (1.2 + (i % 5) * .28),
+          vy: Math.sin(a) * (1.2 + (i % 5) * .28),
+          size: 4 + (i % 4),
+          color: colors[i % colors.length][0],
+          life: .95
+        });
+      }
+      const pick = colors[Math.floor((x / Math.max(w, 1)) * colors.length) % colors.length];
+      bubbleTitle.textContent = '发现颜色！';
+      bubbleText.textContent = pick[1];
+    }
+
+    canvas.addEventListener('click', (e) => {
+      const d = droplets[droplets.length - 1];
+      const dx = e.clientX - d.x;
+      const dy = e.clientY - d.y;
+      if (Math.hypot(dx, dy) < d.r * 1.35) burst(e.clientX, e.clientY);
+      else burst(e.clientX, e.clientY);
+    });
+
+    play.addEventListener('click', () => {
+      paused = !paused;
+      play.textContent = paused ? '继续动画' : '暂停动画';
+    });
+
+    [sunAngle, rainAmount, beamPower].forEach(input => input.addEventListener('input', updateUI));
+    window.addEventListener('resize', resize);
+
+    resize();
+    draw();
+  </script>
+<script src="../speak.js"></script>
+</body>
+</html>

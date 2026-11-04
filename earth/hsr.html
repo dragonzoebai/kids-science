@@ -1,0 +1,1736 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>中国高速铁路 · 三维地球</title>
+    <link
+      href="../vendor/mapbox-gl-3.4.0/dist/mapbox-gl.css"
+      rel="stylesheet"
+    />
+    <script src="../vendor/mapbox-gl-3.4.0/dist/mapbox-gl.js"></script>
+    <script src="hsr-data.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        background: #050714;
+        font-family: "Segoe UI", "PingFang SC", system-ui, sans-serif;
+        color: #f8fafc;
+        height: 100vh;
+        overflow: hidden;
+      }
+
+      #map {
+        width: 100vw;
+        height: 100vh;
+      }
+
+      #header {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 26px 42px;
+        background:
+          radial-gradient(circle at 18% 0%, rgba(34, 211, 238, 0.24), transparent 28%),
+          linear-gradient(180deg, rgba(5, 7, 20, 0.94) 54%, transparent);
+        pointer-events: none;
+      }
+
+      #header h1 {
+        font-size: 21px;
+        font-weight: 650;
+        letter-spacing: 0.6px;
+        color: #fff;
+        text-shadow: 0 0 24px rgba(34, 211, 238, 0.34);
+      }
+
+      #header h1 span {
+        color: #67e8f9;
+      }
+
+      #update-time {
+        font-size: 12px;
+        color: #cbd5e1;
+      }
+
+      #controls,
+      #city-panel,
+      #legend {
+        background: rgba(8, 13, 30, 0.84);
+        backdrop-filter: blur(14px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 18px 45px rgba(0, 0, 0, 0.28);
+      }
+
+      #controls {
+        position: absolute;
+        top: 76px;
+        left: 18px;
+        z-index: 10;
+        border-radius: 16px;
+        padding: 16px;
+        width: 246px;
+      }
+
+      #controls h3,
+      #legend h3,
+      #city-panel h3 {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 1.4px;
+        color: #94a3b8;
+        margin-bottom: 12px;
+      }
+
+      .filter-row {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-bottom: 14px;
+      }
+
+      .filter-row label {
+        font-size: 12px;
+        color: #cbd5e1;
+      }
+
+      .switch-row {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .switch-row label {
+        cursor: pointer;
+      }
+
+      .switch {
+        position: relative;
+        width: 40px;
+        height: 22px;
+      }
+
+      .switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+
+      .switch span {
+        position: absolute;
+        inset: 0;
+        border-radius: 999px;
+        background: #172033;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+
+      .switch span::before {
+        content: "";
+        position: absolute;
+        width: 18px;
+        height: 18px;
+        left: 2px;
+        top: 2px;
+        border-radius: 50%;
+        background: #94a3b8;
+        transition: transform 0.2s, background 0.2s;
+      }
+
+      .switch input:checked + span {
+        background: linear-gradient(90deg, #06b6d4, #2563eb);
+      }
+
+      .switch input:checked + span::before {
+        transform: translateX(18px);
+        background: #ecfeff;
+      }
+
+      .search-box {
+        margin: 4px 0 14px;
+      }
+
+      .search-box input {
+        width: 100%;
+        border: 0;
+        outline: 0;
+        border-radius: 13px;
+        padding: 10px 12px;
+        color: #f8fafc;
+        background: rgba(15, 23, 42, 0.74);
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+        font: 12px "Segoe UI", "PingFang SC", system-ui, sans-serif;
+      }
+
+      .search-box input::placeholder {
+        color: #64748b;
+      }
+
+      .hint {
+        padding-top: 10px;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        font-size: 11px;
+        line-height: 1.65;
+        color: #94a3b8;
+      }
+
+      #city-panel {
+        position: absolute;
+        top: 76px;
+        right: 18px;
+        bottom: 34px;
+        z-index: 10;
+        width: 342px;
+        border-radius: 18px;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .panel-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+      }
+
+      .panel-head h3 {
+        margin-bottom: 0 !important;
+      }
+
+      #back-btn {
+        display: none;
+        border: 1px solid rgba(34, 211, 238, 0.5);
+        border-radius: 999px;
+        padding: 5px 11px;
+        color: #cffafe;
+        background: rgba(14, 165, 233, 0.16);
+        font: 11px "Segoe UI", "PingFang SC", system-ui, sans-serif;
+        cursor: pointer;
+      }
+
+      #back-btn:hover {
+        background: rgba(34, 211, 238, 0.3);
+      }
+
+      body.city-active #back-btn {
+        display: block;
+      }
+
+      .panel-summary {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 8px;
+      }
+
+      .stat-card {
+        border-radius: 13px;
+        padding: 12px 11px;
+        background: rgba(255, 255, 255, 0.055);
+        border: 1px solid rgba(255, 255, 255, 0.07);
+      }
+
+      .stat-card .num {
+        font-size: 23px;
+        font-weight: 750;
+        color: #67e8f9;
+        line-height: 1;
+      }
+
+      .stat-card .lbl {
+        font-size: 11px;
+        color: #94a3b8;
+        margin-top: 5px;
+      }
+
+      #panel-list {
+        min-height: 0;
+        overflow: auto;
+        padding-right: 4px;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(34, 211, 238, 0.72) rgba(15, 23, 42, 0.6);
+      }
+
+      #panel-list::-webkit-scrollbar {
+        width: 6px;
+      }
+
+      #panel-list::-webkit-scrollbar-thumb {
+        background: rgba(34, 211, 238, 0.72);
+        border-radius: 999px;
+      }
+
+      .list-card {
+        width: 100%;
+        display: grid;
+        grid-template-columns: 36px 1fr auto;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 8px;
+        padding: 10px;
+        color: #e2e8f0;
+        background: rgba(15, 23, 42, 0.7);
+        border: 1px solid rgba(255, 255, 255, 0.07);
+        border-radius: 14px;
+        cursor: pointer;
+        text-align: left;
+        font-family: inherit;
+        transition:
+          transform 0.18s ease,
+          border-color 0.18s ease,
+          background 0.18s ease,
+          box-shadow 0.18s ease;
+      }
+
+      .list-card:hover,
+      .list-card.active {
+        transform: translateX(-4px);
+        border-color: rgba(34, 211, 238, 0.58);
+        background: linear-gradient(90deg, rgba(34, 211, 238, 0.2), rgba(15, 23, 42, 0.82));
+        box-shadow: 0 0 26px rgba(34, 211, 238, 0.15);
+      }
+
+      .rank {
+        display: grid;
+        place-items: center;
+        width: 32px;
+        height: 32px;
+        border-radius: 10px;
+        background: rgba(148, 163, 184, 0.16);
+        color: #67e8f9;
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .line-chip {
+        width: 32px;
+        height: 10px;
+        border-radius: 999px;
+        background: var(--line);
+        box-shadow: 0 0 12px var(--line);
+      }
+
+      .card-main {
+        min-width: 0;
+      }
+
+      .card-title {
+        font-size: 15px;
+        font-weight: 700;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .card-subtitle {
+        margin-top: 3px;
+        font-size: 11px;
+        color: #94a3b8;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .pill {
+        border-radius: 999px;
+        padding: 5px 8px;
+        color: #cffafe;
+        background: rgba(14, 165, 233, 0.16);
+        font-size: 11px;
+        white-space: nowrap;
+      }
+
+      #legend {
+        position: absolute;
+        bottom: 34px;
+        left: 18px;
+        z-index: 10;
+        border-radius: 16px;
+        padding: 15px 17px;
+        min-width: 226px;
+      }
+
+      .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 8px;
+        font-size: 12px;
+        color: #dbeafe;
+      }
+
+      .legend-item:last-child {
+        margin-bottom: 0;
+      }
+
+      .legend-icon {
+        display: grid;
+        place-items: center;
+        width: 24px;
+        flex-shrink: 0;
+      }
+
+      .legend-star {
+        width: 18px;
+        height: 18px;
+        filter: drop-shadow(0 0 5px #22d3ee);
+      }
+
+      .legend-line {
+        width: 24px;
+        height: 4px;
+        border-radius: 999px;
+        background: linear-gradient(90deg, #f43f5e, #f59e0b, #22d3ee);
+      }
+
+      .legend-line.border {
+        height: 3px;
+        background: linear-gradient(90deg, rgba(34, 211, 238, 0.2), #22d3ee 60%, #ffffff);
+        box-shadow: 0 0 8px #22d3ee;
+      }
+
+      .legend-canvas {
+        width: 18px;
+        height: 18px;
+      }
+
+      /* 枢纽闪光点：Mapbox 会在 marker 根元素上写 transform，动画都放在子元素里 */
+      .spark-marker {
+        cursor: pointer;
+        transition: opacity 0.3s;
+      }
+
+      .spark-marker:hover {
+        z-index: 5;
+      }
+
+      body.hide-sparks .spark-marker,
+      .spark-marker.hidden {
+        opacity: 0 !important;
+        pointer-events: none;
+      }
+
+      .spark {
+        position: relative;
+        width: var(--s);
+        height: var(--s);
+        transition: transform 0.25s ease;
+      }
+
+      body[data-zoom="near"] .spark {
+        transform: scale(0.62);
+      }
+
+      .spark-marker:hover .spark {
+        transform: scale(1.35);
+      }
+
+      .spark .glow {
+        position: absolute;
+        inset: -45%;
+        border-radius: 50%;
+        background: radial-gradient(circle, var(--c) 0%, transparent 62%);
+        opacity: 0.55;
+        animation: spark-pulse 2.6s ease-in-out infinite;
+        animation-delay: var(--d);
+      }
+
+      .spark svg {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        overflow: visible;
+        filter: drop-shadow(0 0 4px var(--c));
+      }
+
+      .spark .ray {
+        animation: spark-twinkle 3.2s ease-in-out infinite;
+        animation-delay: var(--d);
+      }
+
+      .spark .ray2 {
+        animation: spark-twinkle-rev 3.2s ease-in-out infinite;
+        animation-delay: calc(var(--d) - 1.6s);
+      }
+
+      .spark .gem {
+        position: absolute;
+        inset: 33%;
+        animation: gem-spin 2.8s linear infinite;
+        animation-delay: var(--d);
+      }
+
+      .spark .gem::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        transform: rotate(45deg);
+        border-radius: 2px;
+        background: linear-gradient(135deg, #fff 0%, var(--c) 45%, #fff 55%, var(--c) 100%);
+        box-shadow: 0 0 10px var(--c), 0 0 2px #fff inset;
+      }
+
+      .spark-label {
+        position: absolute;
+        top: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        margin-top: 2px;
+        padding: 2px 7px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 600;
+        white-space: nowrap;
+        color: #ecfeff;
+        background: rgba(5, 7, 20, 0.72);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s;
+      }
+
+      body:not([data-zoom="far"]) .spark-label,
+      .spark-marker:hover .spark-label {
+        opacity: 1;
+      }
+
+      @keyframes spark-pulse {
+        0%,
+        100% {
+          transform: scale(0.6);
+          opacity: 0.3;
+        }
+        50% {
+          transform: scale(1.15);
+          opacity: 0.7;
+        }
+      }
+
+      @keyframes spark-twinkle {
+        0% {
+          transform: rotate(0deg) scale(0.35);
+          opacity: 0.45;
+        }
+        50% {
+          transform: rotate(90deg) scale(1);
+          opacity: 1;
+        }
+        100% {
+          transform: rotate(180deg) scale(0.35);
+          opacity: 0.45;
+        }
+      }
+
+      @keyframes spark-twinkle-rev {
+        0% {
+          transform: rotate(45deg) scale(0.2);
+          opacity: 0.2;
+        }
+        50% {
+          transform: rotate(-45deg) scale(0.62);
+          opacity: 0.9;
+        }
+        100% {
+          transform: rotate(-135deg) scale(0.2);
+          opacity: 0.2;
+        }
+      }
+
+      @keyframes gem-spin {
+        from {
+          transform: rotateY(0deg);
+        }
+        to {
+          transform: rotateY(360deg);
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .spark .glow,
+        .spark .ray,
+        .spark .ray2,
+        .spark .gem {
+          animation: none;
+        }
+      }
+
+      .mapboxgl-popup-content {
+        background: rgba(8, 13, 30, 0.95);
+        color: #f8fafc;
+        border: 1px solid rgba(34, 211, 238, 0.4);
+        border-radius: 14px;
+        box-shadow: 0 20px 48px rgba(0, 0, 0, 0.38);
+        padding: 14px 16px;
+      }
+
+      .mapboxgl-popup-tip {
+        border-top-color: rgba(8, 13, 30, 0.95) !important;
+        border-bottom-color: rgba(8, 13, 30, 0.95) !important;
+      }
+
+      .popup-title {
+        font-size: 16px;
+        font-weight: 750;
+        margin-bottom: 5px;
+      }
+
+      .popup-meta {
+        color: #cbd5e1;
+        font-size: 12px;
+        line-height: 1.7;
+      }
+
+      .popup-line {
+        display: inline-block;
+        width: 9px;
+        height: 9px;
+        margin-right: 6px;
+        border-radius: 50%;
+      }
+
+      @media (max-width: 900px) {
+        #header {
+          align-items: flex-start;
+          flex-direction: column;
+          gap: 4px;
+          padding: 14px 18px 36px;
+        }
+
+        #controls {
+          display: none;
+        }
+
+        #city-panel {
+          top: auto;
+          left: 14px;
+          right: 14px;
+          bottom: 26px;
+          width: auto;
+          max-height: 42vh;
+        }
+
+        #legend {
+          display: none;
+        }
+      }
+    </style>
+    <script src="../map-interactions.js"></script>
+  <link rel="stylesheet" href="../touch.css">
+<script src="../touch.js"></script>
+</head>
+  <body data-zoom="far">
+    <div id="map"></div>
+
+    <div id="header">
+      <h1>🚄 中国高速铁路 · <span>三维地球高铁网络图谱</span></h1>
+      <div id="update-time">动画描出中国边界与九段线 · 点击线路或右侧名录可单独高亮、标出沿线车站并开出一列 3D 动车 · 点击闪光点查看该枢纽的全部线路 · Esc 返回</div>
+    </div>
+
+    <div id="controls">
+      <h3>图层开关</h3>
+      <div class="search-box">
+        <input id="search" type="search" placeholder="搜索线路或车站：京沪 / 长沙南" autocomplete="off" />
+      </div>
+      <div class="filter-row switch-row">
+        <label for="spark-toggle">枢纽闪光点</label>
+        <label class="switch">
+          <input type="checkbox" id="spark-toggle" checked />
+          <span></span>
+        </label>
+      </div>
+      <div class="filter-row switch-row">
+        <label for="border-toggle">国界与九段线</label>
+        <label class="switch">
+          <input type="checkbox" id="border-toggle" checked />
+          <span></span>
+        </label>
+      </div>
+      <div class="filter-row switch-row">
+        <label for="station-toggle">高铁车站</label>
+        <label class="switch">
+          <input type="checkbox" id="station-toggle" checked />
+          <span></span>
+        </label>
+      </div>
+      <div class="filter-row switch-row">
+        <label for="label-toggle">车站名称标注</label>
+        <label class="switch">
+          <input type="checkbox" id="label-toggle" checked />
+          <span></span>
+        </label>
+      </div>
+      <div class="filter-row switch-row">
+        <label for="train-toggle">选中线路 3D 动车</label>
+        <label class="switch">
+          <input type="checkbox" id="train-toggle" checked />
+          <span></span>
+        </label>
+      </div>
+      <div class="filter-row switch-row">
+        <label for="flow-toggle">线路流光动画</label>
+        <label class="switch">
+          <input type="checkbox" id="flow-toggle" checked />
+          <span></span>
+        </label>
+      </div>
+      <div class="filter-row switch-row">
+        <label for="base-label-toggle">地图底图地名</label>
+        <label class="switch">
+          <input type="checkbox" id="base-label-toggle" checked />
+          <span></span>
+        </label>
+      </div>
+      <div class="hint">
+        数据取自 OpenStreetMap（© 贡献者，ODbL）的高速铁路轨道，只收时速 250 及以上和时速 200 的客专/城际。车站按离线路的距离匹配，个别可能有出入。
+      </div>
+    </div>
+
+    <aside id="city-panel">
+      <div class="panel-head">
+        <h3 id="panel-title">高铁线路名录</h3>
+        <button id="back-btn" type="button">← 返回全国</button>
+      </div>
+      <div class="panel-summary">
+        <div class="stat-card">
+          <div class="num" id="stat-a">0</div>
+          <div class="lbl" id="stat-a-lbl">线路</div>
+        </div>
+        <div class="stat-card">
+          <div class="num" id="stat-b">0</div>
+          <div class="lbl" id="stat-b-lbl">里程 km</div>
+        </div>
+        <div class="stat-card">
+          <div class="num" id="stat-c">0</div>
+          <div class="lbl" id="stat-c-lbl">车站</div>
+        </div>
+      </div>
+      <div id="panel-list" aria-label="高铁线路列表"></div>
+    </aside>
+
+    <div id="legend">
+      <h3>图例</h3>
+      <div class="legend-item">
+        <span class="legend-icon">
+          <svg class="legend-star" viewBox="-10 -10 20 20">
+            <path d="M0,-10 Q1.2,-1.2 10,0 Q1.2,1.2 0,10 Q-1.2,1.2 -10,0 Q-1.2,-1.2 0,-10Z" fill="#fff" />
+          </svg>
+        </span>
+        高铁枢纽（越大经过的线路越多）
+      </div>
+      <div class="legend-item"><span class="legend-icon"><span class="legend-line border"></span></span>中国边界与九段线</div>
+      <div id="legend-tiers" style="display: contents"></div>
+      <div class="legend-item"><span class="legend-icon"><canvas class="legend-canvas" id="legend-station"></canvas></span>高铁车站</div>
+      <div class="legend-item"><span class="legend-icon"><canvas class="legend-canvas" id="legend-transfer"></canvas></span>多线交汇站</div>
+    </div>
+
+    <script>
+      mapboxgl.accessToken =
+        "pk.eyJ1IjoiZHJhZ29uem9lYmFpIiwiYSI6ImNrcDZlZjd3ODAwN2Uyd21qdWlpdGRqdWUifQ.-4OIwa9MuCxHvVxS0mbV0g";
+
+      const DEFAULT_VIEW = {
+        center: [108, 33],
+        zoom: 3.2,
+        pitch: 0,
+        bearing: 0,
+      };
+      const STAR_PATH = "M0,-10 Q1.2,-1.2 10,0 Q1.2,1.2 0,10 Q-1.2,1.2 -10,0 Q-1.2,-1.2 0,-10Z";
+      const SPARK_COLORS = ["#22d3ee", "#f472b6", "#facc15", "#a78bfa", "#34d399", "#fb923c"];
+      // 流光虚线的循环序列（Mapbox 官方 animate-ant-path 写法）
+      const DASH_SEQUENCE = [
+        [0, 4, 3],
+        [0.5, 4, 2.5],
+        [1, 4, 2],
+        [1.5, 4, 1.5],
+        [2, 4, 1],
+        [2.5, 4, 0.5],
+        [3, 4, 0],
+        [0, 0.5, 3, 3.5],
+        [0, 1, 3, 3],
+        [0, 1.5, 3, 2.5],
+        [0, 2, 3, 2],
+        [0, 2.5, 3, 1.5],
+        [0, 3, 3, 1],
+        [0, 3.5, 3, 0.5],
+      ];
+      // 高铁没有官方线路色，按设计时速分档上色：[最低时速, 颜色, 图例文字]
+      const SPEED_TIERS = [
+        [350, "#f43f5e", "时速 350 公里线路"],
+        [300, "#f59e0b", "时速 300 公里线路"],
+        [250, "#22d3ee", "时速 250 公里线路"],
+        [0, "#34d399", "时速 200 公里客专 / 城际"],
+      ];
+      const speedColor = (sp) => SPEED_TIERS.find(([min]) => sp >= min)[1];
+      // 数据里没标限速的线路（sp 为 0）归到 250 这一档显示
+      const LINES = window.HSR_DATA.map((line, idx) => ({ ...line, idx, c: speedColor(line.sp || 250) }));
+      const HUB_MIN_LINES = 3; // 经过的线路数达到这个值的车站算枢纽，放闪光点
+      const HUB_MIN_GAP_M = 15000; // 同城挨得近的枢纽只留线路最多的一个
+      const baseLabelLayerIds = [];
+      const lineLayers = ["hsr-glow", "hsr-line"];
+      const flowLayers = ["hsr-flow"];
+      const CHINA_BORDER_URL = "https://geo.datav.aliyun.com/areas_v3/bound/100000.json";
+      const borderLayers = ["border-glow", "border-line"];
+      const BORDER_COLOR = "#22d3ee";
+      const BORDER_DRAW_MS = 5200; // 首次描边用时
+      const BORDER_SWEEP_MS = 7000; // 描完后流光绕一圈用时
+      let borderStart = 0;
+      let borderTick = 0;
+      let borderEnabled = true;
+      // 3D 动车：尺寸和速度按屏幕像素定，再换算成米，这样任何缩放级别下看起来一样大、一样快
+      const TRAIN_CARS = 4;
+      const TRAIN_PX = { length: 30, width: 11, height: 10, gap: 4, speed: 34 };
+      const TRAIN_NOSE_STEPS = 8; // 车鼻圆弧的分段数
+      // 车厢自下而上的各层：[颜色, 底高, 顶高, 宽度比例, 车鼻端后收, 平头端后收]，高度和后收都是相对值。
+      // 白色车身、深色车窗带、浅灰车顶，不随线路颜色变化
+      const TRAIN_LAYERS = [
+        ["#ffffff", 0, 0.42, 1, 0, 0],
+        ["#0b1220", 0.42, 0.74, 0.97, 0.12, 0],
+        ["#ffffff", 0.74, 1, 0.94, 0.25, 0],
+        ["#cbd5e1", 1, 1.12, 0.6, 0.4, 0.05],
+      ];
+      let trainEnabled = true;
+      let trainTrack = null;
+      const stationLayers = ["hsr-station"];
+      const labelLayers = ["hsr-station-label", "hsr-station-label-far"];
+      // 低于这个缩放级别地图是球面投影，自动选边（text-variable-anchor）的文字画不出来，
+      // 所以选中线路后的远景站名另用一层固定锚点的图层来标
+      const GLOBE_LABEL_ZOOM = 6;
+      const HIDE_ALL = ["==", ["get", "name"], ""];
+      // 站名标注：全网时放大到一定级别才出现；选中单条线路时只标该线车站，并放大加粗、提前显示
+      const LABEL_STYLE = {
+        normal: {
+          size: ["case", ["==", ["get", "transfer"], 1], 12.5, 11],
+          font: ["DIN Pro Medium", "Arial Unicode MS Regular"],
+          color: "#ffffff",
+          halo: 1.6,
+          minzoom: 7.5,
+        },
+        focus: {
+          size: ["case", ["==", ["get", "transfer"], 1], 16, 14],
+          font: ["DIN Pro Bold", "Arial Unicode MS Bold"],
+          color: "#ffffff",
+          halo: 2.2,
+          minzoom: 4.5,
+        },
+      };
+      const STATION_MINZOOM = { normal: 6, focus: 0 };
+      const ICON_SIZE = 64;
+      const sparkMarkers = new Map();
+      const EMPTY = { type: "FeatureCollection", features: [] };
+      const STATIONS = makeStationCollection();
+      const HUBS = makeHubs();
+      let activeHub = null;
+      let activeLine = -1;
+      let flowEnabled = true;
+      let flowStep = -1;
+
+      const map = new mapboxgl.Map({
+        container: "map",
+        style: "mapbox://styles/mapbox/dark-v11",
+        center: DEFAULT_VIEW.center,
+        zoom: DEFAULT_VIEW.zoom,
+        pitch: DEFAULT_VIEW.pitch,
+        bearing: DEFAULT_VIEW.bearing,
+        projection: "globe",
+        antialias: true,
+        attributionControl: false,
+      });
+
+      map.addControl(new mapboxgl.AttributionControl({ compact: true }), "bottom-left");
+
+
+      map.on("style.load", () => {
+        map.setFog({
+          color: "rgb(24, 44, 78)",
+          "high-color": "rgb(34, 120, 190)",
+          "horizon-blend": 0.03,
+          "space-color": "rgb(2, 6, 23)",
+          "star-intensity": 0.82,
+        });
+
+        map.getStyle().layers.forEach((layer) => {
+          if (layer.type === "symbol" && layer.layout?.["text-field"]) {
+            map.setLayoutProperty(layer.id, "text-field", [
+              "coalesce",
+              ["get", "name_zh-Hans"],
+              ["get", "name_zh"],
+              ["get", "name"],
+            ]);
+
+            if (isBaseLabelLayer(layer)) {
+              baseLabelLayerIds.push(layer.id);
+            }
+          }
+        });
+
+        setupBorderLayers();
+        setupRailLayers();
+        setupFarLabelLayer();
+        setupTrainLayer();
+        setupSparkMarkers();
+        setupControls();
+        setupMapInteractions();
+        renderPanel();
+        renderLegend();
+        updateZoomClass();
+        requestAnimationFrame(animateFlow);
+      });
+
+      map.on("zoom", updateZoomClass);
+
+      function isBaseLabelLayer(layer) {
+        const sourceLayer = layer["source-layer"] || "";
+        const id = layer.id || "";
+        return (
+          sourceLayer.includes("place_label") ||
+          id.includes("place-label") ||
+          id.includes("settlement") ||
+          id.includes("country-label") ||
+          id.includes("state-label")
+        );
+      }
+
+      function updateZoomClass() {
+        const zoom = map.getZoom();
+        document.body.dataset.zoom = zoom < 4.6 ? "far" : zoom < 8 ? "mid" : "near";
+      }
+
+      function setupSparkMarkers() {
+        HUBS.forEach((hub, index) => {
+          const el = document.createElement("div");
+          el.className = "spark-marker";
+          el.title = `${hub.name} · ${hub.lines.length} 条高铁线路交汇`;
+          const size = Math.round(12 + hub.lines.length * 4.5);
+          el.innerHTML = `
+            <div class="spark" style="--s:${size}px;--c:${SPARK_COLORS[index % SPARK_COLORS.length]};--d:-${((index * 0.37) % 3.2).toFixed(2)}s">
+              <div class="glow"></div>
+              <svg class="ray" viewBox="-10 -10 20 20"><path d="${STAR_PATH}" fill="#fff" /></svg>
+              <svg class="ray2" viewBox="-10 -10 20 20"><path d="${STAR_PATH}" fill="#fff" /></svg>
+              <div class="gem"></div>
+              <div class="spark-label">${hub.name}</div>
+            </div>`;
+          el.addEventListener("click", (event) => {
+            event.stopPropagation();
+            focusHub(hub);
+          });
+          const marker = new mapboxgl.Marker({ element: el, anchor: "center" })
+            .setLngLat(hub.center)
+            .addTo(map);
+          sparkMarkers.set(hub.name, marker);
+        });
+      }
+
+      // line.p 是若干段折线：第一段是主线，其余是数据里与主线不相连的区段（分段开通的线路）
+      function makeLineCollection() {
+        return {
+          type: "FeatureCollection",
+          features: LINES.map((line) => ({
+            type: "Feature",
+            properties: { idx: line.idx, name: line.n, color: line.c },
+            geometry: { type: "MultiLineString", coordinates: line.p },
+          })),
+        };
+      }
+
+      // 各线的同名车站相距不远（<3km）时合并成一个点，记下经过它的所有线路
+      function makeStationCollection() {
+        const byName = new Map();
+        LINES.forEach((line) => {
+          line.st.forEach(([name, lng, lat]) => {
+            if (!byName.has(name)) byName.set(name, []);
+            const groups = byName.get(name);
+            let group = groups.find((g) => distanceMeters(g, { lng, lat }) < 3000);
+            if (!group) {
+              group = { lng, lat, lines: [] };
+              groups.push(group);
+            }
+            if (!group.lines.includes(line.idx)) group.lines.push(line.idx);
+          });
+        });
+
+        const features = [];
+        byName.forEach((groups, name) => {
+          groups.forEach((g) => {
+            features.push({
+              type: "Feature",
+              properties: {
+                name,
+                count: g.lines.length,
+                transfer: g.lines.length > 1 ? 1 : 0,
+                icon: g.lines.length > 1 ? "hsr-transfer" : "hsr-station",
+                lineKey: `|${g.lines.join("|")}|`,
+              },
+              geometry: { type: "Point", coordinates: [g.lng, g.lat] },
+            });
+          });
+        });
+        return { type: "FeatureCollection", features };
+      }
+
+      function makeHubs() {
+        const hubs = [];
+        STATIONS.features
+          .filter((f) => f.properties.count >= HUB_MIN_LINES)
+          .sort((a, b) => b.properties.count - a.properties.count)
+          .forEach((f) => {
+            const [lng, lat] = f.geometry.coordinates;
+            if (hubs.some((h) => distanceMeters({ lng: h.center[0], lat: h.center[1] }, { lng, lat }) < HUB_MIN_GAP_M)) return;
+            hubs.push({
+              name: f.properties.name,
+              center: [lng, lat],
+              lines: f.properties.lineKey.split("|").filter(Boolean).map(Number),
+            });
+          });
+        return hubs;
+      }
+
+      function distanceMeters(a, b) {
+        const x = (b.lng - a.lng) * Math.cos(((a.lat + b.lat) * Math.PI) / 360);
+        const y = b.lat - a.lat;
+        return Math.sqrt(x * x + y * y) * 111320;
+      }
+
+      function setupRailLayers() {
+        map.addSource("hsr-lines", { type: "geojson", data: makeLineCollection() });
+        map.addSource("hsr-stations", { type: "geojson", data: STATIONS });
+
+        map.addLayer({
+          id: "hsr-glow",
+          type: "line",
+          source: "hsr-lines",
+          layout: { "line-cap": "round", "line-join": "round" },
+          paint: {
+            "line-color": ["get", "color"],
+            "line-width": ["interpolate", ["linear"], ["zoom"], 3, 3, 8, 8, 13, 16],
+            "line-blur": ["interpolate", ["linear"], ["zoom"], 3, 2.5, 8, 6, 13, 12],
+            "line-opacity": 0.5,
+          },
+        });
+
+        map.addLayer({
+          id: "hsr-line",
+          type: "line",
+          source: "hsr-lines",
+          layout: { "line-cap": "round", "line-join": "round" },
+          paint: {
+            "line-color": ["get", "color"],
+            "line-width": ["interpolate", ["linear"], ["zoom"], 3, 1.1, 8, 2.6, 13, 5.5],
+            "line-opacity": 1,
+          },
+        });
+
+        map.addLayer({
+          id: "hsr-flow",
+          type: "line",
+          source: "hsr-lines",
+          paint: {
+            "line-color": "#ffffff",
+            "line-width": ["interpolate", ["linear"], ["zoom"], 3, 0.6, 8, 1.2, 13, 2.4],
+            "line-dasharray": DASH_SEQUENCE[0],
+            "line-opacity": 0.75,
+          },
+        });
+
+        map.addImage("hsr-station", canvasImage(drawStationIcon()), { pixelRatio: 2 });
+        map.addImage("hsr-transfer", canvasImage(drawTransferIcon()), { pixelRatio: 2 });
+        map.addLayer({
+          id: "hsr-station",
+          type: "symbol",
+          source: "hsr-stations",
+          filter: zoomFilter(STATION_MINZOOM.normal),
+          layout: {
+            "icon-image": ["get", "icon"],
+            "icon-size": [
+              "interpolate",
+              ["linear"],
+              ["zoom"],
+              4,
+              ["case", ["==", ["get", "transfer"], 1], 0.2, 0.15],
+              8,
+              ["case", ["==", ["get", "transfer"], 1], 0.34, 0.27],
+              13,
+              ["case", ["==", ["get", "transfer"], 1], 0.66, 0.56],
+            ],
+            "icon-allow-overlap": true,
+            "icon-ignore-placement": true,
+            "symbol-sort-key": ["get", "count"],
+          },
+        });
+
+        map.addLayer({
+          id: "hsr-station-label",
+          type: "symbol",
+          source: "hsr-stations",
+          filter: zoomFilter(LABEL_STYLE.normal.minzoom),
+          layout: {
+            "text-field": ["get", "name"],
+            "text-size": LABEL_STYLE.normal.size,
+            "text-font": LABEL_STYLE.normal.font,
+            "text-variable-anchor": ["left", "right", "top", "bottom"],
+            "text-radial-offset": 0.8,
+            "symbol-sort-key": ["-", 0, ["get", "count"]],
+          },
+          paint: {
+            "text-color": LABEL_STYLE.normal.color,
+            "text-halo-color": "rgba(5, 7, 20, 0.96)",
+            "text-halo-width": LABEL_STYLE.normal.halo,
+          },
+        });
+      }
+
+      // 车站和站名"放大到几级才出现"写在过滤器里，而不是用图层的 minzoom：
+      // 运行中改图层缩放范围，已加载瓦片里的文字不会重新排版，站名会显示不出来
+      function zoomFilter(minzoom, extra) {
+        const byZoom = [">=", ["zoom"], minzoom];
+        return extra ? ["all", byZoom, extra] : byZoom;
+      }
+
+      function setupFarLabelLayer() {
+        map.addLayer({
+          id: "hsr-station-label-far",
+          type: "symbol",
+          source: "hsr-stations",
+          filter: HIDE_ALL,
+          layout: {
+            "text-field": ["get", "name"],
+            "text-size": LABEL_STYLE.focus.size,
+            "text-font": LABEL_STYLE.focus.font,
+            "text-anchor": "left",
+            "text-offset": [0.8, 0],
+            "symbol-sort-key": ["-", 0, ["get", "count"]],
+          },
+          paint: {
+            "text-color": LABEL_STYLE.focus.color,
+            "text-halo-color": "rgba(5, 7, 20, 0.96)",
+            "text-halo-width": LABEL_STYLE.focus.halo,
+          },
+        });
+      }
+
+      function iconCanvas() {
+        const canvas = document.createElement("canvas");
+        canvas.width = canvas.height = ICON_SIZE;
+        return canvas;
+      }
+
+      function canvasImage(canvas) {
+        return canvas.getContext("2d").getImageData(0, 0, ICON_SIZE, ICON_SIZE);
+      }
+
+      // 普通站图标：白底蓝圈，中间一个实心圆点
+      function drawStationIcon() {
+        const canvas = iconCanvas();
+        const ctx = canvas.getContext("2d");
+        const c = ICON_SIZE / 2;
+        ctx.beginPath();
+        ctx.arc(c, c, c - 6, 0, Math.PI * 2);
+        ctx.fillStyle = "#ffffff";
+        ctx.fill();
+        ctx.lineWidth = 8;
+        ctx.strokeStyle = "#0ea5e9";
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(c, c, 8, 0, Math.PI * 2);
+        ctx.fillStyle = "#0f172a";
+        ctx.fill();
+        return canvas;
+      }
+
+      // 多线交汇站图标：地图通用的换乘符号——白底灰圈，里面两段逆时针首尾相追的弧形箭头
+      function drawTransferIcon() {
+        const canvas = iconCanvas();
+        const ctx = canvas.getContext("2d");
+        const c = ICON_SIZE / 2;
+        const gray = "#6b7a86";
+        ctx.beginPath();
+        ctx.arc(c, c, c - 4, 0, Math.PI * 2);
+        ctx.fillStyle = "#ffffff";
+        ctx.fill();
+        ctx.lineWidth = 3.5;
+        ctx.strokeStyle = gray;
+        ctx.stroke();
+
+        const r = ICON_SIZE * 0.24;
+        [0, Math.PI].forEach((turn) => {
+          const from = 2.3 + turn;
+          const to = -0.55 + turn;
+          ctx.beginPath();
+          ctx.arc(c, c, r, from, to + 0.3, true);
+          ctx.lineWidth = 4.5;
+          ctx.lineCap = "butt";
+          ctx.strokeStyle = gray;
+          ctx.stroke();
+          // 箭头：沿逆时针切线方向的三角
+          ctx.save();
+          ctx.translate(c + r * Math.cos(to + 0.3), c + r * Math.sin(to + 0.3));
+          ctx.rotate(to + 0.3 - Math.PI / 2);
+          ctx.beginPath();
+          ctx.moveTo(9, 0);
+          ctx.lineTo(-1, -7.5);
+          ctx.lineTo(-1, 7.5);
+          ctx.closePath();
+          ctx.fillStyle = gray;
+          ctx.fill();
+          ctx.restore();
+        });
+        return canvas;
+      }
+
+      // 中国边界与九段线：数据是多边形，拆成一圈圈线来描；九段线在数据里是细长多边形，描出来就是一段粗线
+      function setupBorderLayers() {
+        map.addSource("china-border", { type: "geojson", data: EMPTY, lineMetrics: true });
+        const gradient = borderGradient(0, false);
+        map.addLayer({
+          id: "border-glow",
+          type: "line",
+          source: "china-border",
+          layout: { "line-cap": "round", "line-join": "round" },
+          paint: {
+            "line-width": ["interpolate", ["linear"], ["zoom"], 2, 5, 6, 12],
+            "line-blur": ["interpolate", ["linear"], ["zoom"], 2, 4, 6, 10],
+            "line-opacity": 0.55,
+            "line-gradient": gradient,
+          },
+        });
+        map.addLayer({
+          id: "border-line",
+          type: "line",
+          source: "china-border",
+          layout: { "line-cap": "round", "line-join": "round" },
+          paint: {
+            "line-width": ["interpolate", ["linear"], ["zoom"], 2, 1.2, 6, 2.6],
+            "line-gradient": gradient,
+          },
+        });
+
+        fetch(CHINA_BORDER_URL)
+          .then((res) => res.json())
+          .then((geojson) => {
+            const features = [];
+            geojson.features.forEach((feature) => {
+              const { type, coordinates } = feature.geometry;
+              (type === "MultiPolygon" ? coordinates : [coordinates]).forEach((polygon) => {
+                polygon.forEach((ring) => {
+                  if (!isBorderRing(ring)) return;
+                  features.push({
+                    type: "Feature",
+                    properties: {},
+                    geometry: { type: "LineString", coordinates: ring },
+                  });
+                });
+              });
+            });
+            map.getSource("china-border").setData({ type: "FeatureCollection", features });
+            borderStart = performance.now();
+          })
+          .catch((error) => console.warn("中国边界数据加载失败", error));
+      }
+
+      // 只描大陆、海南、台湾、香港和九段线各段；南海诸岛等两百多个小岛不单独描边。
+      // 数据里前者的外接框对角线都大于 1°（香港靠点数多保留），小岛都远小于此
+      function isBorderRing(ring) {
+        let west = 180, east = -180, south = 90, north = -90;
+        ring.forEach(([lng, lat]) => {
+          west = Math.min(west, lng);
+          east = Math.max(east, lng);
+          south = Math.min(south, lat);
+          north = Math.max(north, lat);
+        });
+        return Math.hypot(east - west, north - south) > 1 || ring.length >= 60;
+      }
+
+      // 描边阶段：笔头 head 之前已画出、之后透明；描完后：整圈常亮，一道白色流光沿线循环
+      function borderGradient(head, done) {
+        const clear = "rgba(34, 211, 238, 0)";
+        const stops = done
+          ? [
+              [0, BORDER_COLOR],
+              [head - 0.12, BORDER_COLOR],
+              [head, "#ffffff"],
+              [head + 0.004, BORDER_COLOR],
+              [1, BORDER_COLOR],
+            ]
+          : [
+              [0, BORDER_COLOR],
+              [head - 0.05, BORDER_COLOR],
+              [head, "#ffffff"],
+              [head + 0.002, clear],
+              [1, clear],
+            ];
+        // line-gradient 的断点必须落在 0~1 且严格递增
+        const expression = ["interpolate", ["linear"], ["line-progress"]];
+        let last = -1;
+        stops.forEach(([at, color]) => {
+          const value = Math.min(1, Math.max(0, at));
+          if (value <= last) return;
+          expression.push(value, color);
+          last = value;
+        });
+        return expression;
+      }
+
+      function animateBorder(timestamp) {
+        if (!borderStart || !borderEnabled || timestamp - borderTick < 40) return;
+        borderTick = timestamp;
+        const elapsed = timestamp - borderStart;
+        const done = elapsed >= BORDER_DRAW_MS;
+        const head = done
+          ? ((elapsed - BORDER_DRAW_MS) % BORDER_SWEEP_MS) / BORDER_SWEEP_MS
+          : 1 - (1 - elapsed / BORDER_DRAW_MS) ** 2;
+        const gradient = borderGradient(head, done);
+        borderLayers.forEach((id) => map.setPaintProperty(id, "line-gradient", gradient));
+      }
+
+      function setupTrainLayer() {
+        map.addSource("hsr-train", { type: "geojson", data: EMPTY });
+        map.addLayer({
+          id: "hsr-train",
+          type: "fill-extrusion",
+          source: "hsr-train",
+          paint: {
+            "fill-extrusion-color": ["get", "color"],
+            "fill-extrusion-base": ["get", "base"],
+            "fill-extrusion-height": ["get", "height"],
+            "fill-extrusion-vertical-gradient": false,
+          },
+        });
+      }
+
+      // 把线路主线折线预处理成"按里程取点"的轨道
+      function makeTrack(line) {
+        const coords = line.p[0];
+        const at = [0];
+        for (let i = 1; i < coords.length; i++) {
+          at.push(at[i - 1] + distanceMeters(
+            { lng: coords[i - 1][0], lat: coords[i - 1][1] },
+            { lng: coords[i][0], lat: coords[i][1] },
+          ));
+        }
+        return { line, coords, at, total: at[at.length - 1], pos: 0, dir: 1, time: 0, seg: 0 };
+      }
+
+      function trackPoint(track, meters) {
+        const { coords, at, total } = track;
+        const d = Math.min(total, Math.max(0, meters));
+        let i = track.seg;
+        if (at[i] > d) i = 0;
+        while (i < at.length - 2 && at[i + 1] < d) i++;
+        track.seg = i;
+        const span = at[i + 1] - at[i] || 1;
+        const t = (d - at[i]) / span;
+        return [
+          coords[i][0] + (coords[i + 1][0] - coords[i][0]) * t,
+          coords[i][1] + (coords[i + 1][1] - coords[i][1]) * t,
+        ];
+      }
+
+      // 一节车厢某一层的底面轮廓：以车尾→车头为轴线的矩形。
+      // capFront / capRear 为真时该端做成半椭圆（流线型车鼻）；inset 是该端沿轴线后收的米数，
+      // 越高的层后收越多，侧面看就是一个斜坡式的车头
+      function carFootprint(front, rear, halfWidth, capFront, capRear, insetFront, insetRear) {
+        const k = Math.cos((front[1] * Math.PI) / 180);
+        const dx = (front[0] - rear[0]) * k * 111320;
+        const dy = (front[1] - rear[1]) * 111320;
+        const length = Math.hypot(dx, dy) || 1;
+        const ex = dx / length;
+        const ey = dy / length;
+        // 局部坐标 (沿轴线 along, 垂直轴线 across) → 经纬度
+        const at = (along, across) => [
+          rear[0] + (ex * along - ey * across) / (111320 * k),
+          rear[1] + (ey * along + ex * across) / 111320,
+        ];
+        const nose = Math.min(length * 0.55, halfWidth * 2.6);
+        const ring = [];
+        const frontEnd = length - insetFront;
+        if (capFront) {
+          for (let step = 0; step <= TRAIN_NOSE_STEPS; step++) {
+            const angle = Math.PI / 2 - (Math.PI * step) / TRAIN_NOSE_STEPS;
+            ring.push(at(frontEnd - nose + nose * Math.cos(angle), halfWidth * Math.sin(angle)));
+          }
+        } else {
+          ring.push(at(frontEnd, halfWidth), at(frontEnd, -halfWidth));
+        }
+        if (capRear) {
+          for (let step = 0; step <= TRAIN_NOSE_STEPS; step++) {
+            const angle = -Math.PI / 2 - (Math.PI * step) / TRAIN_NOSE_STEPS;
+            ring.push(at(insetRear + nose + nose * Math.cos(angle), halfWidth * Math.sin(angle)));
+          }
+        } else {
+          ring.push(at(insetRear, -halfWidth), at(insetRear, halfWidth));
+        }
+        ring.push(ring[0]);
+        return [ring];
+      }
+
+      function animateTrain(timestamp) {
+        const line = trainEnabled && activeLine >= 0 ? LINES[activeLine] : null;
+        if (!line) {
+          if (trainTrack) {
+            trainTrack = null;
+            map.getSource("hsr-train").setData(EMPTY);
+          }
+          return;
+        }
+        if (!trainTrack || trainTrack.line !== line) trainTrack = makeTrack(line);
+        const track = trainTrack;
+        if (track.total <= 0) return;
+
+        const center = map.getCenter();
+        const mpp = (78271.517 * Math.cos((center.lat * Math.PI) / 180)) / 2 ** map.getZoom();
+        const size = {
+          length: TRAIN_PX.length * mpp,
+          half: (TRAIN_PX.width * mpp) / 2,
+          height: TRAIN_PX.height * mpp,
+          gap: TRAIN_PX.gap * mpp,
+        };
+        const trainLength = TRAIN_CARS * size.length + (TRAIN_CARS - 1) * size.gap;
+        const dt = track.time ? Math.min(0.1, (timestamp - track.time) / 1000) : 0;
+        track.time = timestamp;
+        track.pos += track.dir * TRAIN_PX.speed * mpp * dt;
+        // 到终点后掉头往回开
+        const max = Math.max(0, track.total - trainLength);
+        if (track.pos >= max) {
+          track.pos = max;
+          track.dir = -1;
+        } else if (track.pos <= 0) {
+          track.pos = 0;
+          track.dir = 1;
+        }
+
+        const features = [];
+        for (let car = 0; car < TRAIN_CARS; car++) {
+          const rearAt = track.pos + car * (size.length + size.gap);
+          const rear = trackPoint(track, rearAt);
+          const front = trackPoint(track, rearAt + size.length);
+          // 整列车的两端（第一节的车尾、最后一节的车头）是流线型车鼻，车厢连接处保持平头
+          const capRear = car === 0;
+          const capFront = car === TRAIN_CARS - 1;
+          TRAIN_LAYERS.forEach(([color, base, top, width, noseInset, flatInset]) => {
+            features.push({
+              type: "Feature",
+              properties: { color, base: base * size.height, height: top * size.height },
+              geometry: {
+                type: "Polygon",
+                coordinates: carFootprint(
+                  front,
+                  rear,
+                  size.half * width,
+                  capFront,
+                  capRear,
+                  size.length * (capFront ? noseInset : flatInset),
+                  size.length * (capRear ? noseInset : flatInset),
+                ),
+              },
+            });
+          });
+        }
+        map.getSource("hsr-train").setData({ type: "FeatureCollection", features });
+      }
+
+      function animateFlow(timestamp) {
+        animateBorder(timestamp);
+        animateTrain(timestamp);
+        if (flowEnabled) {
+          const step = Math.floor((timestamp / 60) % DASH_SEQUENCE.length);
+          if (step !== flowStep) {
+            map.setPaintProperty("hsr-flow", "line-dasharray", DASH_SEQUENCE[step]);
+            flowStep = step;
+          }
+        }
+        requestAnimationFrame(animateFlow);
+      }
+
+      function lineBadge(line) {
+        return `<span class="popup-line" style="background:${line.c}"></span>${line.n}`;
+      }
+
+      function setupMapInteractions() {
+        const popup = new mapboxgl.Popup({
+          closeButton: false,
+          closeOnClick: false,
+          maxWidth: "270px",
+          offset: 10,
+        });
+
+        bindMapPopup(map, popup, {
+          layers: ["hsr-station", "hsr-station-label", "hsr-station-label-far"],
+          hover: "mouseenter",
+          show: (e) => {
+            map.getCanvas().style.cursor = "pointer";
+            const { name, lineKey } = e.features[0].properties;
+            const lines = lineKey
+              .split("|")
+              .filter(Boolean)
+              .map((idx) => lineBadge(LINES[Number(idx)]))
+              .join("<br />");
+            popup
+              .setLngLat(e.features[0].geometry.coordinates.slice())
+              .setHTML(`<div class="popup-title">${name}</div><div class="popup-meta">${lines}</div>`)
+              .addTo(map);
+          },
+        });
+
+        bindMapPopup(map, popup, {
+          layers: ["hsr-line"],
+          hover: "mousemove",
+          onSelect: (e) => {
+            toggleLine(e.features[0].properties.idx);
+          },
+          show: (e) => {
+            map.getCanvas().style.cursor = "pointer";
+            // 鼠标在车站上时让车站的弹窗优先
+            if (map.queryRenderedFeatures(e.point, { layers: ["hsr-station", "hsr-station-label", "hsr-station-label-far"] }).length) return;
+            const line = LINES[e.features[0].properties.idx];
+            popup
+              .setLngLat(e.lngLat)
+              .setHTML(
+                `<div class="popup-title">${lineBadge(line)}</div><div class="popup-meta">${lineSummary(line)}</div>`,
+              )
+              .addTo(map);
+          },
+        });
+
+        window.addEventListener("keydown", (event) => {
+          if (event.key !== "Escape") return;
+          if (activeLine >= 0) toggleLine(activeLine);
+          else if (activeHub) resetView();
+        });
+      }
+
+      function lineSummary(line) {
+        return [
+          `${line.km} km`,
+          line.sp ? `时速 ${line.sp}` : "",
+          line.y ? `${line.y} 年开通` : "",
+        ]
+          .filter(Boolean)
+          .join(" · ");
+      }
+
+      function lineEnds(line) {
+        if (line.st.length < 2) return lineSummary(line);
+        return `${line.st[0][0]} ⇄ ${line.st[line.st.length - 1][0]}`;
+      }
+
+      function fitLines(lines) {
+        const bounds = new mapboxgl.LngLatBounds();
+        lines.forEach((line) => line.p.forEach((part) => part.forEach((p) => bounds.extend(p))));
+        const narrow = window.innerWidth <= 900;
+        map.fitBounds(bounds, {
+          padding: narrow
+            ? { top: 90, bottom: Math.round(window.innerHeight * 0.45), left: 30, right: 30 }
+            : { top: 110, bottom: 70, left: 300, right: 400 },
+          pitch: 0,
+          bearing: 0,
+          maxZoom: 9,
+          duration: 1600,
+          essential: true,
+        });
+      }
+
+      function flyHome() {
+        map.flyTo({
+          center: DEFAULT_VIEW.center,
+          zoom: DEFAULT_VIEW.zoom,
+          pitch: DEFAULT_VIEW.pitch,
+          bearing: DEFAULT_VIEW.bearing,
+          speed: 0.82,
+          curve: 1.25,
+          essential: true,
+        });
+      }
+
+      // 点枢纽闪光点：只亮经过它的线路，右侧名录换成这些线路
+      function focusHub(hub) {
+        if (activeHub === hub) {
+          resetView();
+          return;
+        }
+        sparkMarkers.get(activeHub?.name)?.getElement().classList.remove("hidden");
+        activeHub = hub;
+        activeLine = -1;
+        document.body.classList.add("city-active");
+        sparkMarkers.get(hub.name).getElement().classList.add("hidden");
+        updateActiveLine();
+        renderPanel();
+        fitLines(hub.lines.map((idx) => LINES[idx]));
+      }
+
+      function resetView() {
+        sparkMarkers.get(activeHub?.name)?.getElement().classList.remove("hidden");
+        activeHub = null;
+        activeLine = -1;
+        document.body.classList.remove("city-active");
+        updateActiveLine();
+        renderPanel();
+        flyHome();
+      }
+
+      function toggleLine(idx) {
+        activeLine = activeLine === idx ? -1 : idx;
+        updateActiveLine();
+        if (activeLine >= 0) fitLines([LINES[activeLine]]);
+        else if (activeHub) fitLines(activeHub.lines.map((i) => LINES[i]));
+        else flyHome();
+        document.querySelectorAll(".list-card[data-line]").forEach((card) => {
+          const active = Number(card.dataset.line) === activeLine;
+          card.classList.toggle("active", active);
+          if (active) card.scrollIntoView({ block: "nearest", behavior: "smooth" });
+        });
+      }
+
+      // 三种状态：选中一条线 > 选中一个枢纽（亮它的几条线）> 全网
+      function updateActiveLine() {
+        const single = activeLine >= 0;
+        const lit = single
+          ? ["==", ["get", "idx"], activeLine]
+          : activeHub
+            ? ["in", ["get", "idx"], ["literal", activeHub.lines]]
+            : null;
+        map.setPaintProperty("hsr-glow", "line-opacity", lit ? ["case", lit, 0.75, 0.04] : 0.5);
+        map.setPaintProperty("hsr-line", "line-opacity", lit ? ["case", lit, 1, 0.14] : 1);
+        map.setPaintProperty("hsr-flow", "line-opacity", lit ? ["case", lit, 0.9, 0] : 0.75);
+        // 选中的线路画在最上面，不被交叉的线盖住
+        const sortKey = single ? ["case", lit, 1, 0] : 0;
+        lineLayers.forEach((id) => map.setLayoutProperty(id, "line-sort-key", sortKey));
+
+        const onLine = ["in", `|${activeLine}|`, ["get", "lineKey"]];
+        const label = single ? LABEL_STYLE.focus : LABEL_STYLE.normal;
+        const stationZoom = single ? STATION_MINZOOM.focus : STATION_MINZOOM.normal;
+        map.setFilter("hsr-station", zoomFilter(stationZoom, single ? onLine : null));
+        map.setFilter(
+          "hsr-station-label",
+          zoomFilter(Math.max(label.minzoom, single ? GLOBE_LABEL_ZOOM : 0), single ? onLine : null),
+        );
+        map.setFilter(
+          "hsr-station-label-far",
+          single ? ["all", [">=", ["zoom"], label.minzoom], ["<", ["zoom"], GLOBE_LABEL_ZOOM], onLine] : HIDE_ALL,
+        );
+        map.setLayoutProperty("hsr-station-label", "text-size", label.size);
+        map.setLayoutProperty("hsr-station-label", "text-font", label.font);
+        map.setPaintProperty("hsr-station-label", "text-color", label.color);
+        map.setPaintProperty("hsr-station-label", "text-halo-width", label.halo);
+      }
+
+      function setStats(values, labels) {
+        ["a", "b", "c"].forEach((key, i) => {
+          document.getElementById(`stat-${key}`).textContent = values[i];
+          document.getElementById(`stat-${key}-lbl`).textContent = labels[i];
+        });
+      }
+
+      function stationCount(lines) {
+        const keys = lines.map((line) => `|${line.idx}|`);
+        return STATIONS.features.filter((f) => keys.some((key) => f.properties.lineKey.includes(key))).length;
+      }
+
+      function renderPanel() {
+        const keyword = document.getElementById("search").value.trim();
+        const scope = activeHub ? activeHub.lines.map((idx) => LINES[idx]) : LINES;
+        const items = keyword
+          ? scope.filter((line) => line.n.includes(keyword) || line.st.some((s) => s[0].includes(keyword)))
+          : scope;
+        document.getElementById("panel-title").textContent = activeHub
+          ? `${activeHub.name} · 交汇线路`
+          : "高铁线路名录";
+        setStats(
+          [scope.length, scope.reduce((sum, line) => sum + line.km, 0).toLocaleString("en-US"), stationCount(scope)],
+          ["线路", "里程 km", "车站"],
+        );
+
+        const list = document.getElementById("panel-list");
+        list.innerHTML = items
+          .map(
+            (line) => `
+              <button class="list-card${line.idx === activeLine ? " active" : ""}" type="button" data-line="${line.idx}" aria-label="高亮${line.n}">
+                <span class="line-chip" style="--line:${line.c}"></span>
+                <span class="card-main">
+                  <span class="card-title">${line.n}</span>
+                  <span class="card-subtitle">${lineEnds(line)}${line.sp ? ` · 时速 ${line.sp}` : ""}</span>
+                </span>
+                <span class="pill">${line.km} km</span>
+              </button>`,
+          )
+          .join("");
+
+        list.querySelectorAll(".list-card").forEach((card) => {
+          card.addEventListener("click", () => toggleLine(Number(card.dataset.line)));
+        });
+        list.scrollTop = 0;
+      }
+
+      function renderLegend() {
+        document.getElementById("legend-tiers").innerHTML = SPEED_TIERS.map(
+          ([, color, text]) =>
+            `<div class="legend-item" style="margin-bottom:8px"><span class="legend-icon"><span class="legend-line" style="background:${color};box-shadow:0 0 8px ${color}"></span></span>${text}</div>`,
+        ).join("");
+        [
+          ["legend-station", drawStationIcon()],
+          ["legend-transfer", drawTransferIcon()],
+        ].forEach(([id, icon]) => {
+          const canvas = document.getElementById(id);
+          canvas.width = canvas.height = ICON_SIZE;
+          canvas.getContext("2d").drawImage(icon, 0, 0);
+        });
+      }
+
+      function setLayerGroupVisibility(layerIds, visible) {
+        layerIds.forEach((id) => {
+          if (map.getLayer(id)) {
+            map.setLayoutProperty(id, "visibility", visible ? "visible" : "none");
+          }
+        });
+      }
+
+      function setupControls() {
+        document.getElementById("spark-toggle").addEventListener("change", (e) => {
+          document.body.classList.toggle("hide-sparks", !e.target.checked);
+        });
+
+        document.getElementById("station-toggle").addEventListener("change", (e) => {
+          setLayerGroupVisibility(stationLayers, e.target.checked);
+        });
+
+        document.getElementById("label-toggle").addEventListener("change", (e) => {
+          setLayerGroupVisibility(labelLayers, e.target.checked);
+        });
+
+        document.getElementById("border-toggle").addEventListener("change", (e) => {
+          borderEnabled = e.target.checked;
+          setLayerGroupVisibility(borderLayers, borderEnabled);
+          // 重新打开时从头再描一遍
+          if (borderEnabled && borderStart) borderStart = performance.now();
+        });
+
+        document.getElementById("train-toggle").addEventListener("change", (e) => {
+          trainEnabled = e.target.checked;
+        });
+
+        document.getElementById("flow-toggle").addEventListener("change", (e) => {
+          flowEnabled = e.target.checked;
+          setLayerGroupVisibility(flowLayers, flowEnabled);
+        });
+
+        document.getElementById("base-label-toggle").addEventListener("change", (e) => {
+          setLayerGroupVisibility(baseLabelLayerIds, e.target.checked);
+        });
+
+        document.getElementById("search").addEventListener("input", renderPanel);
+
+        document.getElementById("back-btn").addEventListener("click", resetView);
+      }
+    </script>
+  <script src="../speak.js"></script>
+  </body>
+</html>

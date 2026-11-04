@@ -1,0 +1,1133 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>理论标准时区边界线 · 三维地球</title>
+    <link
+      href="../vendor/mapbox-gl-3.4.0/dist/mapbox-gl.css"
+      rel="stylesheet"
+    />
+    <script src="../vendor/mapbox-gl-3.4.0/dist/mapbox-gl.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        background: #050a14;
+        font-family: "Segoe UI", system-ui, sans-serif;
+        color: #e0e8f0;
+        height: 100vh;
+        overflow: hidden;
+      }
+
+      #map {
+        width: 100vw;
+        height: 100vh;
+      }
+
+      /* ── 顶部标题栏 ── */
+      #header {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 24px;
+        background: linear-gradient(
+          180deg,
+          rgba(5, 10, 20, 0.92) 60%,
+          transparent
+        );
+        pointer-events: none;
+      }
+
+      #header h1 {
+        font-size: 20px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        color: #fff;
+      }
+
+      #header h1 span {
+        color: #22d3ee;
+      }
+
+      #local-time {
+        font-size: 12px;
+        color: #94a3b8;
+      }
+
+      /* ── 控制面板 ── */
+      #controls {
+        position: absolute;
+        top: 64px;
+        left: 16px;
+        z-index: 10;
+        background: rgba(10, 18, 32, 0.82);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        padding: 16px;
+        width: 216px;
+      }
+
+      #controls h3,
+      #legend h3 {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 1.2px;
+        color: #64748b;
+        margin-bottom: 12px;
+      }
+
+      .filter-row {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-bottom: 14px;
+      }
+
+      .filter-row label {
+        font-size: 12px;
+        color: #94a3b8;
+      }
+
+      .filter-row .val {
+        font-size: 13px;
+        font-weight: 600;
+        color: #22d3ee;
+        text-align: right;
+      }
+
+      .filter-row input[type="range"] {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 100%;
+        height: 4px;
+        border-radius: 2px;
+        background: linear-gradient(
+          90deg,
+          #22d3ee var(--pct, 100%),
+          #1e293b var(--pct, 100%)
+        );
+        outline: none;
+      }
+
+      .filter-row input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: #22d3ee;
+        cursor: pointer;
+        border: 2px solid #fff;
+        box-shadow: 0 0 8px rgba(34, 211, 238, 0.7);
+      }
+
+      .switch-row {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .switch-row label {
+        cursor: pointer;
+      }
+
+      .switch {
+        position: relative;
+        width: 38px;
+        height: 20px;
+      }
+
+      .switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+
+      .switch span {
+        position: absolute;
+        inset: 0;
+        border-radius: 999px;
+        background: #1e293b;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+
+      .switch span::before {
+        content: "";
+        position: absolute;
+        width: 16px;
+        height: 16px;
+        left: 2px;
+        top: 2px;
+        border-radius: 50%;
+        background: #cbd5e1;
+        transition: transform 0.2s, background 0.2s;
+      }
+
+      .switch input:checked + span {
+        background: #22d3ee;
+      }
+
+      .switch input:checked + span::before {
+        transform: translateX(18px);
+        background: #fff;
+      }
+
+      /* ── 当前时区卡片 ── */
+      #zone-card {
+        position: absolute;
+        top: 64px;
+        right: 16px;
+        z-index: 10;
+        width: 210px;
+        background: rgba(10, 18, 32, 0.82);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        padding: 16px;
+      }
+
+      #zone-card .label {
+        font-size: 11px;
+        color: #64748b;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+      }
+
+      #zone-card .zone {
+        margin-top: 8px;
+        font-size: 30px;
+        line-height: 1;
+        font-weight: 700;
+        color: #fff;
+      }
+
+      #zone-card .city {
+        margin-top: 8px;
+        font-size: 13px;
+        color: #22d3ee;
+      }
+
+      #zone-card .hint {
+        margin-top: 10px;
+        font-size: 12px;
+        line-height: 1.55;
+        color: #94a3b8;
+      }
+
+      /* ── 酒店世界时钟 ── */
+      #hotel-times {
+        position: absolute;
+        top: 238px;
+        right: 16px;
+        z-index: 10;
+        width: 250px;
+        max-height: calc(100vh - 284px);
+        overflow: auto;
+        background: rgba(10, 18, 32, 0.82);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        padding: 14px;
+      }
+
+      #hotel-times h3 {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 1.2px;
+        color: #64748b;
+        margin-bottom: 10px;
+      }
+
+      .city-time {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 4px 10px;
+        width: 100%;
+        padding: 9px 10px;
+        margin-bottom: 7px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 9px;
+        background: rgba(255, 255, 255, 0.045);
+        color: #e2e8f0;
+        text-align: left;
+        cursor: pointer;
+        transition: all 0.18s ease;
+      }
+
+      .city-time:hover,
+      .city-time.active {
+        border-color: rgba(34, 211, 238, 0.55);
+        background: rgba(34, 211, 238, 0.13);
+        transform: translateX(-3px);
+      }
+
+      .city-time .city {
+        font-size: 13px;
+        font-weight: 650;
+        color: #fff;
+      }
+
+      .city-time .time {
+        font-size: 13px;
+        font-variant-numeric: tabular-nums;
+        color: #22d3ee;
+      }
+
+      .city-time .zone,
+      .city-time .role {
+        font-size: 11px;
+        color: #94a3b8;
+      }
+
+      /* ── 图例 ── */
+      #legend {
+        position: absolute;
+        bottom: 36px;
+        left: 16px;
+        z-index: 10;
+        background: rgba(10, 18, 32, 0.82);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        padding: 14px 16px;
+      }
+
+      .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 6px;
+        font-size: 12px;
+        color: #cbd5e1;
+      }
+
+      .legend-line {
+        width: 28px;
+        height: 0;
+        border-top: 2px solid #22d3ee;
+        flex-shrink: 0;
+      }
+
+      .legend-line.dashed {
+        border-top-style: dashed;
+      }
+
+      .legend-line.prime {
+        border-top-color: #f59e0b;
+      }
+
+      .legend-line.legal {
+        border-top-color: #a78bfa;
+        box-shadow: 0 0 10px rgba(167, 139, 250, 0.65);
+      }
+
+      .legend-line.date {
+        border-top-color: #ef4444;
+      }
+
+      /* ── Popup ── */
+      .mapboxgl-popup-content {
+        background: rgba(10, 18, 32, 0.95) !important;
+        border: 1px solid rgba(255, 255, 255, 0.12) !important;
+        border-radius: 10px !important;
+        color: #e2e8f0 !important;
+        padding: 14px 16px !important;
+        font-family: "Segoe UI", system-ui, sans-serif;
+        min-width: 210px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6) !important;
+      }
+
+      .mapboxgl-popup-tip {
+        display: none;
+      }
+
+      .popup-title {
+        font-size: 16px;
+        font-weight: 700;
+        color: #fff;
+        margin-bottom: 8px;
+      }
+
+      .popup-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        font-size: 12px;
+        color: #94a3b8;
+        margin-bottom: 4px;
+      }
+
+      .popup-row span:last-child {
+        color: #e2e8f0;
+        font-weight: 500;
+        text-align: right;
+      }
+
+@media (max-width: 900px) {
+  #header { padding: 10px 12px; flex-wrap: wrap; gap: 4px; }
+  #header h1 { font-size: 18px; }
+  #controls { top: 72px; left: 8px; width: 180px; padding: 10px; max-height: 35dvh; overflow-y: auto; }
+  #stats { top: 72px; right: 8px; }
+  .stat-card { padding: 8px; min-width: 88px; }
+  .stat-card .num { font-size: 20px; }
+  #legend { left: 64px; bottom: 28px; padding: 8px; max-width: calc(100vw - 80px); max-height: 18dvh; overflow-y: auto; }
+  #zone-card { top: 72px; right: 8px; width: 150px; padding: 10px; }
+  #zone-card .hint { display: none; }
+  #hotel-times { top: auto; bottom: 28px; right: 8px; width: min(250px, 52vw); max-height: 28dvh; padding: 8px; }
+}
+@media (max-width: 500px) {
+  #controls { width: 155px; }
+  #zone-card { width: 140px; }
+  #hotel-times { width: 48vw; }
+}
+</style>
+    <script src="../map-interactions.js"></script>
+  <link rel="stylesheet" href="../touch.css">
+<script src="../touch.js"></script>
+</head>
+  <body>
+    <div id="map"></div>
+
+    <!-- 顶部标题 -->
+    <div id="header">
+      <h1>🌐 理论标准时区边界线 · <span>三维地球</span></h1>
+      <div id="local-time">本地时间：--:--:--</div>
+    </div>
+
+    <!-- 控制控件 -->
+    <div id="controls">
+      <h3>显示控制</h3>
+      <div class="filter-row switch-row">
+        <label for="equator-toggle">赤道线</label>
+        <label class="switch">
+          <input type="checkbox" id="equator-toggle" checked />
+          <span></span>
+        </label>
+      </div>
+      <div class="filter-row switch-row">
+        <label for="timezone-toggle">理论边界线</label>
+        <label class="switch">
+          <input type="checkbox" id="timezone-toggle" checked />
+          <span></span>
+        </label>
+      </div>
+      <div class="filter-row switch-row">
+        <label for="legal-timezone-toggle">国家法定时区</label>
+        <label class="switch">
+          <input type="checkbox" id="legal-timezone-toggle" />
+          <span></span>
+        </label>
+      </div>
+      <div class="filter-row switch-row">
+        <label for="label-toggle">时区名字</label>
+        <label class="switch">
+          <input type="checkbox" id="label-toggle" checked />
+          <span></span>
+        </label>
+      </div>
+      <div class="filter-row">
+        <label>时区线透明度 <span class="val" id="opacity-val">70%</span></label>
+        <input
+          type="range"
+          id="opacity-slider"
+          min="15"
+          max="100"
+          step="5"
+          value="70"
+        />
+      </div>
+    </div>
+
+    <!-- 当前时区 -->
+    <div id="zone-card">
+      <div class="label">鼠标所在时区</div>
+      <div class="zone" id="hover-zone">UTC+8</div>
+      <div class="city" id="hover-city">北京 / 上海 / 新加坡</div>
+      <div class="hint">
+        移动鼠标查看经度对应的理论标准时区。每 15° 经度约等于 1 小时，现实民用时区会随国界调整。
+      </div>
+    </div>
+
+    <!-- 酒店大堂常见世界时钟 -->
+    <div id="hotel-times">
+      <h3>酒店常见世界时钟</h3>
+      <div id="city-list"></div>
+    </div>
+
+    <!-- 图例 -->
+    <div id="legend">
+      <h3>图层图例</h3>
+      <div class="legend-item">
+        <div class="legend-line dashed"></div>
+        赤道（0° 纬线）
+      </div>
+      <div class="legend-item">
+        <div class="legend-line"></div>
+        理论标准时区边界线（每区宽 15°）
+      </div>
+      <div class="legend-item">
+        <div class="legend-line legal"></div>
+        国家/地区法定时区边界
+      </div>
+      <div class="legend-item">
+        <div class="legend-line prime"></div>
+        UTC+0 理论边界（±7.5°）
+      </div>
+      <div class="legend-item">
+        <div class="legend-line date"></div>
+        180° 日期分界参考线
+      </div>
+    </div>
+
+    <script>
+      mapboxgl.accessToken =
+        "pk.eyJ1IjoiZHJhZ29uem9lYmFpIiwiYSI6ImNrcDZlZjd3ODAwN2Uyd21qdWlpdGRqdWUifQ.-4OIwa9MuCxHvVxS0mbV0g";
+
+      let map,
+        currentFocusedCity = null;
+
+      const DEFAULT_VIEW = {
+        center: [104, 20],
+        zoom: 2.25,
+        pitch: 0,
+        bearing: 0,
+      };
+
+      const LEGAL_TIMEZONE_DATA_URL =
+        "../vendor/data/ne_10m_time_zones.geojson";
+
+      const ZONE_NAMES = {
+        "UTC-12": "贝克岛 / 豪兰岛",
+        "UTC-11": "美属萨摩亚 / 纽埃",
+        "UTC-10": "夏威夷 / 塔希提",
+        "UTC-9": "阿拉斯加",
+        "UTC-8": "洛杉矶 / 温哥华",
+        "UTC-7": "丹佛 / 凤凰城",
+        "UTC-6": "芝加哥 / 墨西哥城",
+        "UTC-5": "纽约 / 多伦多",
+        "UTC-4": "圣地亚哥 / 加拉加斯",
+        "UTC-3": "布宜诺斯艾利斯 / 圣保罗",
+        "UTC-2": "南乔治亚岛",
+        "UTC-1": "亚速尔群岛",
+        "UTC+0": "伦敦 / 里斯本 / 阿克拉",
+        "UTC+1": "巴黎 / 柏林 / 罗马",
+        "UTC+2": "开罗 / 雅典 / 约翰内斯堡",
+        "UTC+3": "莫斯科 / 利雅得",
+        "UTC+4": "迪拜 / 巴库",
+        "UTC+5": "卡拉奇 / 塔什干",
+        "UTC+6": "达卡 / 阿拉木图",
+        "UTC+7": "曼谷 / 河内 / 雅加达",
+        "UTC+8": "北京 / 上海 / 新加坡",
+        "UTC+9": "东京 / 首尔",
+        "UTC+10": "悉尼 / 关岛",
+        "UTC+11": "所罗门群岛 / 努美阿",
+        "UTC+12": "奥克兰 / 斐济",
+      };
+
+      const HOTEL_CITIES = [
+        { city: "北京", role: "中国时间", zone: "UTC+8", timeZone: "Asia/Shanghai", lng: 116.4074, lat: 39.9042 },
+        { city: "东京", role: "日本时间", zone: "UTC+9", timeZone: "Asia/Tokyo", lng: 139.6917, lat: 35.6895 },
+        { city: "新加坡", role: "东南亚枢纽", zone: "UTC+8", timeZone: "Asia/Singapore", lng: 103.8198, lat: 1.3521 },
+        { city: "迪拜", role: "海湾商务", zone: "UTC+4", timeZone: "Asia/Dubai", lng: 55.2708, lat: 25.2048 },
+        { city: "伦敦", role: "格林尼治时间", zone: "UTC+0", timeZone: "Europe/London", lng: -0.1276, lat: 51.5072 },
+        { city: "巴黎", role: "欧洲大陆", zone: "UTC+1", timeZone: "Europe/Paris", lng: 2.3522, lat: 48.8566 },
+        { city: "纽约", role: "美东时间", zone: "UTC-5", timeZone: "America/New_York", lng: -74.006, lat: 40.7128 },
+        { city: "洛杉矶", role: "美西时间", zone: "UTC-8", timeZone: "America/Los_Angeles", lng: -118.2437, lat: 34.0522 },
+        { city: "悉尼", role: "澳洲东部", zone: "UTC+10", timeZone: "Australia/Sydney", lng: 151.2093, lat: -33.8688 },
+      ];
+
+      /* ── 初始化地图 ── */
+      (function initMap() {
+        map = new mapboxgl.Map({
+          container: "map",
+          style: "mapbox://styles/mapbox/satellite-streets-v12",
+          center: DEFAULT_VIEW.center,
+          zoom: DEFAULT_VIEW.zoom,
+          pitch: DEFAULT_VIEW.pitch,
+          bearing: DEFAULT_VIEW.bearing,
+          projection: "globe",
+          antialias: true,
+        });
+
+        map.addControl(
+          new mapboxgl.NavigationControl({ visualizePitch: true }),
+          "bottom-right",
+        );
+        map.addControl(new mapboxgl.ScaleControl(), "bottom-right");
+
+        map.on("style.load", () => {
+          /* 大气层 & 星空背景 */
+          map.setFog({
+            color: "rgb(228, 238, 255)",
+            "high-color": "rgb(245, 248, 255)",
+            "horizon-blend": 0.015,
+            "space-color": "rgb(5, 10, 20)",
+            "star-intensity": 0.6,
+          });
+
+          /* 地图标注改为中文 */
+          map.getStyle().layers.forEach((layer) => {
+            if (layer.type === "symbol" && layer.layout?.["text-field"]) {
+              map.setLayoutProperty(layer.id, "text-field", [
+                "coalesce",
+                ["get", "name_zh-Hans"],
+                ["get", "name_zh"],
+                ["get", "name"],
+              ]);
+            }
+          });
+
+          setupLayers();
+        });
+
+        setupControls();
+        setupClock();
+      })();
+
+      /* ── 生成时区数据 ── */
+      function zoneLabel(offset) {
+        if (offset === 0) return "UTC+0";
+        return `UTC${offset > 0 ? "+" : ""}${offset}`;
+      }
+
+      function longitudeToOffset(lng) {
+        let offset = Math.round(lng / 15);
+        if (offset > 12) offset = -12;
+        if (offset < -12) offset = 12;
+        return offset;
+      }
+
+      function makeLine(lng, kind) {
+        return {
+          type: "Feature",
+          properties: {
+            lng,
+            kind,
+            zone: zoneLabel(longitudeToOffset(lng)),
+          },
+          geometry: {
+            type: "LineString",
+            coordinates: Array.from({ length: 171 }, (_, i) => [lng, i - 85]),
+          },
+        };
+      }
+
+      function makeTimezoneLines() {
+        const features = [];
+        for (let lng = -172.5; lng <= 172.5; lng += 15) {
+          let kind = "normal";
+          if (Math.abs(lng) === 7.5) kind = "prime";
+          features.push(makeLine(lng, kind));
+        }
+        features.push(makeLine(180, "date"));
+        return { type: "FeatureCollection", features };
+      }
+
+      function makeTimezoneLabels() {
+        const features = [];
+        for (let offset = -12; offset <= 12; offset += 1) {
+          const lng = offset * 15;
+          const zone = zoneLabel(offset);
+          features.push({
+            type: "Feature",
+            properties: {
+              zone,
+              name: ZONE_NAMES[zone] || "标准时区",
+            },
+            geometry: {
+              type: "Point",
+              coordinates: [lng, 0],
+            },
+          });
+        }
+        return { type: "FeatureCollection", features };
+      }
+
+      function cityLocalTime(city) {
+        return new Date().toLocaleTimeString("zh-CN", {
+          timeZone: city.timeZone,
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+      }
+
+      function makeHotelCityPoints() {
+        return {
+          type: "FeatureCollection",
+          features: HOTEL_CITIES.map((city) => ({
+            type: "Feature",
+            properties: {
+              ...city,
+              localTime: cityLocalTime(city),
+            },
+            geometry: {
+              type: "Point",
+              coordinates: [city.lng, city.lat],
+            },
+          })),
+        };
+      }
+
+      /* ── 添加图层 ── */
+      function setupLayers() {
+        /* 赤道线 */
+        map.addSource("equator", {
+          type: "geojson",
+          data: {
+            type: "Feature",
+            properties: { name: "赤道" },
+            geometry: {
+              type: "LineString",
+              coordinates: Array.from({ length: 361 }, (_, i) => [i - 180, 0]),
+            },
+          },
+        });
+
+        map.addLayer({
+          id: "equator-line",
+          type: "line",
+          source: "equator",
+          paint: {
+            "line-color": "#22d3ee",
+            "line-width": 2.4,
+            "line-opacity": 0.95,
+            "line-dasharray": [2, 2],
+          },
+        });
+
+        map.addSource("timezone-lines", {
+          type: "geojson",
+          data: makeTimezoneLines(),
+        });
+
+        map.addLayer({
+          id: "timezone-lines",
+          type: "line",
+          source: "timezone-lines",
+          paint: {
+            "line-color": [
+              "match",
+              ["get", "kind"],
+              "prime",
+              "#f59e0b",
+              "date",
+              "#ef4444",
+              "#67e8f9",
+            ],
+            "line-width": [
+              "match",
+              ["get", "kind"],
+              "prime",
+              2.6,
+              "date",
+              2.6,
+              1.25,
+            ],
+            "line-opacity": 0.7,
+          },
+        });
+
+        map.addSource("timezone-labels", {
+          type: "geojson",
+          data: makeTimezoneLabels(),
+        });
+
+        map.addLayer({
+          id: "timezone-labels",
+          type: "symbol",
+          source: "timezone-labels",
+          layout: {
+            "text-field": ["format", ["get", "zone"], { "font-scale": 1.16 }, "\n", {}, ["get", "name"], { "font-scale": 0.78 }],
+            "text-font": ["DIN Offc Pro Bold", "Arial Unicode MS Regular"],
+            "text-size": ["interpolate", ["linear"], ["zoom"], 1.5, 12, 4, 18],
+            "text-anchor": "center",
+            "text-allow-overlap": true,
+            "text-ignore-placement": true,
+            "text-rotation-alignment": "map",
+          },
+          paint: {
+            "text-color": "#ffffff",
+            "text-halo-color": "rgba(5, 10, 20, 0.99)",
+            "text-halo-width": 2.6,
+            "text-opacity": ["interpolate", ["linear"], ["zoom"], 1.5, 0.72, 2.8, 1],
+          },
+        });
+
+        map.addSource("legal-timezones", {
+          type: "geojson",
+          data: LEGAL_TIMEZONE_DATA_URL,
+        });
+
+        map.addLayer({
+          id: "legal-timezones-fill",
+          type: "fill",
+          source: "legal-timezones",
+          layout: { visibility: "none" },
+          paint: {
+            "fill-color": [
+              "match",
+              ["to-string", ["get", "zone"]],
+              "-12",
+              "#ef4444",
+              "-11",
+              "#f97316",
+              "-10",
+              "#f59e0b",
+              "-9.5",
+              "#eab308",
+              "-9",
+              "#84cc16",
+              "-8",
+              "#22c55e",
+              "-7",
+              "#10b981",
+              "-6",
+              "#14b8a6",
+              "-5",
+              "#06b6d4",
+              "-4.5",
+              "#0ea5e9",
+              "-4",
+              "#3b82f6",
+              "-3.5",
+              "#6366f1",
+              "-3",
+              "#8b5cf6",
+              "-2",
+              "#a855f7",
+              "-1",
+              "#d946ef",
+              "0",
+              "#ec4899",
+              "1",
+              "#f43f5e",
+              "2",
+              "#fb7185",
+              "3",
+              "#fdba74",
+              "3.5",
+              "#facc15",
+              "4",
+              "#bef264",
+              "4.5",
+              "#86efac",
+              "5",
+              "#5eead4",
+              "5.5",
+              "#67e8f9",
+              "5.75",
+              "#7dd3fc",
+              "6",
+              "#93c5fd",
+              "6.5",
+              "#a5b4fc",
+              "7",
+              "#c4b5fd",
+              "8",
+              "#d8b4fe",
+              "8.75",
+              "#f0abfc",
+              "9",
+              "#f9a8d4",
+              "9.5",
+              "#fda4af",
+              "10",
+              "#fca5a5",
+              "10.5",
+              "#fdba74",
+              "11",
+              "#fde047",
+              "11.5",
+              "#d9f99d",
+              "12",
+              "#99f6e4",
+              "12.75",
+              "#bae6fd",
+              "13",
+              "#bfdbfe",
+              "14",
+              "#ddd6fe",
+              "#94a3b8",
+            ],
+            "fill-opacity": 0.28,
+          },
+        });
+
+        map.addLayer({
+          id: "legal-timezones-line",
+          type: "line",
+          source: "legal-timezones",
+          layout: { visibility: "none" },
+          paint: {
+            "line-color": "#c4b5fd",
+            "line-width": ["interpolate", ["linear"], ["zoom"], 1.5, 0.55, 5, 1.8],
+            "line-opacity": 0.9,
+          },
+        });
+
+        map.addSource("hotel-cities", {
+          type: "geojson",
+          data: makeHotelCityPoints(),
+        });
+
+        map.addLayer({
+          id: "hotel-city-halo",
+          type: "circle",
+          source: "hotel-cities",
+          paint: {
+            "circle-radius": ["interpolate", ["linear"], ["zoom"], 1.5, 12, 5, 28],
+            "circle-color": "#f59e0b",
+            "circle-opacity": 0.34,
+            "circle-blur": 0.55,
+          },
+        });
+
+        map.addLayer({
+          id: "hotel-city-ring",
+          type: "circle",
+          source: "hotel-cities",
+          paint: {
+            "circle-radius": ["interpolate", ["linear"], ["zoom"], 1.5, 7, 5, 13],
+            "circle-color": "rgba(0,0,0,0)",
+            "circle-stroke-width": ["interpolate", ["linear"], ["zoom"], 1.5, 2.2, 5, 3.5],
+            "circle-stroke-color": "#fde68a",
+            "circle-opacity": 0.98,
+          },
+        });
+
+        map.addLayer({
+          id: "hotel-city-point",
+          type: "circle",
+          source: "hotel-cities",
+          paint: {
+            "circle-radius": ["interpolate", ["linear"], ["zoom"], 1.5, 5.5, 5, 10],
+            "circle-color": "#f97316",
+            "circle-opacity": 1,
+            "circle-stroke-width": 2,
+            "circle-stroke-color": "#fff7ed",
+          },
+        });
+
+        map.addLayer({
+          id: "hotel-city-labels",
+          type: "symbol",
+          source: "hotel-cities",
+          layout: {
+            "text-field": ["format", ["get", "city"], { "font-scale": 1.08 }, "\n", {}, ["get", "localTime"], { "font-scale": 0.9 }],
+            "text-font": ["DIN Offc Pro Medium", "Arial Unicode MS Regular"],
+            "text-size": ["interpolate", ["linear"], ["zoom"], 1.5, 12, 5, 18],
+            "text-offset": [0, -2.15],
+            "text-anchor": "bottom",
+            "text-allow-overlap": true,
+            "text-ignore-placement": true,
+          },
+          paint: {
+            "text-color": "#fff7ed",
+            "text-halo-color": "rgba(5, 10, 20, 0.98)",
+            "text-halo-width": 2,
+          },
+        });
+
+        renderCityList();
+
+        /* Popup */
+        const popup = new mapboxgl.Popup({
+          offset: 10,
+          closeButton: false,
+          closeOnClick: false,
+          maxWidth: "260px",
+        });
+
+        bindMapPopup(map, popup, {
+          layers: ["timezone-labels"],
+          hover: "mouseenter",
+          show: (e) => {
+            map.getCanvas().style.cursor = "pointer";
+            const p = e.features[0].properties;
+            popup
+              .setLngLat(e.features[0].geometry.coordinates)
+              .setHTML(
+                `
+            <div class="popup-title">${p.zone}</div>
+            <div class="popup-row"><span>代表城市</span><span>${p.name}</span></div>
+            <div class="popup-row"><span>相对 UTC</span><span>${p.zone.replace("UTC", "") || "+0"} 小时</span></div>
+          `,
+              )
+              .addTo(map);
+          },
+        });
+
+        bindMapPopup(map, popup, {
+          layers: ["legal-timezones-fill"],
+          hover: "mousemove",
+          show: (e) => {
+            map.getCanvas().style.cursor = "help";
+            const p = e.features[0].properties;
+            popup
+              .setLngLat(e.lngLat)
+              .setHTML(
+                `
+            <div class="popup-title">${p.utc_format || p.time_zone || "法定时区"}</div>
+            <div class="popup-row"><span>时区名称</span><span>${p.tz_name1st || p.places || "—"}</span></div>
+            <div class="popup-row"><span>标准偏移</span><span>${p.time_zone || p.utc_format || "—"}</span></div>
+            <div class="popup-row"><span>数据源</span><span>Natural Earth</span></div>
+          `,
+              )
+              .addTo(map);
+          },
+        });
+
+        bindMapPopup(map, popup, {
+          layers: ["hotel-city-point", "hotel-city-labels"],
+          onSelect: (e) => flyToCity(e.features[0].properties.city),
+          show: (e) => {
+              const city = e.features[0].properties;
+              popup.setLngLat(e.features[0].geometry.coordinates)
+                .setHTML(`<div class="popup-title">${city.city}</div><div class="popup-row">${city.zone} · ${city.role}</div>`)
+                .addTo(map);
+          },
+        });
+
+        ["mousemove", "click"].forEach(event => map.on(event, (e) => {
+          const offset = longitudeToOffset(e.lngLat.lng);
+          const zone = zoneLabel(offset);
+          document.getElementById("hover-zone").textContent = zone;
+          document.getElementById("hover-city").textContent =
+            ZONE_NAMES[zone] || "标准时区";
+        }));
+      }
+
+      function renderCityList() {
+        const list = document.getElementById("city-list");
+        list.innerHTML = HOTEL_CITIES.map(
+          (city) => `
+            <button class="city-time" data-city="${city.city}">
+              <span class="city">${city.city}</span>
+              <span class="time" data-time="${city.city}">--:--</span>
+              <span class="role">${city.role}</span>
+              <span class="zone">${city.zone}</span>
+            </button>
+          `,
+        ).join("");
+
+        list.querySelectorAll(".city-time").forEach((btn) => {
+          btn.addEventListener("click", () => flyToCity(btn.dataset.city));
+        });
+        updateHotelTimes();
+      }
+
+      function flyToCity(cityName) {
+        if (currentFocusedCity === cityName) {
+          resetView();
+          return;
+        }
+
+        const city = HOTEL_CITIES.find((item) => item.city === cityName);
+        if (!city) return;
+
+        currentFocusedCity = cityName;
+        document.querySelectorAll(".city-time").forEach((btn) => {
+          btn.classList.toggle("active", btn.dataset.city === cityName);
+        });
+
+        document.getElementById("hover-zone").textContent = city.zone;
+        document.getElementById("hover-city").textContent = `${city.city} · ${city.role}`;
+
+        map.flyTo({
+          center: [city.lng, city.lat],
+          zoom: 4.4,
+          pitch: 35,
+          bearing: city.lng > 0 ? -18 : 18,
+          duration: 1300,
+          essential: true,
+        });
+      }
+
+      function resetView() {
+        currentFocusedCity = null;
+        document.querySelectorAll(".city-time").forEach((btn) => {
+          btn.classList.remove("active");
+        });
+        document.getElementById("hover-zone").textContent = "UTC+8";
+        document.getElementById("hover-city").textContent = "北京 / 上海 / 新加坡";
+
+        map.flyTo({
+          ...DEFAULT_VIEW,
+          duration: 1300,
+          essential: true,
+        });
+      }
+
+      function updateHotelTimes() {
+        HOTEL_CITIES.forEach((city) => {
+          const el = document.querySelector(`[data-time="${city.city}"]`);
+          if (!el) return;
+          el.textContent = cityLocalTime(city);
+        });
+
+        if (map && map.getSource("hotel-cities")) {
+          map.getSource("hotel-cities").setData(makeHotelCityPoints());
+        }
+      }
+
+      /* ── 控件绑定 ── */
+      function setupControls() {
+        document.getElementById("equator-toggle").addEventListener("change", (e) => {
+          setLayerVisibility("equator-line", e.target.checked);
+        });
+
+        document.getElementById("timezone-toggle").addEventListener("change", (e) => {
+          setLayerVisibility("timezone-lines", e.target.checked);
+        });
+
+        document.getElementById("legal-timezone-toggle").addEventListener("change", (e) => {
+          setLayerVisibility("legal-timezones-fill", e.target.checked);
+          setLayerVisibility("legal-timezones-line", e.target.checked);
+        });
+
+        document.getElementById("label-toggle").addEventListener("change", (e) => {
+          setLayerVisibility("timezone-labels", e.target.checked);
+        });
+
+        const slider = document.getElementById("opacity-slider");
+        const val = document.getElementById("opacity-val");
+        slider.addEventListener("input", () => {
+          const opacity = +slider.value / 100;
+          val.textContent = `${slider.value}%`;
+          slider.style.setProperty("--pct", `${slider.value}%`);
+          if (map && map.getLayer("timezone-lines")) {
+            map.setPaintProperty("timezone-lines", "line-opacity", opacity);
+          }
+        });
+        slider.dispatchEvent(new Event("input"));
+      }
+
+      function setLayerVisibility(layerId, visible) {
+        if (!map || !map.getLayer(layerId)) return;
+        map.setLayoutProperty(layerId, "visibility", visible ? "visible" : "none");
+      }
+
+      function setupClock() {
+        function tick() {
+          document.getElementById("local-time").textContent =
+            `本地时间：${new Date().toLocaleString("zh-CN")}`;
+          updateHotelTimes();
+        }
+        tick();
+        setInterval(tick, 1000);
+      }
+    </script>
+  <script src="../speak.js"></script>
+  </body>
+</html>

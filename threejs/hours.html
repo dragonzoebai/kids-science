@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8">
+  <title>北京时间 · 地球自转</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #000; overflow: hidden; font-family: Arial, sans-serif; }
+    canvas { display: block; }
+
+    #ui {
+      position: absolute;
+      top: 16px; left: 16px;
+      color: rgba(200,230,255,.85);
+      font-size: 13px;
+      pointer-events: none;
+      text-shadow: 0 1px 4px #000;
+    }
+    #ui h2 { font-size: 20px; margin-bottom: 8px; color: #ffe066; letter-spacing: 1px; }
+    #ui li  { margin: 4px 0; list-style: none; }
+
+    #clock-panel {
+      position: absolute;
+      top: 16px; right: 16px;
+      background: rgba(0,0,0,.65);
+      border: 1px solid rgba(255,220,80,.3);
+      border-radius: 14px;
+      padding: 16px 22px;
+      pointer-events: none;
+      min-width: 210px;
+    }
+    .time-row { margin-bottom: 14px; }
+    .time-row:last-child { margin-bottom: 0; }
+    .zone-label { font-size: 10px; color: rgba(200,220,255,.55); letter-spacing: 1px; margin-bottom: 3px; text-transform: uppercase; }
+    .time-val { font-size: 26px; font-weight: bold; letter-spacing: 3px; font-variant-numeric: tabular-nums; }
+    .time-val.china { color: #ff8866; }
+    .time-val.usa   { color: #66aaff; }
+    .time-val.utc   { color: rgba(200,220,255,.6); font-size: 16px; letter-spacing: 2px; }
+    .time-extra { font-size: 10px; color: rgba(200,220,255,.4); margin-top: 2px; }
+
+    #panel {
+      position: absolute;
+      bottom: 24px; left: 50%;
+      transform: translateX(-50%);
+      display: flex; align-items: center; gap: 14px;
+      background: rgba(0,0,0,.55);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 30px;
+      padding: 10px 24px;
+      color: #cce; font-size: 13px;
+    }
+    #panel input[type=range] { width: 160px; accent-color: #ffe066; }
+
+    #label-canvas { position: absolute; top: 0; left: 0; pointer-events: none; }
+
+@media (max-width: 900px) {
+  #ui { top: 10px; left: 10px; max-width: 55vw; font-size: 11px; }
+  #ui h2 { font-size: 17px; }
+  #panel { bottom: max(12px, env(safe-area-inset-bottom)); max-width: calc(100vw - 24px); width: max-content; flex-wrap: wrap; justify-content: center; gap: 8px; padding: 8px 12px; border-radius: 16px; }
+  #panel input[type=range] { width: min(130px, 30vw); }
+  #info { top: 115px; left: 10px; width: min(290px, 65vw); max-height: calc(100dvh - 230px); overflow-y: auto; }
+  #bodies { right: 8px; max-height: 58dvh; overflow-y: auto; padding: 4px; }
+  #bodies .item { padding: 4px; gap: 4px; font-size: 11px; }
+  #bodies .thumb { width: 24px; height: 24px; flex-shrink: 0; }
+  #clock-panel, #phase-card, #season-info { top: 10px; right: 10px; width: min(210px, 42vw); min-width: 0; padding: 10px; }
+  .time-val { font-size: 20px; letter-spacing: 1px; }
+}
+@media (max-width: 600px) {
+  #ui li { display: none; }
+  #ui { max-width: 50vw; }
+  #phase-moon { width: 48px; height: 48px; }
+  #phase-desc { max-height: 72px; overflow-y: auto; }
+}
+</style>
+<link rel="stylesheet" href="../touch.css">
+<script src="../touch.js"></script>
+</head>
+<body>
+
+<div id="ui">
+  <h2>&#x1F30D; 北京时间 · 地球自转</h2>
+  <ul>
+    <li>&#x1F5B1; 拖拽 — 旋转视角</li>
+    <li>&#x1F5B1; 滚轮 — 缩放</li>
+    <li style="margin-top:8px;color:#ffe066;">正午时，该地正对太阳</li>
+    <li>地球每小时自转 15°</li>
+  </ul>
+</div>
+
+<div id="clock-panel">
+  <div class="time-row">
+    <div class="zone-label">&#x1F1E8;&#x1F1F3; 北京时间 CST (UTC+8)</div>
+    <div class="time-val china" id="bj-time">--:--:--</div>
+    <div class="time-extra" id="bj-date"></div>
+  </div>
+  <div class="time-row">
+    <div class="zone-label">&#x1F1FA;&#x1F1F8; 纽约时间 EDT (UTC-4)</div>
+    <div class="time-val usa" id="ny-time">--:--:--</div>
+    <div class="time-extra" id="ny-status"></div>
+  </div>
+  <div class="time-row">
+    <div class="zone-label">UTC 世界协调时</div>
+    <div class="time-val utc" id="utc-time">--:--:--</div>
+  </div>
+</div>
+
+<canvas id="label-canvas"></canvas>
+
+<div id="panel">
+  <span>速度</span>
+  <input type="range" id="speed" min="1" max="2000" step="1" value="1">
+  <span id="speed-val" style="min-width:46px">1×</span>
+  <span style="margin-left:20px">季节</span>
+  <select id="season" style="background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.2);border-radius:4px;padding:4px 8px;color:#cce;font-size:13px;">
+    <option value="0" selected>春分 (3月)</option>
+    <option value="1">夏至 (6月)</option>
+    <option value="2">秋分 (9月)</option>
+    <option value="3">冬至 (12月)</option>
+  </select>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "../vendor/three-0.160.0/build/three.module.js",
+    "three/addons/": "../vendor/three-0.160.0/examples/jsm/"
+  }
+}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+/* ── Renderer ─────────────────────────────────── */
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+document.body.appendChild(renderer.domElement);
+
+/* ── Scene / Camera ───────────────────────────── */
+const scene  = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 80000);
+camera.position.set(0, 100, 320);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping  = true;
+controls.dampingFactor  = 0.06;
+controls.minDistance    = 130;
+controls.maxDistance    = 2000;
+
+/* ── Stars ────────────────────────────────────── */
+{
+  const pos = [], col = [];
+  for (let i = 0; i < 2000; i++) {
+    const r = 50000;
+    const th = Math.random() * Math.PI * 2;
+    const ph = Math.acos(2 * Math.random() - 1);
+    pos.push(r * Math.sin(ph) * Math.cos(th), r * Math.sin(ph) * Math.sin(th), r * Math.cos(ph));
+    const b = Math.pow(Math.random(), 2.2) * 0.85 + 0.15;
+    const tint = (Math.random() - 0.5) * 0.15;
+    col.push(b - tint, b, b + tint);
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  geo.setAttribute('color',    new THREE.Float32BufferAttribute(col, 3));
+  scene.add(new THREE.Points(geo,
+    new THREE.PointsMaterial({ vertexColors: true, size: 1.8, sizeAttenuation: false })));
+}
+
+/* ── Texture loader ───────────────────────────── */
+const tl = new THREE.TextureLoader();
+function tex(file, fallback) {
+  const t = tl.load('textures/' + file, undefined, undefined, () => {
+    const c = document.createElement('canvas'); c.width = c.height = 2;
+    const ctx = c.getContext('2d'); ctx.fillStyle = fallback; ctx.fillRect(0,0,2,2);
+    t.image = c; t.needsUpdate = true;
+  });
+  return t;
+}
+
+/* ── Sun ──────────────────────────────────────── */
+const SUN_POS = new THREE.Vector3(900, 0, 0);
+const SUN_R   = 55;
+
+const sunMesh = new THREE.Mesh(
+  new THREE.SphereGeometry(SUN_R, 32, 32),
+  new THREE.MeshBasicMaterial({ color: 0xffee88 })
+);
+sunMesh.position.copy(SUN_POS);
+scene.add(sunMesh);
+
+for (const [sc, op, col] of [
+  [1.12, 0.22, 0xffcc44],
+  [1.28, 0.10, 0xff8800],
+  [1.50, 0.05, 0xff4400],
+]) {
+  const glow = new THREE.Mesh(
+    new THREE.SphereGeometry(SUN_R * sc, 16, 16),
+    new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: op, side: THREE.BackSide })
+  );
+  glow.position.copy(SUN_POS);
+  scene.add(glow);
+}
+
+/* ── Lighting ─────────────────────────────────── */
+// Faint blue ambient simulates earthshine on night side
+scene.add(new THREE.AmbientLight(0x112244, 0.6));
+// Main sunlight from +X direction
+const sunLight = new THREE.DirectionalLight(0xfff4e0, 2.8);
+sunLight.position.set(1, 0, 0);
+scene.add(sunLight);
+
+/* ── Earth rotation container ──────────────────── */
+// Create containers for Earth rotation and seasonal tilt
+const AXIAL_TILT = 23.44 * Math.PI / 180;
+
+// Season group: rotates around Y axis first
+const seasonGroup = new THREE.Group();
+scene.add(seasonGroup);
+
+// Tilt group: rotates around X axis second (applies axial tilt)
+const tiltGroup = new THREE.Group();
+tiltGroup.rotation.x = AXIAL_TILT;
+seasonGroup.add(tiltGroup);
+
+// Earth group: contains the earth mesh
+const earthGroup = new THREE.Group();
+tiltGroup.add(earthGroup);
+
+/* ── Earth ────────────────────────────────────── */
+const EARTH_R = 100;
+const earthMesh = new THREE.Mesh(
+  new THREE.SphereGeometry(EARTH_R, 64, 64),
+  new THREE.MeshStandardMaterial({
+    map: tex('2k_earth_daymap.jpg', '#1a4477'),
+    roughness: 0.88,
+    metalness: 0.0,
+  })
+);
+earthGroup.add(earthMesh);
+
+// Atmosphere rim
+const atmo = new THREE.Mesh(
+  new THREE.SphereGeometry(EARTH_R * 1.018, 32, 32),
+  new THREE.MeshBasicMaterial({ color: 0x3366dd, transparent: true, opacity: 0.07, side: THREE.BackSide })
+);
+earthGroup.add(atmo);
+
+/* ── City markers ─────────────────────────────── */
+// Three.js SphereGeometry texture mapping:
+//   longitude L →  phi = (L + 180) * π/180
+//   x = -R * cos(phi) * cos(lat)
+//   y =  R * sin(lat)
+//   z =  R * sin(phi) * cos(lat)
+// This puts Prime Meridian (L=0) at +X when no rotation applied.
+function latLon3D(lat, lon, R) {
+  const phi    = (lon + 180) * Math.PI / 180;
+  const latRad = lat * Math.PI / 180;
+  return new THREE.Vector3(
+    -R * Math.cos(phi) * Math.cos(latRad),
+     R * Math.sin(latRad),
+     R * Math.sin(phi) * Math.cos(latRad)
+  );
+}
+
+const CITIES = [
+  { key: 'china', name: '中国·北京', lat: 39.9, lon: 116.4, markerColor: 0xff4422, labelColor: '#ff7755', tz: 8 },
+  { key: 'usa',   name: '美国·纽约', lat: 40.7, lon: -74.0, markerColor: 0x3399ff, labelColor: '#66bbff', tz: -4 },
+];
+
+for (const city of CITIES) {
+  const localPos = latLon3D(city.lat, city.lon, EARTH_R + 1.5);
+  const dot = new THREE.Mesh(
+    new THREE.SphereGeometry(2.5, 12, 12),
+    new THREE.MeshBasicMaterial({ color: city.markerColor })
+  );
+  dot.position.copy(localPos);
+  earthMesh.add(dot);
+  city.marker    = dot;
+  city.localPos  = localPos;
+}
+
+/* ── Earth rotation axis (in season group) ────── */
+// Create the rotation axis line - moves with seasons
+const axisLength = EARTH_R * 2.8;
+
+// Axis points in earthGroup's local coordinate system (Y axis)
+const axisPointsLocal = [
+  new THREE.Vector3(0, axisLength / 2, 0),
+  new THREE.Vector3(0, -axisLength / 2, 0)
+];
+const axisGeoLocal = new THREE.BufferGeometry().setFromPoints(axisPointsLocal);
+
+// Main axis line with glow effect
+const axisGroup = new THREE.Group();
+
+// Base axis line
+const axisLine = new THREE.Line(
+  axisGeoLocal.clone(),
+  new THREE.LineBasicMaterial({ color: 0xcccccc, transparent: true, opacity: 0.9 })
+);
+axisGroup.add(axisLine);
+
+// Glow layers for visibility
+const glowColors = [0xffffff, 0xeeeeee, 0xdddddd];
+for (let i = 0; i < glowColors.length; i++) {
+  const glowLine = new THREE.Line(
+    axisGeoLocal.clone(),
+    new THREE.LineBasicMaterial({ color: glowColors[i], transparent: true, opacity: 0.3 - i * 0.1 })
+  );
+  axisGroup.add(glowLine);
+}
+earthGroup.add(axisGroup);  // Add to earthGroup so it tilts with Earth
+
+// Store pole positions for label drawing (in earthGroup's local space)
+const poleDist = EARTH_R * 1.3;
+const northPolePosLocal = new THREE.Vector3(0, poleDist, 0);
+const southPolePosLocal = new THREE.Vector3(0, -poleDist, 0);
+
+const POLES = [
+  { localPos: northPolePosLocal, name: '北极', labelColor: '#88ccff' },
+  { localPos: southPolePosLocal, name: '南极', labelColor: '#ffbb88' }
+];
+
+/* ── Timezone lines (meridians) ─────────────────── */
+// Draw 24 meridians at 15° intervals (hour lines)
+function createMeridianLine(lon, color, opacity, isBoundary = false) {
+  const points = [];
+  const latRad = (lon + 180) * Math.PI / 180;
+  for (let i = -90; i <= 90; i += 2) {
+    const lat = i * Math.PI / 180;
+    const x = -EARTH_R * Math.cos(latRad) * Math.cos(lat);
+    const y = EARTH_R * Math.sin(lat);
+    const z = EARTH_R * Math.sin(latRad) * Math.cos(lat);
+    points.push(new THREE.Vector3(x, y, z));
+  }
+  const geo = new THREE.BufferGeometry().setFromPoints(points);
+
+  if (isBoundary) {
+    // For boundary lines, create a thicker glow effect by using multiple lines with slight offset
+    const group = new THREE.Group();
+    const mainLine = new THREE.Line(geo, new THREE.LineBasicMaterial({
+      color,
+      transparent: true,
+      opacity: 1.0,
+    }));
+    group.add(mainLine);
+
+    // Add glow layers (slightly offset and transparent)
+    const glowColors = [0xffff00, 0xffcc00, 0xffaa00];
+    for (let j = 0; j < glowColors.length; j++) {
+      const glowGeo = geo.clone();
+      const glowLine = new THREE.Line(glowGeo, new THREE.LineBasicMaterial({
+        color: glowColors[j],
+        transparent: true,
+        opacity: 0.3 - j * 0.1,
+      }));
+      group.add(glowLine);
+    }
+    return group;
+  }
+
+  return new THREE.Line(geo, new THREE.LineBasicMaterial({
+    color,
+    transparent: true,
+    opacity,
+  }));
+}
+
+// Add timezone lines (every 15°)
+// UTC+12 at 180° E, UTC-12 at 180° W
+// Color scheme: highlight UTC (Prime Meridian), UTC+8 (Beijing), UTC-5 (New York)
+for (let i = -12; i <= 12; i++) {
+  const lon = i * 15;  // Longitude for UTC+i (UTC+i means local time is UTC+i)
+  // For UTC+i, the meridian at -i*15° is the center of that timezone
+  // Actually: UTC+i timezone is centered at -i*15° longitude
+  const centerLon = -i * 15;
+
+  let color = 0x66aacc;
+  let opacity = 0.35;
+  let isBoundary = false;
+
+  // Highlight specific timezones
+  if (i === 0) {         // Prime Meridian (0°) - East/West boundary
+    color = 0xffd700;
+    opacity = 1.0;
+    isBoundary = true;
+  } else if (i === 12 || i === -12) {  // 180° meridian - East/West boundary (same line)
+    color = 0xffd700;
+    opacity = 1.0;
+    isBoundary = true;
+  } else if (i === 8) {  // Beijing timezone
+    color = 0xff4422;
+    opacity = 0.6;
+  } else if (i === -5) { // New York timezone (EDT)
+    color = 0x3399ff;
+    opacity = 0.6;
+  } else if (i % 3 === 0) { // Every 3rd line is slightly brighter
+    opacity = 0.45;
+  }
+
+  const line = createMeridianLine(centerLon, color, opacity, isBoundary);
+  earthMesh.add(line);
+}
+
+// Also add UTC-4 (EDT) separately since New York uses EDT
+const nyLine = createMeridianLine(60, 0x3399ff, 0.35); // -4 * -15 = 60°
+earthMesh.add(nyLine);
+
+/* ── Equator line ──────────────────────────────── */
+// Draw the equator (latitude = 0°)
+function createLatitudeLine(lat, color, opacity, isEquator = false) {
+  const points = [];
+  const latRad = lat * Math.PI / 180;
+  const cosLat = Math.cos(latRad);
+  const sinLat = Math.sin(latRad);
+
+  for (let i = 0; i <= 360; i += 3) {
+    const lonRad = (i + 180) * Math.PI / 180;
+    const x = -EARTH_R * Math.cos(lonRad) * cosLat;
+    const y = EARTH_R * sinLat;
+    const z = EARTH_R * Math.sin(lonRad) * cosLat;
+    points.push(new THREE.Vector3(x, y, z));
+  }
+
+  const geo = new THREE.BufferGeometry().setFromPoints(points);
+
+  if (isEquator) {
+    // For equator, create a thicker glow effect
+    const group = new THREE.Group();
+    const mainLine = new THREE.Line(geo, new THREE.LineBasicMaterial({
+      color,
+      transparent: true,
+      opacity: 1.0,
+    }));
+    group.add(mainLine);
+
+    // Add glow layers
+    const glowColors = [0xffffff, 0xeeeeee, 0xdddddd];
+    for (let j = 0; j < glowColors.length; j++) {
+      const glowLine = new THREE.Line(
+        geo.clone(),
+        new THREE.LineBasicMaterial({ color: glowColors[j], transparent: true, opacity: 0.3 - j * 0.1 })
+      );
+      group.add(glowLine);
+    }
+    return group;
+  }
+
+  return new THREE.Line(geo, new THREE.LineBasicMaterial({
+    color,
+    transparent: true,
+    opacity,
+  }));
+}
+
+// Add equator (latitude = 0°)
+const equator = createLatitudeLine(0, 0x00ff88, 1.0, true);
+earthMesh.add(equator);
+
+
+/* ── Rotation formula ─────────────────────────── */
+// Sub-solar longitude at UTC hours T:  L = (12 - T) * 15°
+// Earth Y-rotation to put L at +X:     θ = -L * π / 180
+// (derivation: in SphereGeometry, point at lon L is at dir (cos((L+180)°), 0, sin((L+180)°))
+//  after Y-rotation θ: x_world = -cos(θ - L·π/180), maximised at θ = -L·π/180)
+function subSolarLon(utcHours) {
+  return (12 - utcHours) * 15;
+}
+function earthRotation(utcHours) {
+  return -subSolarLon(utcHours) * Math.PI / 180;
+}
+
+/* ── Season control ───────────────────────────── */
+// Season angles (rotation around Y axis)
+// Sun is on +X. After the +X axial tilt, +90° makes the north pole lean toward +X.
+const SEASON_ANGLES = [
+  Math.PI,        // 春分：北极不偏向太阳，昼夜平分
+  Math.PI / 2,    // 夏至：北极指向太阳，极昼
+  0,              // 秋分：北极不偏向太阳，昼夜平分
+  -Math.PI / 2    // 冬至：北极背离太阳，极夜
+];
+const SEASON_NAMES = ['春分', '夏至', '秋分', '冬至'];
+
+let currentSeason = 0; // Default to 春分
+
+// Set season by index (0-3)
+function setSeason(seasonIndex) {
+  currentSeason = seasonIndex;
+  seasonGroup.rotation.y = SEASON_ANGLES[seasonIndex];
+
+  // Update pole positions for label drawing
+  for (const pole of POLES) {
+    const wp = new THREE.Vector3();
+    // Transform local position to world position
+    wp.copy(pole.localPos);
+    wp.applyMatrix4(earthGroup.matrixWorld);
+    pole.position = wp;
+  }
+}
+
+// Initialize with default season
+setSeason(0);
+
+// Season dropdown handler
+document.getElementById('season').addEventListener('change', e => {
+  const seasonIndex = parseInt(e.target.value);
+  setSeason(seasonIndex);
+});
+
+/* ── Simulated time (driven by speed slider) ──── */
+let speedFactor = 1;
+let simMs       = Date.now();
+
+/* ── Clock UI ─────────────────────────────────── */
+const WEEKDAYS = ['日','一','二','三','四','五','六'];
+function pad2(n) { return String(n).padStart(2, '0'); }
+
+function hmsFromUtcOffset(utcMs, offsetHours) {
+  const d   = new Date(utcMs + offsetHours * 3_600_000);
+  return {
+    h: d.getUTCHours(), m: d.getUTCMinutes(), s: d.getUTCSeconds(),
+    str: `${pad2(d.getUTCHours())}:${pad2(d.getUTCMinutes())}:${pad2(d.getUTCSeconds())}`,
+    date: d,
+  };
+}
+
+function isDaytime(worldX) { return worldX > 0; }
+
+function updateClock() {
+  const utc = new Date(simMs);
+
+  const bj  = hmsFromUtcOffset(simMs, +8);
+  const ny  = hmsFromUtcOffset(simMs, -4);
+  const utcT = `${pad2(utc.getUTCHours())}:${pad2(utc.getUTCMinutes())}:${pad2(utc.getUTCSeconds())}`;
+
+  document.getElementById('bj-time').textContent  = bj.str;
+  document.getElementById('bj-date').textContent  =
+    `${bj.date.getUTCFullYear()}年${bj.date.getUTCMonth()+1}月${bj.date.getUTCDate()}日 周${WEEKDAYS[bj.date.getUTCDay()]}`;
+  document.getElementById('ny-time').textContent  = ny.str;
+  document.getElementById('utc-time').textContent = utcT;
+}
+
+/* ── Label canvas ─────────────────────────────── */
+const labelCanvas = document.getElementById('label-canvas');
+labelCanvas.width  = window.innerWidth;
+labelCanvas.height = window.innerHeight;
+const lctx = labelCanvas.getContext('2d');
+
+const cityLabelHits = [];
+function drawLabels() {
+  cityLabelHits.length = 0;
+  lctx.clearRect(0, 0, labelCanvas.width, labelCanvas.height);
+
+  for (const city of CITIES) {
+    const wp = new THREE.Vector3();
+    city.marker.getWorldPosition(wp);
+
+    // Skip if facing away from camera
+    const toCamera = camera.position.clone().sub(wp).normalize();
+    if (wp.clone().normalize().dot(toCamera) < 0.08) continue;
+
+    const proj = wp.clone().project(camera);
+    if (proj.z > 1) continue;
+    const sx = ( proj.x * .5 + .5) * labelCanvas.width;
+    const sy = (-proj.y * .5 + .5) * labelCanvas.height;
+
+    // Day/night status based on world X (sun is at +X)
+    const status = isDaytime(wp.x) ? '☀ 白天' : '🌙 夜晚';
+
+    const line1 = city.name;
+    const line2 = status;
+
+    lctx.font = 'bold 14px Arial';
+    const tw = Math.max(lctx.measureText(line1).width, lctx.measureText(line2).width);
+    const bx = sx + 12, by = sy - 22;
+    cityLabelHits.push({ city, x: bx - 10, y: by - 5, width: tw + 22, height: 46 });
+
+    // Background
+    lctx.fillStyle = 'rgba(0,0,0,.65)';
+    roundRect(lctx, bx - 6, by - 2, tw + 14, 40, 6);
+    lctx.fill();
+
+    // City name
+    lctx.fillStyle = 'rgba(0,0,0,.5)';
+    lctx.fillText(line1, bx + 1, by + 13);
+    lctx.fillStyle = city.labelColor;
+    lctx.fillText(line1, bx, by + 12);
+
+    // Status
+    lctx.font = '12px Arial';
+    lctx.fillStyle = 'rgba(0,0,0,.4)';
+    lctx.fillText(line2, bx + 1, by + 30);
+    lctx.fillStyle = isDaytime(wp.x) ? '#ffcc44' : '#8899cc';
+    lctx.fillText(line2, bx, by + 29);
+
+    // Dot connector line
+    lctx.beginPath();
+    lctx.moveTo(sx, sy);
+    lctx.lineTo(bx - 1, by + 20);
+    lctx.strokeStyle = city.labelColor;
+    lctx.lineWidth   = 1;
+    lctx.globalAlpha = 0.5;
+    lctx.stroke();
+    lctx.globalAlpha = 1;
+
+    // Dot
+    lctx.beginPath();
+    lctx.arc(sx, sy, 4, 0, Math.PI * 2);
+    lctx.fillStyle = city.labelColor;
+    lctx.fill();
+  }
+
+  // North and South pole annotations
+  for (const pole of POLES) {
+    const proj = pole.position.clone().project(camera);
+    if (proj.z < 1) {
+      const px = ( proj.x * .5 + .5) * labelCanvas.width;
+      const py = (-proj.y * .5 + .5) * labelCanvas.height;
+
+      lctx.font = 'bold 16px Arial';
+      lctx.fillStyle = 'rgba(0,0,0,.6)';
+      lctx.fillText(pole.name, px - 20, py + 6);
+      lctx.fillStyle = pole.labelColor;
+      lctx.fillText(pole.name, px - 21, py + 5);
+    }
+  }
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+/* ── City click tracking ───────────────────────── */
+const raycaster = new THREE.Raycaster();
+const pointer   = new THREE.Vector2();
+const cityMarkers = CITIES.map(c => c.marker);
+
+let focusedCity   = null;
+let transitioning = false;
+
+// Focus UI
+const focusBar = document.createElement('div');
+focusBar.style.cssText = [
+  'position:absolute', 'top:20px', 'left:50%', 'transform:translateX(-50%)',
+  'background:rgba(0,0,0,.6)', 'border:1px solid rgba(255,220,80,.4)',
+  'border-radius:20px', 'padding:8px 24px', 'color:#ffe066',
+  'font-size:18px', 'font-weight:bold', 'font-family:Arial',
+  'letter-spacing:2px', 'pointer-events:none', 'display:none',
+  'text-shadow:0 0 12px #ffe066aa',
+].join(';');
+document.body.appendChild(focusBar);
+
+const hint = document.createElement('div');
+hint.style.cssText = [
+  'position:absolute', 'bottom:70px', 'left:50%', 'transform:translateX(-50%)',
+  'color:rgba(200,220,255,.5)', 'font-size:12px', 'font-family:Arial',
+  'pointer-events:none', 'display:none',
+].join(';');
+hint.textContent = '按 Esc 或点击空白处返回全景';
+document.body.appendChild(hint);
+
+function setCityFocus(city) {
+  window.kidSpeak?.(city.name);
+  focusedCity = city;
+  transitioning = true;
+  controls.minDistance = EARTH_R * 1.5;
+  controls.enableDamping = true;
+  controls.autoRotate = false;
+  controls.enabled = false;  // Disable OrbitControls during city tracking
+  focusBar.textContent = city.name;
+  focusBar.style.display = 'block';
+  hint.style.display = 'block';
+}
+
+function clearCityFocus() {
+  focusedCity = null;
+  transitioning = false;
+  controls.minDistance = 130;
+  controls.enableDamping = true;
+  controls.autoRotate = false;
+  controls.enabled = true;   // Enable OrbitControls when not tracking
+  focusBar.style.display = 'none';
+  hint.style.display = 'none';
+}
+
+renderer.domElement.addEventListener('click', e => {
+  const label = [...cityLabelHits].reverse().find(hit => e.clientX >= hit.x && e.clientX <= hit.x + hit.width && e.clientY >= hit.y && e.clientY <= hit.y + hit.height);
+  if (label) { setCityFocus(label.city); return; }
+  pointer.x =  (e.clientX / window.innerWidth)  * 2 - 1;
+  pointer.y = -(e.clientY / window.innerHeight) * 2 + 1;
+  raycaster.setFromCamera(pointer, camera);
+
+  const hits = raycaster.intersectObjects(cityMarkers, false);
+  if (hits.length > 0) {
+    const city = CITIES.find(c => c.marker === hits[0].object);
+    if (city) setCityFocus(city);
+  } else {
+    clearCityFocus();
+  }
+});
+
+// Hover cursor
+renderer.domElement.addEventListener('mousemove', e => {
+  pointer.x =  (e.clientX / window.innerWidth)  * 2 - 1;
+  pointer.y = -(e.clientY / window.innerHeight) * 2 + 1;
+  raycaster.setFromCamera(pointer, camera);
+  const hits = raycaster.intersectObjects(cityMarkers, false);
+  renderer.domElement.style.cursor = hits.length > 0 ? 'pointer' : 'default';
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') clearCityFocus();
+});
+
+/* ── Speed control ────────────────────────────── */
+document.getElementById('speed').addEventListener('input', e => {
+  speedFactor = parseFloat(e.target.value);
+  document.getElementById('speed-val').textContent =
+    speedFactor >= 1000 ? (speedFactor/1000).toFixed(1) + 'k×' : speedFactor.toFixed(0) + '×';
+});
+
+/* ── Resize ───────────────────────────────────── */
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  labelCanvas.width  = window.innerWidth;
+  labelCanvas.height = window.innerHeight;
+});
+
+/* ── Animate ──────────────────────────────────── */
+const clock = new THREE.Clock();
+function animate() {
+  requestAnimationFrame(animate);
+  const dt = clock.getDelta();
+
+  simMs += dt * speedFactor * 1000;
+
+  const utcDate = new Date(simMs);
+  const utcH = utcDate.getUTCHours()
+             + utcDate.getUTCMinutes() / 60
+             + utcDate.getUTCSeconds() / 3600
+             + utcDate.getUTCMilliseconds() / 3_600_000;
+
+  // Set Earth rotation around the tilted axis
+  // earthGroup is tilted (fixed), earthMesh rotates inside it
+  earthMesh.rotation.y = earthRotation(utcH);
+
+  // Update pole positions (they move with Earth rotation)
+  for (const pole of POLES) {
+    const wp = new THREE.Vector3();
+    wp.copy(pole.localPos);
+    wp.applyMatrix4(earthGroup.matrixWorld);
+    pole.position.copy(wp);
+  }
+
+  // City tracking: camera follows the focused city from above
+  if (focusedCity) {
+    const wp = new THREE.Vector3();
+    focusedCity.marker.getWorldPosition(wp);
+
+    // Camera should be directly above the city (in the direction from earth center)
+    const dir = wp.clone().normalize();
+    const desiredDist = EARTH_R * 3;
+    const desiredPos = wp.clone().add(dir.multiplyScalar(desiredDist));
+
+    if (transitioning) {
+      // Initial approach: move camera to above the city
+      camera.position.lerp(desiredPos, 0.06);
+      controls.target.lerp(wp, 0.1);
+      if (camera.position.distanceTo(desiredPos) < desiredDist * 0.05) {
+        transitioning = false;
+      }
+    } else {
+      // Continuous tracking: keep camera directly above the city
+      camera.position.copy(desiredPos);
+      controls.target.copy(wp);
+    }
+
+    // Make camera look at the city center
+    camera.lookAt(wp);
+  }
+
+  updateClock();
+  if (!focusedCity) {
+    controls.update();
+  }
+  renderer.render(scene, camera);
+  drawLabels();
+}
+animate();
+</script>
+<script src="../speak.js"></script>
+</body>
+</html>

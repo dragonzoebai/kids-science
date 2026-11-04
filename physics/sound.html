@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>声音是怎么传播的 · 声波小剧场</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --ink: #21314d;
+      --muted: rgba(33, 49, 77, .68);
+      --panel: rgba(255, 250, 232, .78);
+      --line: rgba(61, 105, 142, .18);
+      --sun: #ffd85a;
+      --wave: #40b8ff;
+      --deep: #2f63d9;
+      --pink: #ff6b8a;
+      --violet: #8f72ff;
+      --air: #40b8ff;
+      --water: #21bfa8;
+      --vacuum: #64748b;
+    }
+
+    body {
+      min-height: 100vh;
+      overflow: hidden;
+      color: var(--ink);
+      font-family: "YouYuan", "幼圆", "LXGW WenKai", "Microsoft YaHei", sans-serif;
+      background:
+        radial-gradient(circle at 15% 12%, rgba(255, 216, 90, .38), transparent 23%),
+        radial-gradient(circle at 72% 18%, rgba(143, 114, 255, .22), transparent 25%),
+        linear-gradient(180deg, #9be7ff 0%, #d8f6ff 45%, #fff1c7 100%);
+    }
+
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: .16;
+      background-image:
+        radial-gradient(circle, #fff 0 1px, transparent 1.4px),
+        linear-gradient(135deg, rgba(255,255,255,.22) 25%, transparent 25% 75%, rgba(255,255,255,.22) 75%);
+      background-size: 44px 44px, 34px 34px;
+      mix-blend-mode: soft-light;
+    }
+
+    canvas {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      display: block;
+    }
+
+    #title-card {
+      position: absolute;
+      left: 24px;
+      top: 22px;
+      z-index: 3;
+      width: min(410px, calc(100vw - 48px));
+      padding: 22px 24px 20px;
+      border: 2px solid rgba(255,255,255,.76);
+      border-radius: 32px 32px 12px 32px;
+      background: linear-gradient(145deg, rgba(255,250,232,.86), rgba(224,247,255,.72));
+      box-shadow: 0 26px 82px rgba(57, 116, 166, .22), inset 0 1px 0 rgba(255,255,255,.92);
+      backdrop-filter: blur(18px);
+    }
+
+    #title-card::before {
+      content: "🥁";
+      position: absolute;
+      right: 20px;
+      top: -20px;
+      display: grid;
+      place-items: center;
+      width: 58px;
+      height: 58px;
+      border-radius: 22px;
+      background: #fff;
+      font-size: 32px;
+      transform: rotate(9deg);
+      box-shadow: 0 16px 36px rgba(64, 184, 255, .2);
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(64, 184, 255, .18);
+      color: #236f9c;
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: .14em;
+    }
+
+    h1 {
+      margin-top: 13px;
+      color: var(--ink);
+      font-size: 34px;
+      line-height: 1.08;
+      letter-spacing: .08em;
+      text-shadow: 0 3px 0 rgba(255,255,255,.85);
+    }
+
+    h1 span { color: var(--deep); }
+
+    #title-card p {
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.76;
+    }
+
+    #controls {
+      position: absolute;
+      right: 24px;
+      top: 22px;
+      z-index: 3;
+      width: 330px;
+      padding: 18px 18px 16px;
+      border: 2px solid rgba(255,255,255,.76);
+      border-radius: 30px;
+      background: var(--panel);
+      box-shadow: 0 26px 76px rgba(57, 116, 166, .2), inset 0 1px 0 rgba(255,255,255,.9);
+      backdrop-filter: blur(18px);
+    }
+
+    .control-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .control-head strong {
+      font-size: 16px;
+      letter-spacing: .08em;
+    }
+
+    .pill-btn {
+      border: 0;
+      border-radius: 999px;
+      padding: 9px 13px;
+      color: #fff;
+      background: linear-gradient(135deg, #40b8ff, #8f72ff);
+      font: 900 12px/1 "YouYuan", "Microsoft YaHei", sans-serif;
+      cursor: pointer;
+      box-shadow: 0 11px 22px rgba(64, 120, 255, .24);
+      transition: transform .18s ease, filter .18s ease;
+    }
+
+    .pill-btn:hover { transform: translateY(-2px) rotate(-1deg); filter: saturate(1.12); }
+
+    .quick-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 11px;
+    }
+
+    .quick-actions .pill-btn:first-child { background: linear-gradient(135deg, #ff7a59, #ff4f8b); }
+    .quick-actions .pill-btn:last-child { background: linear-gradient(135deg, #ffd85a, #ff9a2e); }
+
+    .control-row {
+      display: grid;
+      grid-template-columns: 78px 1fr 50px;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 0;
+      border-top: 1px dashed var(--line);
+      color: rgba(33,49,77,.78);
+      font-size: 13px;
+    }
+
+    .control-row input[type="range"] {
+      width: 100%;
+      cursor: pointer;
+      accent-color: var(--wave);
+    }
+
+    .val {
+      color: var(--deep);
+      text-align: right;
+      font-weight: 900;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .medium-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      padding: 12px 0 4px;
+      border-top: 1px dashed var(--line);
+    }
+
+    .medium-btn {
+      border: 2px solid rgba(255,255,255,.74);
+      border-radius: 18px;
+      padding: 10px 8px;
+      background: rgba(255,255,255,.42);
+      color: rgba(33,49,77,.72);
+      font: 900 12px/1.2 "YouYuan", "Microsoft YaHei", sans-serif;
+      cursor: pointer;
+      transition: transform .18s ease, background .18s ease, border-color .18s ease;
+    }
+
+    .medium-btn.active {
+      transform: translateY(-3px);
+      color: #fff;
+      background: linear-gradient(135deg, #40b8ff, #2f63d9);
+      border-color: rgba(255,255,255,.95);
+      box-shadow: 0 11px 24px rgba(47, 99, 217, .22);
+    }
+
+    #diagnosis {
+      margin-top: 10px;
+      padding: 13px 14px;
+      min-height: 78px;
+      border-radius: 20px;
+      background: rgba(64, 184, 255, .14);
+      color: rgba(33,49,77,.72);
+      font-size: 12px;
+      line-height: 1.62;
+    }
+
+    #diagnosis strong {
+      display: block;
+      margin-bottom: 2px;
+      color: var(--deep);
+      font-size: 14px;
+    }
+
+    #info-card {
+      position: absolute;
+      left: 50%;
+      top: 20px;
+      z-index: 4;
+      transform: translateX(-50%);
+      width: min(370px, calc(100vw - 48px));
+      padding: 14px 18px;
+      border: 2px solid rgba(255,255,255,.78);
+      border-radius: 24px;
+      background: rgba(255,250,232,.76);
+      backdrop-filter: blur(16px);
+      box-shadow: 0 18px 50px rgba(57, 116, 166, .18);
+      text-align: center;
+      pointer-events: none;
+    }
+
+    #info-card strong {
+      color: var(--deep);
+      font-size: 17px;
+      letter-spacing: .08em;
+    }
+
+    #info-card p {
+      margin-top: 6px;
+      color: rgba(33,49,77,.68);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    #story {
+      position: absolute;
+      left: 24px;
+      right: 24px;
+      bottom: 22px;
+      z-index: 3;
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+      pointer-events: none;
+    }
+
+    .step {
+      min-height: 106px;
+      padding: 14px 14px 13px;
+      border: 2px solid rgba(255,255,255,.68);
+      border-radius: 24px;
+      background: rgba(255,250,232,.58);
+      backdrop-filter: blur(12px);
+      box-shadow: 0 15px 38px rgba(57, 116, 166, .13);
+      transition: transform .28s ease, background .28s ease, border-color .28s ease;
+    }
+
+    .step.active {
+      transform: translateY(-9px);
+      border-color: rgba(64, 184, 255, .9);
+      background: rgba(226, 248, 255, .86);
+      box-shadow: 0 22px 54px rgba(64, 184, 255, .18);
+    }
+
+    .num {
+      display: inline-grid;
+      place-items: center;
+      width: 28px;
+      height: 28px;
+      margin-bottom: 9px;
+      color: #fff;
+      border-radius: 12px;
+      background: #21314d;
+      font-size: 13px;
+      font-weight: 900;
+      box-shadow: 4px 4px 0 rgba(255,216,90,.45);
+    }
+
+    .step strong {
+      display: block;
+      color: var(--ink);
+      font-size: 14px;
+      letter-spacing: .08em;
+    }
+
+    .step span:last-child {
+      display: block;
+      margin-top: 7px;
+      color: rgba(33,49,77,.64);
+      font-size: 12px;
+      line-height: 1.52;
+    }
+
+    @media (max-width: 980px) {
+      body { overflow: auto; }
+      #title-card, #controls {
+        left: 14px;
+        right: 14px;
+        width: auto;
+      }
+      #title-card { top: 14px; }
+      #title-card h1 { font-size: 28px; }
+      #info-card { display: none; }
+      #controls { top: auto; bottom: 14px; }
+      #story { display: none; }
+    }
+  </style>
+<link rel="stylesheet" href="../touch.css">
+<script src="../touch.js"></script>
+</head>
+<body>
+  <canvas id="stage" aria-label="声音传播实验画布"></canvas>
+
+  <section id="title-card">
+    <div class="eyebrow">PHYSICS LAB · 儿童科普</div>
+    <h1>声音怎样<span>跑到耳朵</span></h1>
+    <p>敲鼓时，鼓面会快速振动，把旁边的空气分子一会儿挤紧、一会儿放松。这个“挤紧—放松”的接力一直传到耳朵，我们就听见声音啦！</p>
+  </section>
+
+  <section id="info-card" data-speak-auto>
+    <strong id="info-title">准备敲鼓</strong>
+    <p id="info-text">点击“敲一下鼓”或画面里的鼓，看看声波怎样一圈圈传到耳朵。</p>
+  </section>
+
+  <section id="controls" aria-label="声音实验控制台">
+    <div class="control-head">
+      <strong>声音实验台</strong>
+      <button class="pill-btn" id="pause" type="button">暂停动画</button>
+    </div>
+    <div class="quick-actions">
+      <button class="pill-btn" id="hitDrum" type="button">🥁 敲一下鼓</button>
+      <button class="pill-btn" id="clap" type="button">👏 拍一下手</button>
+    </div>
+    <div class="control-row">
+      <label for="volume">音量</label>
+      <input id="volume" type="range" min="20" max="100" step="1" value="74">
+      <span class="val" id="volumeVal">74%</span>
+    </div>
+    <div class="control-row">
+      <label for="frequency">频率</label>
+      <input id="frequency" type="range" min="120" max="880" step="10" value="360">
+      <span class="val" id="freqVal">360Hz</span>
+    </div>
+    <div class="medium-grid" aria-label="介质选择">
+      <button class="medium-btn active" data-medium="air" type="button">空气<br>能传播</button>
+      <button class="medium-btn" data-medium="water" type="button">水中<br>更密集</button>
+      <button class="medium-btn" data-medium="vacuum" type="button">真空<br>听不见</button>
+    </div>
+    <div id="diagnosis"><strong>空气传声</strong><span>空气分子把振动一个接一个传出去，声波能到达耳朵。</span></div>
+  </section>
+
+  <section id="story" aria-label="声音传播步骤">
+    <div class="step active"><span class="num">1</span><strong>产生振动</strong><span>鼓面或手掌来回抖动，声音从这里开始。</span></div>
+    <div class="step"><span class="num">2</span><strong>压缩空气</strong><span>附近空气分子被挤到一起，形成密集区。</span></div>
+    <div class="step"><span class="num">3</span><strong>稀疏空气</strong><span>分子又散开，形成稀疏区。</span></div>
+    <div class="step"><span class="num">4</span><strong>声波前进</strong><span>密集和稀疏像接力一样向前传播。</span></div>
+    <div class="step"><span class="num">5</span><strong>耳朵听见</strong><span>声波让鼓膜振动，大脑就知道有声音。</span></div>
+  </section>
+
+  <script>
+    const canvas = document.getElementById('stage');
+    const ctx = canvas.getContext('2d');
+    const volume = document.getElementById('volume');
+    const frequency = document.getElementById('frequency');
+    const volumeVal = document.getElementById('volumeVal');
+    const freqVal = document.getElementById('freqVal');
+    const hitDrum = document.getElementById('hitDrum');
+    const clap = document.getElementById('clap');
+    const pauseBtn = document.getElementById('pause');
+    const mediumBtns = [...document.querySelectorAll('.medium-btn')];
+    const diagnosis = document.getElementById('diagnosis');
+    const infoTitle = document.getElementById('info-title');
+    const infoText = document.getElementById('info-text');
+    const steps = [...document.querySelectorAll('.step')];
+
+    let w = 0;
+    let h = 0;
+    let dpr = 1;
+    let t = 0;
+    let paused = false;
+    let medium = 'air';
+    let waves = [];
+    let molecules = [];
+    let sparks = [];
+    let audioCtx;
+
+    const mediumData = {
+      air: {
+        title: '空气传声',
+        text: '空气分子把振动一个接一个传出去，声波能到达耳朵。',
+        color: '#40b8ff',
+        speed: 1,
+        damping: .006,
+        density: 80,
+        alpha: 1
+      },
+      water: {
+        title: '水中也能传声',
+        text: '水分子更密集，振动传得更快；在水里敲石头，也能听见闷闷的声音。',
+        color: '#21bfa8',
+        speed: 1.55,
+        damping: .004,
+        density: 130,
+        alpha: .92
+      },
+      vacuum: {
+        title: '真空听不见',
+        text: '真空里几乎没有空气分子，没人接力传振动，所以声音不能传播。',
+        color: '#64748b',
+        speed: .35,
+        damping: .028,
+        density: 18,
+        alpha: .22
+      }
+    };
+
+    function resize() {
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      w = window.innerWidth;
+      h = window.innerHeight;
+      canvas.width = Math.floor(w * dpr);
+      canvas.height = Math.floor(h * dpr);
+      canvas.style.width = w + 'px';
+      canvas.style.height = h + 'px';
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      makeMolecules();
+    }
+
+    function clamp(n, min, max) { return Math.max(min, Math.min(max, n)); }
+
+    function makeMolecules() {
+      const count = mediumData[medium].density;
+      molecules = Array.from({ length: count }, (_, i) => ({
+        x: w * (.24 + Math.random() * .54),
+        y: h * (.30 + Math.random() * .38),
+        baseX: 0,
+        baseY: 0,
+        r: 2 + Math.random() * 2.8,
+        phase: Math.random() * Math.PI * 2
+      }));
+      molecules.forEach(m => { m.baseX = m.x; m.baseY = m.y; });
+    }
+
+    function drawSky() {
+      const bg = ctx.createLinearGradient(0, 0, 0, h);
+      bg.addColorStop(0, '#9be7ff');
+      bg.addColorStop(.48, '#d8f6ff');
+      bg.addColorStop(1, '#fff1c7');
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, w, h);
+
+      if (medium === 'water') {
+        ctx.save();
+        ctx.globalAlpha = .22;
+        ctx.fillStyle = '#21bfa8';
+        ctx.fillRect(0, 0, w, h);
+        ctx.strokeStyle = 'rgba(255,255,255,.25)';
+        ctx.lineWidth = 2;
+        for (let y = 80; y < h; y += 42) {
+          ctx.beginPath();
+          for (let x = 0; x <= w; x += 24) {
+            const yy = y + Math.sin(x * .025 + t * 2) * 6;
+            x === 0 ? ctx.moveTo(x, yy) : ctx.lineTo(x, yy);
+          }
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      if (medium === 'vacuum') {
+        ctx.save();
+        ctx.globalAlpha = .25;
+        const dark = ctx.createLinearGradient(0, 0, 0, h);
+        dark.addColorStop(0, '#111827');
+        dark.addColorStop(1, '#26324a');
+        ctx.fillStyle = dark;
+        ctx.fillRect(0, 0, w, h);
+        ctx.fillStyle = '#fff';
+        for (let i = 0; i < 90; i++) {
+          const x = (i * 97) % w;
+          const y = (i * 53) % h;
+          ctx.globalAlpha = .18 + (i % 5) * .08;
+          ctx.beginPath();
+          ctx.arc(x, y, 1.2 + (i % 3) * .4, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+
+      drawCloud((t * 10) % (w + 260) - 130, h * .14, .55);
+      drawCloud((t * 7 + 360) % (w + 260) - 130, h * .20, .44);
+    }
+
+    function drawCloud(x, y, s) {
+      if (medium === 'vacuum') return;
+      ctx.save();
+      ctx.globalAlpha = .36;
+      ctx.fillStyle = '#fff';
+      ctx.beginPath();
+      ctx.arc(x - 42 * s, y + 10 * s, 28 * s, 0, Math.PI * 2);
+      ctx.arc(x - 6 * s, y - 4 * s, 41 * s, 0, Math.PI * 2);
+      ctx.arc(x + 40 * s, y + 10 * s, 30 * s, 0, Math.PI * 2);
+      ctx.roundRect(x - 72 * s, y + 6 * s, 145 * s, 36 * s, 18 * s);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawGround() {
+      const y = h * .75;
+      const grad = ctx.createLinearGradient(0, y, 0, h);
+      grad.addColorStop(0, medium === 'water' ? '#2cc7a9' : '#8bd978');
+      grad.addColorStop(1, medium === 'vacuum' ? '#46536e' : '#357749');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.moveTo(0, h);
+      ctx.lineTo(0, y + 20);
+      for (let x = 0; x <= w + 80; x += 80) {
+        ctx.quadraticCurveTo(x + 40, y + Math.sin(x * .014 + t) * 16, x + 80, y + 20);
+      }
+      ctx.lineTo(w, h);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    function drumPos() { return { x: w * .22, y: h * .61 }; }
+    function earPos() { return { x: w * .82, y: h * .58 }; }
+
+    function drawDrum() {
+      const p = drumPos();
+      const last = waves[0];
+      const hit = last ? clamp(1 - last.age * 2.4, 0, 1) : 0;
+      const wobble = Math.sin(t * 40) * hit * 8;
+
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.fillStyle = 'rgba(0,0,0,.13)';
+      ctx.beginPath();
+      ctx.ellipse(0, 96, 86, 14, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      const body = ctx.createLinearGradient(-70, -20, 70, 95);
+      body.addColorStop(0, '#ff7a59');
+      body.addColorStop(1, '#b73b40');
+      ctx.fillStyle = body;
+      ctx.beginPath();
+      ctx.moveTo(-64, -4);
+      ctx.bezierCurveTo(-52, 86, 52, 86, 64, -4);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(111,31,36,.38)';
+      ctx.lineWidth = 4;
+      ctx.stroke();
+
+      ctx.fillStyle = '#fff1c7';
+      ctx.strokeStyle = '#7a4a2d';
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.ellipse(0, -10 + wobble, 78, 28 + hit * 5, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.strokeStyle = 'rgba(122,74,45,.35)';
+      ctx.lineWidth = 2;
+      for (let i = 0; i < 5; i++) {
+        ctx.beginPath();
+        ctx.ellipse(0, -10 + wobble, 20 + i * 12, 7 + i * 4 + hit * 3, 0, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      ctx.fillStyle = '#7a4a2d';
+      ctx.rotate(-.35);
+      ctx.fillRect(-106, -84, 88, 8);
+      ctx.beginPath();
+      ctx.arc(-18, -80, 10, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.rotate(.7);
+      ctx.fillRect(18, -84, 88, 8);
+      ctx.beginPath();
+      ctx.arc(106, -80, 10, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawEar() {
+      const p = earPos();
+      const arrived = waves.some(wave => Math.abs(wave.radius - Math.hypot(p.x - drumPos().x, p.y - drumPos().y)) < 22 && wave.alpha > .1);
+      const pulse = arrived ? (Math.sin(t * 24) + 1) * 4 : 0;
+
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.fillStyle = 'rgba(0,0,0,.12)';
+      ctx.beginPath();
+      ctx.ellipse(4, 96, 76, 14, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      const skin = ctx.createRadialGradient(-20, -28, 10, 0, 0, 82);
+      skin.addColorStop(0, '#ffe0c8');
+      skin.addColorStop(1, '#f0a276');
+      ctx.fillStyle = skin;
+      ctx.strokeStyle = arrived ? '#40b8ff' : '#b87355';
+      ctx.lineWidth = arrived ? 6 : 4;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 48 + pulse, 72 + pulse, -.08, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.strokeStyle = '#9a6048';
+      ctx.lineWidth = 8;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.arc(0, -4, 25, -1.7, 1.8);
+      ctx.stroke();
+      ctx.lineWidth = 6;
+      ctx.beginPath();
+      ctx.arc(6, 18, 15, -1.2, 2.1);
+      ctx.stroke();
+
+      if (arrived) {
+        ctx.strokeStyle = '#40b8ff';
+        ctx.lineWidth = 3;
+        for (let i = 0; i < 3; i++) {
+          ctx.beginPath();
+          ctx.arc(0, 0, 84 + i * 15 + pulse, -.7, .7);
+          ctx.stroke();
+        }
+      }
+      ctx.restore();
+    }
+
+    function drawMolecules() {
+      const data = mediumData[medium];
+      const source = drumPos();
+      ctx.save();
+      molecules.forEach(m => {
+        let shift = 0;
+        let compress = 0;
+        waves.forEach(wave => {
+          const dist = Math.hypot(m.baseX - source.x, m.baseY - source.y);
+          const diff = dist - wave.radius;
+          if (Math.abs(diff) < 58) {
+            const influence = Math.cos(diff / 58 * Math.PI) * wave.alpha;
+            shift += influence * Number(volume.value) / 100 * 17;
+            compress += Math.max(0, influence);
+          }
+        });
+        const dx = m.baseX - source.x;
+        const dy = m.baseY - source.y;
+        const len = Math.hypot(dx, dy) || 1;
+        m.x = m.baseX + dx / len * shift + Math.sin(t * 1.5 + m.phase) * (medium === 'vacuum' ? .4 : 1.4);
+        m.y = m.baseY + dy / len * shift + Math.cos(t * 1.4 + m.phase) * (medium === 'vacuum' ? .4 : 1.4);
+
+        ctx.globalAlpha = data.alpha * (.42 + compress * .45);
+        ctx.fillStyle = compress > .45 ? '#ff6b8a' : data.color;
+        ctx.beginPath();
+        ctx.arc(m.x, m.y, m.r + compress * 2.2, 0, Math.PI * 2);
+        ctx.fill();
+      });
+      ctx.restore();
+    }
+
+    function drawWaves() {
+      const source = drumPos();
+      const data = mediumData[medium];
+      for (let i = waves.length - 1; i >= 0; i--) {
+        const wave = waves[i];
+        if (!paused) {
+          wave.age += .016;
+          wave.radius += wave.speed * data.speed;
+          wave.alpha -= data.damping;
+        }
+        if (wave.alpha <= 0 || wave.radius > w * 1.25) {
+          waves.splice(i, 1);
+          continue;
+        }
+        ctx.save();
+        ctx.globalAlpha = wave.alpha * data.alpha;
+        ctx.strokeStyle = data.color;
+        ctx.lineWidth = wave.width;
+        ctx.shadowColor = data.color;
+        ctx.shadowBlur = medium === 'vacuum' ? 0 : 10;
+        ctx.beginPath();
+        ctx.arc(source.x, source.y - 10, wave.radius, -Math.PI * .38, Math.PI * .33);
+        ctx.stroke();
+
+        ctx.globalAlpha = wave.alpha * data.alpha * .45;
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = Math.max(2, wave.width * .35);
+        ctx.beginPath();
+        ctx.arc(source.x, source.y - 10, wave.radius + 18, -Math.PI * .38, Math.PI * .33);
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+
+    function drawSparks() {
+      for (let i = sparks.length - 1; i >= 0; i--) {
+        const s = sparks[i];
+        if (!paused) {
+          s.life -= .018;
+          s.x += s.vx;
+          s.y += s.vy;
+        }
+        if (s.life <= 0) {
+          sparks.splice(i, 1);
+          continue;
+        }
+        ctx.save();
+        ctx.globalAlpha = s.life;
+        ctx.strokeStyle = s.color;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(s.x - s.size, s.y);
+        ctx.lineTo(s.x + s.size, s.y);
+        ctx.moveTo(s.x, s.y - s.size);
+        ctx.lineTo(s.x, s.y + s.size);
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+
+    function burst(x, y, color) {
+      for (let i = 0; i < 30; i++) {
+        const a = Math.PI * 2 * i / 30;
+        sparks.push({
+          x, y,
+          vx: Math.cos(a) * (1.2 + (i % 5) * .3),
+          vy: Math.sin(a) * (1.2 + (i % 5) * .3),
+          size: 4 + (i % 4),
+          color,
+          life: .95
+        });
+      }
+    }
+
+    function playSound(kind) {
+      if (medium === 'vacuum') return;
+      try {
+        audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        const filter = audioCtx.createBiquadFilter();
+        osc.type = kind === 'clap' ? 'triangle' : 'sine';
+        osc.frequency.setValueAtTime(Number(frequency.value), now);
+        osc.frequency.exponentialRampToValueAtTime(Math.max(80, Number(frequency.value) * .45), now + .18);
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(kind === 'clap' ? 1200 : 620, now);
+        const amp = Number(volume.value) / 100 * (medium === 'water' ? .18 : .24);
+        gain.gain.setValueAtTime(0.0001, now);
+        gain.gain.exponentialRampToValueAtTime(amp, now + .012);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + (kind === 'clap' ? .12 : .28));
+        osc.connect(filter);
+        filter.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + .32);
+      } catch (error) {
+        // Some browsers block audio until a gesture; the visual experiment still works.
+      }
+    }
+
+    function trigger(kind = 'drum') {
+      const p = drumPos();
+      const data = mediumData[medium];
+      const vol = Number(volume.value) / 100;
+      const freq = Number(frequency.value);
+      const count = medium === 'vacuum' ? 2 : 4;
+      for (let i = 0; i < count; i++) {
+        waves.unshift({
+          radius: 28 + i * (freq > 520 ? 24 : 34),
+          speed: 3.2 + vol * 3.8 + freq / 420,
+          alpha: (medium === 'vacuum' ? .22 : .88) * vol,
+          width: 4 + vol * 8,
+          age: 0
+        });
+      }
+      burst(p.x, p.y - 20, data.color);
+      playSound(kind);
+      infoTitle.textContent = medium === 'vacuum' ? '真空里声音走不动' : (kind === 'clap' ? '拍手产生振动' : '鼓面开始振动');
+      infoText.textContent = medium === 'vacuum'
+        ? '你能看到鼓在动，但没有分子来接力，所以声波很快消失。'
+        : '振动让附近分子一会儿挤紧、一会儿散开，声波正向耳朵前进。';
+    }
+
+    function updateUI() {
+      volumeVal.textContent = volume.value + '%';
+      freqVal.textContent = frequency.value + 'Hz';
+      const data = mediumData[medium];
+      diagnosis.innerHTML = `<strong style="color:${data.color}">${data.title}</strong><span>${data.text}</span>`;
+      mediumBtns.forEach(btn => btn.classList.toggle('active', btn.dataset.medium === medium));
+
+      const source = drumPos();
+      const ear = earPos();
+      const target = Math.hypot(ear.x - source.x, ear.y - source.y);
+      let phase = 0;
+      const front = waves[0];
+      if (front) {
+        if (front.radius < 80) phase = 1;
+        else if (front.radius < target * .45) phase = 2;
+        else if (front.radius < target * .88) phase = 3;
+        else phase = 4;
+      }
+      if (medium === 'vacuum' && front) phase = 1;
+      steps.forEach((el, i) => el.classList.toggle('active', i === phase));
+    }
+
+    function animate() {
+      if (!paused) t += .016;
+      drawSky();
+      drawGround();
+      drawMolecules();
+      drawWaves();
+      drawDrum();
+      drawEar();
+      drawSparks();
+      updateUI();
+      requestAnimationFrame(animate);
+    }
+
+    hitDrum.addEventListener('click', () => trigger('drum'));
+    clap.addEventListener('click', () => trigger('clap'));
+    canvas.addEventListener('click', e => {
+      const p = drumPos();
+      if (Math.hypot(e.clientX - p.x, e.clientY - p.y) < 130) trigger('drum');
+      else burst(e.clientX, e.clientY, mediumData[medium].color);
+    });
+
+    pauseBtn.addEventListener('click', () => {
+      paused = !paused;
+      pauseBtn.textContent = paused ? '继续动画' : '暂停动画';
+    });
+
+    mediumBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        medium = btn.dataset.medium;
+        waves = [];
+        makeMolecules();
+        updateUI();
+        const data = mediumData[medium];
+        infoTitle.textContent = data.title;
+        infoText.textContent = data.text;
+      });
+    });
+
+    [volume, frequency].forEach(input => input.addEventListener('input', updateUI));
+    window.addEventListener('resize', resize);
+
+    resize();
+    updateUI();
+    animate();
+  </script>
+<script src="../speak.js"></script>
+</body>
+</html>

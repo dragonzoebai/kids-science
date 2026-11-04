@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>小堆场 3857 - Threebox</title>
+<link href="../vendor/mapbox-gl-2.15.0/dist/mapbox-gl.css" rel="stylesheet">
+<link href="../vendor/threebox-plugin-2.2.7/dist/threebox.css" rel="stylesheet">
+<style>
+  html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #1e1e1e; }
+  #map { position: absolute; inset: 0; }
+  #info {
+    position: absolute; top: 10px; left: 10px; z-index: 2;
+    color: #ddd; font-family: sans-serif; font-size: 13px;
+    background: rgba(0,0,0,0.45); padding: 6px 10px; border-radius: 4px; pointer-events: none;
+  }
+  #error {
+    position: absolute; top: 10px; left: 10px; z-index: 3;
+    color: #fff; background: #a33; font-family: sans-serif; font-size: 14px;
+    padding: 10px 14px; border-radius: 4px; display: none; max-width: 480px;
+  }
+  /* 隐藏右下角版权 / logo */
+  .mapboxgl-ctrl-attrib, .mapboxgl-ctrl-logo, .mapboxgl-ctrl-bottom-right { display: none !important; }
+  /* 底图切换 */
+  #basemap-switch {
+    position: absolute; bottom: 12px; left: 12px; z-index: 2;
+    display: flex; border-radius: 6px; overflow: hidden;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.45); font-family: sans-serif;
+  }
+  #basemap-switch button {
+    border: 0; margin: 0; padding: 7px 14px; font-size: 13px; line-height: 1;
+    background: rgba(0,0,0,0.55); color: #ddd; cursor: pointer;
+  }
+  #basemap-switch button + button { border-left: 1px solid rgba(255,255,255,0.15); }
+  #basemap-switch button:hover { background: rgba(0,0,0,0.72); }
+  #basemap-switch button.active { background: #1d6fe0; color: #fff; }
+</style>
+<link rel="stylesheet" href="../touch.css">
+<script src="../touch.js"></script>
+</head>
+<body>
+<div id="map"></div>
+<div id="info">duiwei3857.geojson + 轮廓3857 + 房子3857 + 港区船舶 + 灯（Threebox 三维）&nbsp;|&nbsp; 左键平移 / 右键拖拽倾斜旋转 / 滚轮缩放</div>
+<div id="error"></div>
+<div id="basemap-switch">
+  <button data-basemap="satellite" class="active">卫星</button>
+  <button data-basemap="light">浅色</button>
+  <button data-basemap="dark">暗色</button>
+</div>
+
+<script src="../vendor/mapbox-gl-2.15.0/dist/mapbox-gl.js"></script>
+<script src="../vendor/threebox-plugin-2.2.7/dist/threebox.min.js"></script>
+
+<script>
+// ---- 配置 ----
+mapboxgl.accessToken = 'pk.eyJ1IjoiZHJhZ29uem9lYmFpIiwiYSI6ImNrcDZlZjd3ODAwN2Uyd21qdWlpdGRqdWUifQ.-4OIwa9MuCxHvVxS0mbV0g';
+const CELL_HEIGHT_M = 0.1;   // 堆位挤出高度（米）
+const EDGE_WIDTH_M = 0.35;   // 堆位顶部黄色描边带宽度（米）
+const WALL_HEIGHT_M = 10;    // 轮廓发光墙高度（米）
+const WALL_COLOR = 0x00ff88; // 发光墙颜色（绿色）
+const FILL_COLOR = 0x777777; // 轮廓内部面填充颜色（深灰）
+const HOUSE_WALL_COLOR = 0xffffff; // 房子外墙颜色（纯白）
+const HOUSE_ROOF_COLOR = 0xc5c8cc; // 房子屋顶颜色（浅灰）
+const HOUSE_DEFAULT_HEIGHT_M = 3;  // 房子缺失 high 属性时的默认高度（米）
+const FILL_OPACITY = 1;      // 轮廓内部面填充不透明度
+const CELL_LABEL_MIN_PX = 10; // 堆位名称标签的最小屏幕高度（像素），小于此值就隐藏（缩得太小看不清干脆不画）
+const CELL_LABEL_MAX_PX = 34; // 堆位名称标签的最大屏幕高度（像素），放大到此值后不再继续变大
+const CELL_LABEL_HEIGHT_M = 3.6; // 堆位名称标签的真实高度（米），越大字越大（未触及 MAX_PX 上限时按此真实尺寸随缩放变化）
+
+// ---- 船舶配置 ----
+// 说明：jtg-web 是纯 three.js 项目，船舶经纬度要先 proj4 转 EPSG:3857 再减去原点偏移；
+// 这里用 Threebox，直接 setCoords([lng, lat]) 即可，不需要任何投影转换。
+const SHIP_MODEL_URL = './ship.glb';   // 船舶三维模型（jtg-web/public/three/model/单船.glb 拷过来并改成 ASCII 名，避免中文路径 404）
+// 港区船舶接口。留空则直接用下面内置的 PORT_SHIPS_RAW 假数据（接口需鉴权 + 跨域，标准页面里请求不到）。
+// 想接真实数据就填上，例如 'http://jtg-test.shipxy.com/jtg/ship/port/ships'，请求失败会自动回退到假数据。
+const SHIP_API = '';
+const SHIP_SID = '';                   // 接口鉴权用 Sid（从已登录的 jtg-web 里 localStorage.sid 复制），留空则不带该头
+const SHIP_ONLY_CARGO = false;         // true=只显示货船（shiptype 70-79 且原始船长>500，与 jtg-web 3D 口径一致）；false=接口/假数据里的船全画（含拖轮）
+const SHIP_MIN_LEN_M = 50;             // 船长小于此值（米）的船不显示，过滤拖轮/小艇；设 0 关闭。jtg-web 3D 口径是 >50m
+const SHIP_AREA = '118.992306250353678,39.216308327593481,119.000290406651786,39.216818147831241,119.001562607380578,39.208388644542005,118.993929403007698,39.208116708233582';
+// glTF 是 Y-up，Threebox 世界是 Z-up 且【不会】自动纠正，需要给模型加 x:90° 把它立起来（船平躺在水面）。
+// 若发现船底朝天就把这个值改成 -90。
+const SHIP_PITCH_FIX_DEG = 90;
+// 船头朝向修正：绕世界竖直轴转 (OFFSET - hdg)。实测 180（OFFSET=0 时四条船头正好指反）。
+// 若截图里所有船头统一偏差：顺时针偏 N° 就 OFFSET += N，逆时针就 OFFSET -= N。
+const SHIP_HEADING_OFFSET_DEG = 180;
+const SHIP_MODEL_REAL_LEN_M = 204;   // 模型本身的真实船长（Blender 量出：X 尺寸 204m，节点已烘焙 scale≈102，即 1 单位≈1 米）
+const SHIP_MODEL_REAL_BEAM_M = 32;   // 模型原生船宽兜底值（米）；运行时优先用实测包围盒，实测失败才用这个
+const SHIP_SCALE = 1;                // 全局额外缩放微调（正常保持 1；每条船已按 AIS 实际长宽分轴缩放）
+// 锚点：'none' = 用模型自己的原点（用户已在 Blender 里挪到船中心 0,0），直接落在经纬度上，转向只原地自转。
+// 千万别用 'center'：threebox 的 'center' 宽度方向取包围盒 min.z（船舷）而非中心，且在模型立正前计算，
+// 会把船横移半个船宽、且转艏向时绕坐标点公转 → 位置随航向漂。
+const SHIP_ANCHOR = 'none';
+const SHIP_ALT_M = 0;               // 船离水面高度微调（米），模型节点自带 ~18m 上抬，浮空就填负值
+const SHIP_LABEL_HEIGHT_M = 45;     // 船名标签离水面高度（米）
+const SHIP_LABEL_SCREEN_PX = 22;    // 船名标签目标屏幕高度（像素）：每帧按当前缩放/倾斜反算世界尺寸，缩放时大小基本不变，且有上限不会糊屏；设 0 = 退回固定 8 米
+// 内置假数据：来自 /jtg/ship/port/ships 接口的一次真实响应（data 数组，保留渲染要用的字段）。
+// 字段仍是 shipxy 原始整数口径（lon/lat ×1e6、hdg/cog ×100、length/width ×10、draught ×1000），
+// 统一走 dealShipRaw 换算，接口数据和假数据处理路径完全一致。
+const PORT_SHIPS_RAW = [
+  { mmsi: 314489000, shiptype: 70, name: 'OBE DINARES',          cnname: '',        length: 1800, width: 280, draught: 6500, navistat: 5, lat: 39215867, lon: 118996783, cog: 19900, hdg: 8700 },
+  { mmsi: 412420720, shiptype: 53, name: 'YUZHOU9',              cnname: '宇舟9',    length: 200,  width: 40,  draught: 900,  navistat: 8, lat: 39212057, lon: 118993977, cog: 33930, hdg: 51100 },
+  { mmsi: 413306280, shiptype: 52, name: 'KAI LAN 2',            cnname: '铠灡2',    length: 570,  width: 130, draught: 4000, navistat: 5, lat: 39209590, lon: 118994533, cog: 0,     hdg: 17000 },
+  { mmsi: 413592680, shiptype: 70, name: 'CHANG XIAN HAI',       cnname: '长先海',   length: 1590, width: 240, draught: 5600, navistat: 5, lat: 39212703, lon: 118994897, cog: 25180, hdg: 35000 },
+  { mmsi: 538008922, shiptype: 70, name: 'BH XIBAIPO',           cnname: '',        length: 2000, width: 320, draught: 7500, navistat: 5, lat: 39213993, lon: 118999290, cog: 22550, hdg: 34800 },
+  { mmsi: 413271810, shiptype: 52, name: 'JINGTANGGANGTUO15',    cnname: '京唐港拖15', length: 360, width: 110, draught: 4300, navistat: 5, lat: 39208770, lon: 119001378, cog: 250,   hdg: 51100 },
+  { mmsi: 413271820, shiptype: 52, name: 'JING TANG GANG TUO16', cnname: '京唐港拖16', length: 380, width: 110, draught: 4800, navistat: 5, lat: 39208662, lon: 119001265, cog: 32860, hdg: 51100 },
+  { mmsi: 413341920, shiptype: 70, name: 'YOU HAO 3',            cnname: '友好3',    length: 1900, width: 320, draught: 6700, navistat: 5, lat: 39209997, lon: 119000218, cog: 20100, hdg: 35100 },
+  { mmsi: 413382450, shiptype: 52, name: 'JING TANG GANG TUO22', cnname: '京唐港拖22', length: 410, width: 110, draught: 5200, navistat: 5, lat: 39209067, lon: 119000510, cog: 4650,  hdg: 8400 },
+  { mmsi: 413385880, shiptype: 52, name: 'JING TANG GANG TUO19', cnname: '京唐港拖19', length: 370, width: 100, draught: 4400, navistat: 5, lat: 39208887, lon: 119000843, cog: 160,   hdg: 16800 },
+  { mmsi: 413385890, shiptype: 52, name: 'JING TANG GANG TUO20', cnname: '京唐港拖20', length: 370, width: 100, draught: 4000, navistat: 5, lat: 39208950, lon: 119000982, cog: 0,     hdg: 26700 },
+  { mmsi: 413385910, shiptype: 52, name: 'JING TANG GANG TUO21', cnname: '京唐港拖21', length: 410, width: 110, draught: 5000, navistat: 5, lat: 39209152, lon: 119000590, cog: 26610, hdg: 51100 },
+];
+
+// ---- 灯配置 ----
+const LIGHT_MODEL_URL = './light.glb';        // 灯三维模型（Blender 导出，Y-up，原生约 38m 高，原点在灯杆底部中心）
+const LIGHT_GEOJSON_URL = './light.geojson';  // 灯位（WGS84 经纬度点，properties.name 作灯名）
+const LIGHT_PITCH_FIX_DEG = 90;   // Y-up→Z-up 立正，灯头朝天；若倒栽就改 -90
+const LIGHT_SCALE = 1;            // 整体缩放微调（模型已是真实米制）
+const LIGHT_ALT_M = 0;            // 灯杆底座离地高度微调（米），埋进地面就填正值
+
+// 参与呼吸脉冲的发光材质集合 / 参与上下流动的纹理集合 / 生长动画的墙体组
+const glowMaterials = [];
+const flowTextures = [];
+const wallGroups = [];
+const shipModels = [];
+const shipLabels = [];   // { sprite, aspect, lng, lat }：每帧按缩放/倾斜反算大小，保持屏幕像素高度恒定
+const cellLabels = [];   // { sprite, lng, lat, hM }：堆位名称标签，每帧按屏幕像素高度决定显隐
+const lightModels = [];        // 灯模型的 threebox 对象，方便统一管理
+
+// 切换底图会重建 Threebox 场景：这些数组必须清空，否则会残留上一份场景的对象引用
+function resetSceneState() {
+  [glowMaterials, flowTextures, wallGroups, shipModels, shipLabels, cellLabels, lightModels]
+    .forEach(a => { a.length = 0; });
+}
+
+// ---- EPSG:3857 (Web Mercator) -> WGS84 经纬度 ----
+const R = 6378137.0;
+function mercToLngLat(x, y) {
+  return [
+    (x / R) * 180 / Math.PI,
+    (2 * Math.atan(Math.exp(y / R)) - Math.PI / 2) * 180 / Math.PI,
+  ];
+}
+
+function showError(msg) {
+  const el = document.getElementById('error');
+  el.style.display = 'block';
+  el.innerHTML = msg;
+}
+
+// ---- GeoJSON 辅助 ----
+function getPolygons(g) {
+  if (!g) return [];
+  if (g.type === 'MultiPolygon') return g.coordinates;
+  if (g.type === 'Polygon') return [g.coordinates];
+  return [];
+}
+
+// 射线法：点 [lng,lat] 是否在环内
+function pointInRing(lng, lat, ring) {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const xi = ring[i][0], yi = ring[i][1];
+    const xj = ring[j][0], yj = ring[j][1];
+    if (((yi > lat) !== (yj > lat)) &&
+        (lng < (xj - xi) * (lat - yi) / (yj - yi) + xi)) {
+      inside = !inside;
+    }
+  }
+  return inside;
+}
+
+// 点 [lng,lat] 是否落在某个 feature 的多边形内（外环内且不在洞里）
+function pointInFeature(lng, lat, feature) {
+  return getPolygons(feature.geometry).some(rings => {
+    if (!rings.length || !pointInRing(lng, lat, rings[0])) return false;
+    for (let i = 1; i < rings.length; i++) {
+      if (pointInRing(lng, lat, rings[i])) return false;
+    }
+    return true;
+  });
+}
+
+// 把整个 FeatureCollection 的坐标从 3857 重投影到经纬度（返回新对象）
+function reproject(fc) {
+  const out = JSON.parse(JSON.stringify(fc));
+  out.features.forEach(f => {
+    const g = f.geometry;
+    if (!g) return;
+    const polys = getPolygons(g).map(rings =>
+      rings.map(ring => ring.map(([x, y]) => mercToLngLat(x, y)))
+    );
+    if (g.type === 'MultiPolygon') g.coordinates = polys;
+    else if (g.type === 'Polygon') g.coordinates = polys[0];
+  });
+  return out;
+}
+
+function bboxOf(fcs) {
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  fcs.forEach(fc => fc.features.forEach(f =>
+    getPolygons(f.geometry).forEach(rings => rings.forEach(ring => ring.forEach(([x, y]) => {
+      if (x < minX) minX = x;
+      if (x > maxX) maxX = x;
+      if (y < minY) minY = y;
+      if (y > maxY) maxY = y;
+    })))
+  ));
+  return { minX, minY, maxX, maxY };
+}
+
+function centroid(pts) {
+  let x = 0, y = 0;
+  for (const p of pts) { x += p[0]; y += p[1]; }
+  return [x / pts.length, y / pts.length];
+}
+
+// 用 Canvas 生成文字纹理做成 Sprite（始终朝向相机的广告牌）
+function makeLabelSprite(text, color = '#b8860b') {
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  const fontPx = 256;
+  const padding = 24;
+  ctx.font = `bold ${fontPx}px "Microsoft YaHei", "PingFang SC", sans-serif`;
+  const w = Math.ceil(ctx.measureText(text).width) + padding * 2;
+  const h = fontPx + padding * 2;
+  canvas.width = w;
+  canvas.height = h;
+  ctx.font = `bold ${fontPx}px "Microsoft YaHei", "PingFang SC", sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = color;
+  ctx.fillText(text, w / 2, h / 2);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.minFilter = THREE.LinearFilter;
+  texture.magFilter = THREE.LinearFilter;
+  const material = new THREE.SpriteMaterial({ map: texture, transparent: true, depthWrite: false });
+  const sprite = new THREE.Sprite(material);
+  sprite.userData.aspect = w / h;
+  return sprite;
+}
+
+// 每帧把船名标签缩放到接近固定的屏幕像素高度。
+// 做法：用 map.project() 投影标签经纬度 + 往北一点，量出该处“每米几屏幕像素(pxPerM)”，
+//       世界米数 = 目标像素 / pxPerM。
+// 关键：倾斜看向地平线时，远处地面被极度压缩，pxPerM→0，会把标签放大到糊屏。
+//       所以给 pxPerM 设一个下限 = 当前缩放级别下俯视时的地面分辨率(nadirPxPerM)，
+//       标签因此永远不会比“俯视时 SHIP_LABEL_SCREEN_PX 像素”更大；近处的船仍按透视缩小。
+const LABEL_REF_M = 20;
+function updateLabelScales() {
+  if (!window.tb || !SHIP_LABEL_SCREEN_PX || !shipLabels.length) return;
+  const lat0 = shipLabels[0].lat;
+  const dLat = LABEL_REF_M / 110574;
+  // 当前 zoom 下的地面分辨率（米/像素），mapbox 用 512 瓦片：40075016.686·cos(lat) / (512·2^zoom)
+  const mPerPx = 40075016.686 * Math.cos(lat0 * Math.PI / 180) / (512 * Math.pow(2, map.getZoom()));
+  const minPxPerM = 0.85 / mPerPx;   // 下限：略低于俯视分辨率，允许透视把近处标签稍微放大
+  for (const L of shipLabels) {
+    const a = map.project([L.lng, L.lat]);
+    const b = map.project([L.lng, L.lat + dLat]);
+    let pxPerM = Math.hypot(b.x - a.x, b.y - a.y) / LABEL_REF_M;
+    if (!(pxPerM > 0) || pxPerM < minPxPerM) pxPerM = minPxPerM;
+    const hMeters = Math.max(SHIP_LABEL_SCREEN_PX / pxPerM, 1);
+    L.sprite.scale.set(hMeters * L.aspect, hMeters, 1);
+  }
+}
+
+// 堆位名称标签默认是固定真实尺寸(CELL_LABEL_HEIGHT_M 米)的 sprite。每帧量一次该处
+// “每米几屏幕像素”，据此：屏幕高度低于 MIN 就整块隐藏；高于 MAX 就把世界尺寸压回去，
+// 让屏幕高度停在 MAX（放大到一定程度字不再继续变大）；两者之间维持真实尺寸随缩放变化。
+function updateCellLabelVisibility() {
+  if (!window.tb || !cellLabels.length) return;
+  const dLat = LABEL_REF_M / 110574;
+  for (const L of cellLabels) {
+    const a = map.project([L.lng, L.lat]);
+    const b = map.project([L.lng, L.lat + dLat]);
+    const pxPerM = Math.hypot(b.x - a.x, b.y - a.y) / LABEL_REF_M;
+    if (!(pxPerM > 0) || CELL_LABEL_HEIGHT_M * pxPerM < CELL_LABEL_MIN_PX) {
+      L.sprite.visible = false;
+      continue;
+    }
+    L.sprite.visible = true;
+    const hM = Math.min(CELL_LABEL_HEIGHT_M, CELL_LABEL_MAX_PX / pxPerM);
+    const hWorld = hM * L.upm;
+    L.sprite.scale.set(hWorld * L.aspect, hWorld, 1);
+  }
+}
+
+// 竖直渐变纹理：墙底最亮，向上逐渐透明，用于制造光幕/辉光观感
+function makeGlowGradient() {
+  const c = document.createElement('canvas');
+  c.width = 4;
+  c.height = 256;
+  const ctx = c.getContext('2d');
+  const g = ctx.createLinearGradient(0, 0, 0, 256); // canvas 顶(=v0=墙底) -> 底(=v1=墙顶)
+  g.addColorStop(0.00, 'rgba(180,255,210,0.95)');
+  g.addColorStop(0.30, 'rgba(0,255,140,0.45)');
+  g.addColorStop(1.00, 'rgba(0,255,140,0.0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 4, 256);
+  const t = new THREE.CanvasTexture(c);
+  t.flipY = false;
+  t.minFilter = THREE.LinearFilter;
+  t.magFilter = THREE.LinearFilter;
+  return t;
+}
+
+// 可竖直无缝平铺的扫描光带纹理：两条亮带，用 sin 保证首尾周期一致，
+// 贴到墙面后随时间滚动 offset.y，形成能量流动效果
+function makeScanTexture() {
+  const c = document.createElement('canvas');
+  c.width = 4;
+  c.height = 256;
+  const ctx = c.getContext('2d');
+  for (let y = 0; y < 256; y++) {
+    const s = 0.5 + 0.5 * Math.sin((y / 256) * Math.PI * 2 * 2); // 2 个周期
+    const a = Math.pow(s, 4) * 0.85;
+    ctx.fillStyle = `rgba(200,255,225,${a})`;
+    ctx.fillRect(0, y, 4, 1);
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.flipY = false;
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.minFilter = THREE.LinearFilter;
+  t.magFilter = THREE.LinearFilter;
+  return t;
+}
+
+// 缓出插值
+function easeOut(x) {
+  return 1 - Math.pow(1 - Math.min(Math.max(x, 0), 1), 3);
+}
+
+// 沿闭合环生成一条贴平面的带状几何（真正有宽度的"粗线"），halfWidth 为半宽（世界单位）
+function buildRibbonGeometry(pts2d, halfWidth) {
+  const n = pts2d.length;
+  const left = [], right = [];
+  for (let i = 0; i < n; i++) {
+    const p = pts2d[i];
+    const prev = pts2d[(i - 1 + n) % n];
+    const next = pts2d[(i + 1) % n];
+    let nx = 0, ny = 0;
+    [[prev, p], [p, next]].forEach(([a, b]) => {
+      const dx = b[0] - a[0], dy = b[1] - a[1];
+      const len = Math.hypot(dx, dy) || 1;
+      nx += -dy / len; ny += dx / len; // 段法线
+    });
+    const nl = Math.hypot(nx, ny) || 1;
+    nx /= nl; ny /= nl;
+    left.push([p[0] + nx * halfWidth, p[1] + ny * halfWidth]);
+    right.push([p[0] - nx * halfWidth, p[1] - ny * halfWidth]);
+  }
+  const pos = [];
+  for (let i = 0; i < n - 1; i++) {
+    const l1 = left[i], l2 = left[i + 1], r1 = right[i], r2 = right[i + 1];
+    pos.push(l1[0], l1[1], 0, r1[0], r1[1], 0, r2[0], r2[1], 0);
+    pos.push(l1[0], l1[1], 0, r2[0], r2[1], 0, l2[0], l2[1], 0);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.computeVertexNormals();
+  return g;
+}
+
+// 沿闭合环生成一圈竖直墙面（无顶无底），高度 h（世界单位）
+// pts2d: [[x,y], ...]（首尾已闭合）；v 坐标 0=墙底 1=墙顶
+function buildWallGeometry(pts2d, h) {
+  const pos = [];
+  const uv = [];
+  for (let i = 0; i < pts2d.length - 1; i++) {
+    const [x1, y1] = pts2d[i];
+    const [x2, y2] = pts2d[i + 1];
+    // 两个三角形组成一段墙
+    pos.push(x1, y1, 0,  x2, y2, 0,  x2, y2, h);
+    pos.push(x1, y1, 0,  x2, y2, h,  x1, y1, h);
+    uv.push(0, 0, 1, 0, 1, 1);
+    uv.push(0, 0, 1, 1, 0, 1);
+  }
+  const geom = new THREE.BufferGeometry();
+  geom.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  geom.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  geom.computeVertexNormals();
+  return geom;
+}
+
+// ---- 底图 ----
+const BASEMAPS = {
+  satellite: 'mapbox://styles/mapbox/satellite-streets-v12',
+  light: 'mapbox://styles/mapbox/streets-v12',   // 普通街道图（不是惨白的 light-v11）
+  dark: 'mapbox://styles/mapbox/traffic-night-v2',
+};
+let currentBasemap = 'satellite';
+let firstStyleLoad = true;   // 只有首次加载样式时才 jumpTo 到堆场；切底图时保持当前视角
+
+const map = new mapboxgl.Map({
+  container: 'map',
+  style: BASEMAPS[currentBasemap],
+  // style: {
+  //   version: 8,
+  //   sources: {
+  //     tdt: {
+  //       type: 'raster',
+  //       tiles: ['http://t0.tianditu.com/vec_w/wmts?service=wmts&request=GetTile&version=1.0.0&LAYER=vec&tileMatrixSet=w&TileMatrix={z}&TileRow={y}&TileCol={x}&style=default&format=tiles&tk=40b190683706230fade806c1ac8c14e8'],
+  //       tileSize: 256,
+  //     },
+  //   },
+  //   layers: [
+  //     { id: 'tdt', type: 'raster', source: 'tdt' },
+  //   ],
+  // },
+  center: [0, 0],
+  zoom: 2,
+  pitch: 60,
+  bearing: -17,
+  antialias: true,
+  attributionControl: false,
+});
+map.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }));
+
+// 底图切换：setStyle 会清掉所有图层，style.load 事件里会自动重建 Threebox 图层
+document.getElementById('basemap-switch').addEventListener('click', e => {
+  const btn = e.target.closest('button');
+  if (!btn) return;
+  const key = btn.dataset.basemap;
+  if (!BASEMAPS[key] || key === currentBasemap) return;
+  currentBasemap = key;
+  document.querySelectorAll('#basemap-switch button')
+    .forEach(b => b.classList.toggle('active', b === btn));
+  map.setStyle(BASEMAPS[key]);
+});
+
+// ---- 加载数据 ----
+const dataPromise = Promise.all([
+  fetch('./duiwei3857.geojson').then(r => { if (!r.ok) throw new Error('duiwei3857.geojson HTTP ' + r.status); return r.json(); }),
+  fetch('./lunkuo3857.geojson').then(r => { if (!r.ok) throw new Error('lunkuo3857.geojson HTTP ' + r.status); return r.json(); }),
+  fetch('./房子.geojson').then(r => { if (!r.ok) throw new Error('房子.geojson HTTP ' + r.status); return r.json(); }),
+]).then(([yard, contour, house]) => {
+  const yardLL = reproject(yard);
+  const contourLL = reproject(contour);
+  const houseLL = reproject(house);
+  const b = bboxOf([yardLL, contourLL, houseLL]);
+  return {
+    yardLL,
+    contourLL,
+    houseLL,
+    center: [(b.minX + b.maxX) / 2, (b.minY + b.maxY) / 2],
+  };
+});
+
+// Mapbox 自带 3D 建筑：矢量底图(streets / satellite-streets)的 composite 源里有
+// building 源图层，带 height / min_height。切底图会重建样式，所以每次 style.load 都要重加。
+// 纯光栅底图（没有 composite 源）会自动跳过。建筑插在第一个文字 symbol 图层之下，
+// 让路名/标注压在建筑之上；也排在 threebox 自定义图层之前，threebox 的船/灯/墙渲染在建筑之上。
+function addBuildings() {
+  if (map.getLayer('3d-buildings')) return;
+  if (!map.getSource('composite')) return;           // 该底图没有矢量 composite 源，跳过
+  const layers = map.getStyle().layers || [];
+  let labelLayerId;
+  for (const l of layers) {
+    if (l.type === 'symbol' && l.layout && l.layout['text-field']) { labelLayerId = l.id; break; }
+  }
+  map.addLayer({
+    id: '3d-buildings',
+    source: 'composite',
+    'source-layer': 'building',
+    filter: ['==', 'extrude', 'true'],
+    type: 'fill-extrusion',
+    minzoom: 14,
+    paint: {
+      'fill-extrusion-color': currentBasemap === 'dark' ? '#2b303b' : '#c9ccd2',
+      'fill-extrusion-height': ['interpolate', ['linear'], ['zoom'], 14, 0, 14.5, ['get', 'height']],
+      'fill-extrusion-base':   ['interpolate', ['linear'], ['zoom'], 14, 0, 14.5, ['get', 'min_height']],
+      'fill-extrusion-opacity': 0.85,
+    },
+  }, labelLayerId);
+}
+
+map.on('style.load', () => {
+  addBuildings();
+  dataPromise.then(({ yardLL, contourLL, houseLL, center }) => {
+    if (firstStyleLoad) {
+      map.jumpTo({ center, zoom: 17.6 });
+      firstStyleLoad = false;
+    }
+    addThreeboxLayer(yardLL, contourLL, houseLL);
+  }).catch(err => {
+    showError(
+      '加载 GeoJSON 失败: ' + err.message +
+      '<br>请通过本地 HTTP 服务器打开本页面（如 VSCode Live Server），' +
+      '直接以 file:// 方式打开会因浏览器安全策略导致 fetch 失败。'
+    );
+    console.error(err);
+  });
+});
+
+function addThreeboxLayer(yardLL, contourLL, houseLL) {
+  map.addLayer({
+    id: 'threebox-yard',
+    type: 'custom',
+    renderingMode: '3d',
+    onAdd: function (m, gl) {
+      window.tb = new Threebox(m, gl, { defaultLights: true });
+      resetSceneState();                 // 切底图重建场景前先清掉上一份的对象引用
+      buildScene(yardLL, contourLL, houseLL);
+      startGlowPulse();
+      loadShips();
+      loadLights();
+      m.triggerRepaint();
+    },
+    onRemove: function () {
+      // setStyle 会移除本图层：清掉旧 Threebox，避免场景对象累积
+      try { if (window.tb && window.tb.clear) window.tb.clear(); } catch (e) {}
+      window.tb = null;
+    },
+    render: function () {
+      if (window.tb) { updateLabelScales(); updateCellLabelVisibility(); tb.update(); }
+    },
+  });
+}
+
+// 墙体动画：入场生长 + 扫描光带上涌 + 呼吸脉冲，并驱动地图持续重绘
+let glowPulseRAF = null;
+function startGlowPulse() {
+  if (glowPulseRAF) cancelAnimationFrame(glowPulseRAF);  // 切底图会重启：先停掉旧循环，再从 grow=0 重放生长
+  const t0 = performance.now();
+  let last = t0;
+  let grow = 0;
+  function tick(now) {
+    const dt = Math.min((now - last) / 1000, 0.1);
+    last = now;
+
+    // 1) 入场生长：墙体从贴地长到全高（~1.2s，缓出）
+    if (grow < 1) {
+      grow = Math.min(grow + dt / 1.2, 1);
+      const s = Math.max(easeOut(grow), 0.0001);
+      wallGroups.forEach(g => { g.scale.z = s; });
+    }
+
+    // 2) 扫描光带持续上涌
+    flowTextures.forEach(t => {
+      t.offset.y = (t.offset.y - dt * 0.35) % 1;
+    });
+
+    // 3) 呼吸脉冲
+    const k = 0.72 + 0.28 * Math.sin((now - t0) / 1000 * 1.6);
+    glowMaterials.forEach(mat => {
+      mat.opacity = (mat.userData.baseOpacity || 1) * k;
+    });
+
+    if (map && map.getLayer && map.getLayer('threebox-yard')) map.triggerRepaint();
+    glowPulseRAF = requestAnimationFrame(tick);
+  }
+  glowPulseRAF = requestAnimationFrame(tick);
+}
+
+// ---- 船舶：把 jtg-web 3D 组件 initModel7 的"加港区船舶"逻辑搬到 Threebox ----
+// jtg-web 里那套流程是：接口拿原始 AIS 数据 -> dealShipinfo 换算单位 + proj4 投影到本地坐标
+// -> gltfLoader 加载 单船.glb -> 逐船 model.clone() 摆位。这里去掉投影那一步，直接用经纬度。
+
+const SHIP_AIS_REF_CORRECTION = true; // 把 AIS 上报的参考点(偏船艉/驾驶台)换算到船体几何中心
+// AIS 数据没给参考点字段(trail=距艉 / left=距左舷)时的经验默认：
+// 天线在距船艉 0.25×船长处、横向居中。→ 船形中心相对上报点沿船艏方向前移 (0.5-0.25)×船长。
+// 船讯网偏差偏大就调大这个（往船艏挪更多），偏过头就调小。横向默认居中(0.5)不横移。
+const SHIP_AIS_ANTENNA_FROM_STERN_FRAC = 0.25;
+const SHIP_AIS_ANTENNA_FROM_PORT_FRAC = 0.5;
+
+// 对应 jtg-web dealShipinfo：把 shipxy 原始整数字段换算成常规单位（经纬度小数、艏向度、船长米）
+function dealShipRaw(c) {
+  const cog = (c.cog || 0) / 100;
+  // AIS 艏向无效时常报 511；退用 cog，再不行给 0
+  let hdg = (c.hdg || 0) / 100;
+  if (hdg <= 0 || hdg >= 360) hdg = (cog > 0 && cog < 360) ? cog : 0;
+
+  const lengthM = (c.length || 0) / 10;
+  const widthM = (c.width || 0) / 10;
+  // 参考点到船艉 / 到左舷；接口没给就按经验默认（距艉 0.25L、横向居中）
+  let toStern = (c.trail || 0) / 10;
+  let toPort = (c.left || 0) / 10;
+  if (!(toStern > 0 && toStern < lengthM)) toStern = SHIP_AIS_ANTENNA_FROM_STERN_FRAC * lengthM;
+  if (!(toPort > 0 && toPort < widthM))   toPort  = SHIP_AIS_ANTENNA_FROM_PORT_FRAC * widthM;
+  let lng = c.lon / 1e6;
+  let lat = c.lat / 1e6;
+
+  // AIS 上报的是参考点，不是几何中心：沿船艏方向平移 (length/2 - toStern)，沿右舷方向平移 (width/2 - toPort)
+  if (SHIP_AIS_REF_CORRECTION && lengthM > 0 && toStern > 0 && toStern < lengthM) {
+    const dFwd = lengthM / 2 - toStern;
+    const dStbd = (widthM > 0 && toPort > 0 && toPort < widthM) ? (widthM / 2 - toPort) : 0;
+    const h = hdg * Math.PI / 180;
+    const east = dFwd * Math.sin(h) + dStbd * Math.cos(h);
+    const north = dFwd * Math.cos(h) - dStbd * Math.sin(h);
+    lat += north / 111320;
+    lng += east / (111320 * Math.cos(lat * Math.PI / 180));
+  }
+
+  return {
+    ...c,
+    mmsi: c.mmsi,
+    lng,
+    lat,
+    hdg,
+    cog,
+    sog: (c.sog || 0) / 514,
+    rot: (c.rot || 0) / 100,
+    length: lengthM,
+    width: widthM,
+    left: toPort,
+    trail: toStern,
+    draught: (c.draught || 0) / 1000,
+  };
+}
+
+// 拉港区船舶：配了 SHIP_API 就调接口，否则（或请求失败）用内置 PORT_SHIPS_RAW 假数据。
+// 两条路径的原始数据都统一走 SHIP_ONLY_CARGO 过滤 + dealShipRaw 换算。
+async function loadShips() {
+  let raw = null;
+  if (SHIP_API) {
+    try {
+      const url = SHIP_API + (SHIP_API.indexOf('?') === -1 ? '?' : '&') + 'area=' + encodeURIComponent(SHIP_AREA);
+      const resp = await fetch(url, { headers: SHIP_SID ? { Sid: SHIP_SID } : {} });
+      const json = await resp.json();
+      if (json && (json.code === 200 || json.code === undefined) && Array.isArray(json.data)) {
+        raw = json.data;
+      } else {
+        console.warn('港区船舶接口返回异常，改用内置假数据：', json);
+      }
+    } catch (e) {
+      console.warn('港区船舶接口请求失败，改用内置假数据：', e);
+    }
+  }
+  if (!raw || !raw.length) raw = PORT_SHIPS_RAW;
+
+  const ships = raw
+    .filter(c => !SHIP_ONLY_CARGO || (c.shiptype >= 70 && c.shiptype <= 79 && c.length > 500))
+    .filter(c => !SHIP_MIN_LEN_M || (Number(c.length) || 0) >= SHIP_MIN_LEN_M * 10)  // c.length 原始口径 ×10
+    .map(dealShipRaw);
+  addShips(ships);
+}
+
+// 加载一次 ship.glb，逐船 duplicate 后用经纬度摆位（Threebox 原生支持，无需投影）。
+// 关键点（都是踩过的坑）：
+//  1) 模型已是真实尺寸（船长约 204m），loadObj 用 units:'meters' 直接按真实大小渲染；
+//  2) 不能用 model.scale.set()——那会覆盖 threebox 为"米"单位算好的换算 scale，船会变成公里级，
+//     要按船长微缩就在其基础上 model.scale.multiplyScalar(相对系数)；
+//  3) 立正和艏向要【分两步】做：先 setRotation 只做 x:90 的 y-up→z-up 立正（不带 yaw），
+//     再用 rotateOnWorldAxis 绕【世界竖直轴 Z】转艏向。若把 yaw 塞进同一个 Euler，
+//     threebox 的 rotation.set(x,y,z) 是 XYZ 序，yaw 会在 x:90 之前绕模型自身轴转 → 变成横滚 → 船侧翻。
+function addShips(ships) {
+  if (!window.tb || !ships || !ships.length) return;
+  const WORLD_UP = new THREE.Vector3(0, 0, 1); // threebox 世界是 Z-up
+  tb.loadObj({ obj: SHIP_MODEL_URL, type: 'gltf', units: 'meters', anchor: SHIP_ANCHOR, bbox: false }, proto => {
+    // 量一次模型自身包围盒。glTF Y-up 所以 Y 恒为高度；但节点烘焙过 -90° 偏航，
+    // 水平面里【船长到底落在 X 还是 Z 不一定】——取水平两轴里更长的那根当船长轴，另一根当船宽轴，
+    // 避免把 AIS 船长错除到模型船宽上（会把船压短、横向拉宽、桅杆顶上天）。
+    proto.updateWorldMatrix(true, true);
+    const nbox = new THREE.Box3().setFromObject(proto);
+    const extX = (nbox.max.x - nbox.min.x) || SHIP_MODEL_REAL_LEN_M;
+    const extZ = (nbox.max.z - nbox.min.z) || SHIP_MODEL_REAL_BEAM_M;
+    const lenAxis  = extX >= extZ ? 'x' : 'z';           // 船长轴（局部）
+    const beamAxis = lenAxis === 'x' ? 'z' : 'x';        // 船宽轴（局部）
+    const nativeLenM  = Math.max(extX, extZ);
+    const nativeBeamM = Math.min(extX, extZ);
+    console.log('[ship] 模型原生尺寸：长≈%sm(%s轴)  宽≈%sm(%s轴)', nativeLenM.toFixed(1), lenAxis, nativeBeamM.toFixed(1), beamAxis);
+    ships.forEach((s, i) => {
+      const lengthM = s.length > 0 ? s.length : nativeLenM;
+      const widthM  = s.width  > 0 ? s.width  : nativeBeamM;
+      const fLen  = (lengthM / nativeLenM)  * SHIP_SCALE; // 船长系数
+      const fBeam = (widthM  / nativeBeamM) * SHIP_SCALE; // 船宽系数
+
+      // 顺序有讲究：duplicate -> setCoords（写入 coordinates，unitsPerMeter 才有效）
+      //           -> setRotation 立正（内部会把 scale 重置回 unitsPerMeter）
+      //           -> rotateOnWorldAxis 转艏向 -> 最后再叠加相对缩放
+      const model = proto.duplicate();               // 每条船独立一份，避免共用变换 / 材质
+      model.name = String(s.mmsi || ('ship-' + i));
+      model.userData.ship = s;
+      model.setCoords([s.lng, s.lat, SHIP_ALT_M]);   // 直接用经纬度，不做任何坐标转换
+      model.setRotation({ x: SHIP_PITCH_FIX_DEG, y: 0, z: 0 });  // 只立正，不转向
+      // 艏向：绕世界竖直轴转 (OFFSET - hdg)。threebox 世界 +X=西 +Y=南，绕 +Z 正转=屏幕逆时针，
+      // 故 hdg（正北顺时针）取【负号】。OFFSET 吸收模型默认朝向 + 节点烘焙的 -90° 偏航，按截图对照微调。
+      model.rotateOnWorldAxis(WORLD_UP, (SHIP_HEADING_OFFSET_DEG - (s.hdg || 0)) * Math.PI / 180);
+      // 分轴缩放到 AIS 实际长宽：lenAxis=船长、beamAxis=船宽；Y(高度) AIS 无此字段，
+      // 取长宽系数平均，让小船（拖轮）整体矮下去而不被压成饼。
+      // model.scale 是局部量，rotateOnWorldAxis 只改旋转不动它，故轴向恒定。
+      model.scale[lenAxis]  *= fLen;
+      model.scale[beamAxis] *= fBeam;
+      model.scale.y         *= (fLen + fBeam) / 2;
+
+      shipModels.push(model);
+      tb.add(model);
+
+      // 船名标签：单独作为一个 threebox 对象挂在船的经纬度上方，避免受船体 x:90 旋转/缩放影响
+      const sprite = makeLabelSprite(s.cnname || s.name || model.name);
+      const labelH = 8;                              // 世界米（SHIP_LABEL_SCREEN_PX 生效时每帧被 updateLabelScales 覆盖）
+      sprite.scale.set(labelH * sprite.userData.aspect, labelH, 1);
+      const labelObj = tb.Object3D({ obj: sprite, units: 'meters', bbox: false, tooltip: false });
+      labelObj.setCoords([s.lng, s.lat, SHIP_ALT_M + SHIP_LABEL_HEIGHT_M]);
+      tb.add(labelObj);
+      shipModels.push(labelObj);
+      shipLabels.push({ sprite, aspect: sprite.userData.aspect, lng: s.lng, lat: s.lat });
+    });
+    map.triggerRepaint();
+  });
+}
+
+// ---- 灯：按 light.geojson 的点位加载 light.glb ----
+async function loadLights() {
+  let fc;
+  try {
+    const r = await fetch(LIGHT_GEOJSON_URL);
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    fc = await r.json();
+  } catch (e) {
+    console.warn('灯 geojson 加载失败，跳过灯：', e);
+    return;
+  }
+  const pts = (fc.features || [])
+    .filter(f => f.geometry && f.geometry.type === 'Point' && Array.isArray(f.geometry.coordinates))
+    .map(f => ({
+      name: (f.properties && f.properties.name) || '',
+      lng: f.geometry.coordinates[0],
+      lat: f.geometry.coordinates[1],
+    }));
+  addLights(pts);
+}
+
+// 加载一次 light.glb，逐灯 duplicate 后用经纬度摆位。
+// 坑同船：不要 model.scale.set()（会覆盖 threebox 的米制换算）；立正只做 x:90，不塞 yaw。
+// 模型原点在灯杆底部中心，anchor:'none' 直接把经纬度点当灯杆脚。
+function addLights(pts) {
+  if (!window.tb || !pts || !pts.length) return;
+
+  tb.loadObj({ obj: LIGHT_MODEL_URL, type: 'gltf', units: 'meters', anchor: 'none', bbox: false }, proto => {
+    pts.forEach((p, i) => {
+      const model = proto.duplicate();                       // 每盏灯独立一份
+      model.name = p.name || ('light-' + i);
+      model.setCoords([p.lng, p.lat, LIGHT_ALT_M]);          // 直接用经纬度
+      model.setRotation({ x: LIGHT_PITCH_FIX_DEG, y: 0, z: 0 }); // 只立正
+      if (LIGHT_SCALE !== 1) model.scale.multiplyScalar(LIGHT_SCALE);
+
+      lightModels.push(model);
+      tb.add(model);
+    });
+    map.triggerRepaint();
+  });
+}
+
+function buildScene(yardLL, contourLL, houseLL) {
+  // 轮廓：内部半透明面填充（贴地）+ 绿色发光墙（沿边界立起的光幕 + 底部亮线 + 顶部亮边）
+  addFill(contourLL, { color: FILL_COLOR, opacity: FILL_OPACITY });
+  addGlowWall(contourLL, { color: WALL_COLOR, heightM: WALL_HEIGHT_M });
+  // 堆位：浅灰体 + 顶部黄色描边 + 名称标签
+  addExtrusions(yardLL, { color: 0xdadada, heightM: CELL_HEIGHT_M, edge: 0xffff00, edgeWidthM: EDGE_WIDTH_M, labels: true });
+  // 房子：每栋按自己的 properties.high 挤出高度，浅蓝描边 + 名称标签
+  if (houseLL) {
+    addExtrusions(houseLL, { color: HOUSE_WALL_COLOR, roofColor: HOUSE_ROOF_COLOR, heightM: HOUSE_DEFAULT_HEIGHT_M, heightProp: 'high', labels: true });
+  }
+
+  map.triggerRepaint();
+
+  // 轮廓内部面填充：把每个多边形做成贴地的面片（参考 jtg-web 3D 组件 lunkuo.js
+  // 的 ShapeGeometry 填充做法）。Threebox 世界是 Z-up，ShapeGeometry 天生落在 XY 平面，
+  // 不需要像纯 three.js 项目那样再 rotation.x = -Math.PI/2。
+  function addFill(fc, opt) {
+    const group = new THREE.Group();
+
+    fc.features.forEach(feature => {
+      getPolygons(feature.geometry).forEach(rings => {
+        if (!rings.length) return;
+
+        // 以外环首点为锚点，把巨大的世界坐标偏移到局部原点附近（与 addGlowWall / addExtrusions 一致）
+        const anchor = rings[0][0]; // [lng, lat]
+        const base = tb.projectToWorld([anchor[0], anchor[1], 0]);
+        const upm = tb.projectToWorld([anchor[0], anchor[1], 1]).z - base.z; // 每米对应的世界单位
+
+        const toLocal = ([lng, lat]) => {
+          const w = tb.projectToWorld([lng, lat, 0]);
+          return [w.x - base.x, w.y - base.y];
+        };
+
+        const outer = rings[0].map(toLocal);
+        const shape = new THREE.Shape(outer.map(([x, y]) => new THREE.Vector2(x, y)));
+        for (let i = 1; i < rings.length; i++) {
+          shape.holes.push(new THREE.Path(rings[i].map(toLocal).map(([x, y]) => new THREE.Vector2(x, y))));
+        }
+
+        // 不透明时按普通不透明材质渲染（写深度、走不透明队列），让更高的堆位挤出体
+        // 靠真实深度盖在填充面之上；只有半透明时才切到透明队列。
+        const translucent = opt.opacity < 1;
+        const mat = new THREE.MeshBasicMaterial({
+          color: opt.color,
+          transparent: translucent,
+          opacity: opt.opacity,
+          side: THREE.DoubleSide,
+          depthWrite: !translucent,
+        });
+        const mesh = new THREE.Mesh(new THREE.ShapeGeometry(shape), mat);
+        mesh.position.set(base.x, base.y, base.z + 0.02 * upm); // 略抬离地面，避免与卫星底图 z-fighting
+        group.add(mesh);
+      });
+    });
+
+    tb.add(group);
+  }
+
+  function addGlowWall(fc, opt) {
+    const group = new THREE.Group();
+    group.scale.z = 0.0001;        // 生长动画起始态（几乎贴地）
+    wallGroups.push(group);
+    const grad = makeGlowGradient();
+    const scan = makeScanTexture();
+    flowTextures.push(scan);
+
+    fc.features.forEach(feature => {
+      getPolygons(feature.geometry).forEach(rings => {
+        if (!rings.length) return;
+
+        const anchor = rings[0][0]; // [lng, lat]
+        const base = tb.projectToWorld([anchor[0], anchor[1], 0]);
+        const top = tb.projectToWorld([anchor[0], anchor[1], opt.heightM]);
+        const hWorld = top.z - base.z;                 // 墙高（世界单位）
+        const upm = hWorld / opt.heightM;              // 每米对应的世界单位
+
+        const toLocal = ([lng, lat]) => {
+          const w = tb.projectToWorld([lng, lat, 0]);
+          return [w.x - base.x, w.y - base.y];
+        };
+
+        rings.forEach(ring => {
+          const local = ring.map(toLocal);
+
+          // 1) 光幕主体：竖直渐变 + 叠加混合，双面
+          const bodyMat = new THREE.MeshBasicMaterial({
+            map: grad,
+            transparent: true,
+            side: THREE.DoubleSide,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false,
+          });
+          bodyMat.userData.baseOpacity = 1.0;
+          glowMaterials.push(bodyMat);
+          const wallGeom = buildWallGeometry(local, hWorld);
+          const body = new THREE.Mesh(wallGeom, bodyMat);
+          body.position.set(base.x, base.y, base.z);
+          body.renderOrder = 10;
+          group.add(body);
+
+          // 1b) 流动扫描层：可平铺的亮带纹理，随时间滚动 offset.y 形成能量上涌
+          const flowMat = new THREE.MeshBasicMaterial({
+            map: scan,
+            transparent: true,
+            side: THREE.DoubleSide,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false,
+          });
+          flowMat.userData.baseOpacity = 0.9;
+          glowMaterials.push(flowMat);
+          const flow = new THREE.Mesh(wallGeom, flowMat);
+          flow.position.set(base.x, base.y, base.z);
+          flow.renderOrder = 10;
+          group.add(flow);
+
+          // 2) 底部亮带：矮墙，纯亮绿叠加，强化与地面的接触光
+          const skirtMat = new THREE.MeshBasicMaterial({
+            color: opt.color,
+            transparent: true,
+            opacity: 0.5,
+            side: THREE.DoubleSide,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false,
+          });
+          skirtMat.userData.baseOpacity = 0.5;
+          glowMaterials.push(skirtMat);
+          const skirt = new THREE.Mesh(buildWallGeometry(local, hWorld * 0.14), skirtMat);
+          skirt.position.set(base.x, base.y, base.z + 0.02 * upm);
+          skirt.renderOrder = 11;
+          group.add(skirt);
+
+          // 3) 底部亮边线（顶部不画）
+          {
+            const pts = local.map(([x, y]) => new THREE.Vector3(x, y, 0.03 * upm));
+            const lg = new THREE.BufferGeometry().setFromPoints(pts);
+            const lm = new THREE.LineBasicMaterial({
+              color: 0xaaffcc,
+              transparent: true,
+              opacity: 0.9,
+              blending: THREE.AdditiveBlending,
+              depthWrite: false,
+            });
+            lm.userData.baseOpacity = 0.9;
+            glowMaterials.push(lm);
+            const line = new THREE.Line(lg, lm);
+            line.position.set(base.x, base.y, base.z);
+            line.renderOrder = 12;
+            group.add(line);
+          }
+        });
+      });
+    });
+
+    tb.add(group);
+  }
+
+  function addExtrusions(fc, opt) {
+    const group = new THREE.Group();
+
+    fc.features.forEach(feature => {
+      const name = (feature.properties && feature.properties.name) || '';
+
+      // 支持每个 feature 自己的高度（如房子的 properties.high），缺失/非法值退回 opt.heightM
+      const featureHeightM = opt.heightProp
+        ? (Number(feature.properties && feature.properties[opt.heightProp]) || opt.heightM)
+        : opt.heightM;
+
+      getPolygons(feature.geometry).forEach(rings => {
+        if (!rings.length) return;
+
+        // 以外环首点为锚点，把巨大的世界坐标偏移到局部原点附近
+        const anchor = rings[0][0]; // [lng, lat]
+        const base = tb.projectToWorld([anchor[0], anchor[1], 0]);
+        const top = tb.projectToWorld([anchor[0], anchor[1], featureHeightM]);
+        const depth = top.z - base.z;                 // 挤出高度（世界单位，z 朝上）
+        const upm = depth / featureHeightM;            // 每米对应的世界单位
+
+        const toLocal = ([lng, lat]) => {
+          const w = tb.projectToWorld([lng, lat, 0]);
+          return [w.x - base.x, w.y - base.y];
+        };
+
+        const outer = rings[0].map(toLocal);
+        const shape = new THREE.Shape(outer.map(([x, y]) => new THREE.Vector2(x, y)));
+        for (let i = 1; i < rings.length; i++) {
+          shape.holes.push(new THREE.Path(rings[i].map(toLocal).map(([x, y]) => new THREE.Vector2(x, y))));
+        }
+
+        const geom = new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled: false });
+        // ExtrudeGeometry 材质组顺序是 [0]=顶/底盖、[1]=侧墙（和直觉相反，源码
+        // buildLidFaces addGroup(...,0)、buildSideFaces addGroup(...,1)）。
+        // roofColor 给了就传材质数组做"白墙灰顶"，否则退回单一材质（堆位挤出体走这条路，颜色统一）。
+        const mat = opt.roofColor !== undefined
+          ? [
+              new THREE.MeshStandardMaterial({ color: opt.roofColor, roughness: 0.7, metalness: 0.0 }),
+              new THREE.MeshStandardMaterial({ color: opt.color, roughness: 0.9, metalness: 0.0 }),
+            ]
+          : new THREE.MeshStandardMaterial({ color: opt.color, roughness: 0.85, metalness: 0.0 });
+        const mesh = new THREE.Mesh(geom, mat);
+        mesh.position.set(base.x, base.y, base.z + (opt.zLift || 0) * upm);
+        group.add(mesh);
+
+        // 顶部描边：带宽度的黄色条带（贴在顶面，略微抬高避免 z-fighting）
+        if (opt.edge !== undefined) {
+          const halfW = (opt.edgeWidthM || 0.3) * upm / 2;
+          const edgeMat = new THREE.MeshBasicMaterial({
+            color: opt.edge,
+            side: THREE.DoubleSide,
+            depthWrite: false,
+            polygonOffset: true,
+            polygonOffsetFactor: -2,
+            polygonOffsetUnits: -2,
+          });
+          rings.forEach(ring => {
+            const ribbon = new THREE.Mesh(buildRibbonGeometry(ring.map(toLocal), halfW), edgeMat);
+            ribbon.position.set(base.x, base.y, base.z + depth + 0.03 * upm);
+            ribbon.renderOrder = 5;
+            group.add(ribbon);
+          });
+        }
+
+        // 名称标签：不压在堆位中间，而是挪到堆位边线外（参考 jtg-web 2D 组件
+        // duiwei.js getPolygonCenter：纬度取几何中心，经度取边界再往外推半宽的 0.3）。
+        // 默认放右侧边线外；若右侧紧挨着还有别的堆位（成对两列的左列，如 N01/N02
+        // 里的 N01），放右边会压在两列公共边上，改放左侧边线外。
+        if (opt.labels && name) {
+          const ring = rings[0];
+          let sumLat = 0, sumLng = 0, minLng = Infinity, maxLng = -Infinity, minLat = Infinity, maxLat = -Infinity;
+          for (const [lng, lat] of ring) {
+            sumLat += lat;
+            sumLng += lng;
+            if (lng < minLng) minLng = lng;
+            if (lng > maxLng) maxLng = lng;
+            if (lat < minLat) minLat = lat;
+            if (lat > maxLat) maxLat = lat;
+          }
+          const centerLat = sumLat / ring.length;
+
+          let labelLng, labelLat;
+          if (/^Z/i.test(name)) {
+            // Z 排：文字放堆位北侧边线外（经度取几何中心，纬度取北边界再往外推半高的 0.3）
+            const halfH = (maxLat - minLat) / 2 || 1e-6;
+            labelLng = sumLng / ring.length;
+            labelLat = maxLat + halfH * 0.3;
+          } else if (/^Y/i.test(name)) {
+            // Y 排：文字放堆位南侧边线外（经度取几何中心，纬度取南边界再往外推半高的 0.3）
+            const halfH = (maxLat - minLat) / 2 || 1e-6;
+            labelLng = sumLng / ring.length;
+            labelLat = minLat - halfH * 0.3;
+          } else {
+            // 其余堆位：默认放右侧边线外；若右侧紧挨着还有别的堆位（成对两列的左列，
+            // 如 N01/N02 里的 N01），放右边会压在两列公共边上，改放左侧边线外。
+            const halfW = (maxLng - minLng) / 2 || 1e-6;
+            const probeEps = halfW * 0.08;
+            const hasRight = fc.features.some(f => f !== feature && pointInFeature(maxLng + probeEps, centerLat, f));
+            const hasLeft = fc.features.some(f => f !== feature && pointInFeature(minLng - probeEps, centerLat, f));
+            const putLeft = hasRight && !hasLeft;
+            labelLng = putLeft ? (minLng - halfW * 0.3) : (maxLng + halfW * 0.3);
+            labelLat = centerLat;
+          }
+          const [lx, ly] = toLocal([labelLng, labelLat]);
+
+          const sprite = makeLabelSprite(name, '#ffff00'); // 纯黄
+          const hWorld = CELL_LABEL_HEIGHT_M * upm;
+          sprite.scale.set(hWorld * sprite.userData.aspect, hWorld, 1);
+          sprite.position.set(base.x + lx, base.y + ly, base.z + depth + hWorld * 0.6);
+          group.add(sprite);
+          cellLabels.push({ sprite, lng: labelLng, lat: labelLat, upm, aspect: sprite.userData.aspect });
+        }
+      });
+    });
+
+    tb.add(group);
+  }
+}
+</script>
+</body>
+</html>

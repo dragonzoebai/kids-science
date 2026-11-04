@@ -1,0 +1,819 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>中国城市人口排行 · 三维地球</title>
+    <link
+      href="../vendor/mapbox-gl-3.4.0/dist/mapbox-gl.css"
+      rel="stylesheet"
+    />
+    <script src="../vendor/mapbox-gl-3.4.0/dist/mapbox-gl.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        background: #050714;
+        font-family: "Segoe UI", "PingFang SC", system-ui, sans-serif;
+        color: #f8fafc;
+        height: 100vh;
+        overflow: hidden;
+      }
+
+      #map {
+        width: 100vw;
+        height: 100vh;
+      }
+
+      #header {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 26px 42px;
+        background:
+          radial-gradient(circle at 18% 0%, rgba(251, 191, 36, 0.24), transparent 28%),
+          linear-gradient(180deg, rgba(5, 7, 20, 0.94) 54%, transparent);
+        pointer-events: none;
+      }
+
+      #header h1 {
+        font-size: 21px;
+        font-weight: 650;
+        letter-spacing: 0.6px;
+        color: #fff;
+        text-shadow: 0 0 24px rgba(251, 191, 36, 0.32);
+      }
+
+      #header h1 span {
+        color: #fbbf24;
+      }
+
+      #update-time {
+        font-size: 12px;
+        color: #cbd5e1;
+      }
+
+      #controls,
+      #city-panel,
+      #legend {
+        background: rgba(8, 13, 30, 0.84);
+        backdrop-filter: blur(14px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 18px 45px rgba(0, 0, 0, 0.28);
+      }
+
+      #controls {
+        position: absolute;
+        top: 76px;
+        left: 18px;
+        z-index: 10;
+        border-radius: 16px;
+        padding: 16px;
+        width: 232px;
+      }
+
+      #controls h3,
+      #legend h3,
+      #city-panel h3 {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 1.4px;
+        color: #94a3b8;
+        margin-bottom: 12px;
+      }
+
+      .filter-row {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-bottom: 14px;
+      }
+
+      .filter-row:last-child {
+        margin-bottom: 0;
+      }
+
+      .filter-row label {
+        font-size: 12px;
+        color: #cbd5e1;
+      }
+
+      .switch-row {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .switch-row label {
+        cursor: pointer;
+      }
+
+      .switch {
+        position: relative;
+        width: 40px;
+        height: 22px;
+      }
+
+      .switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+
+      .switch span {
+        position: absolute;
+        inset: 0;
+        border-radius: 999px;
+        background: #172033;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+
+      .switch span::before {
+        content: "";
+        position: absolute;
+        width: 18px;
+        height: 18px;
+        left: 2px;
+        top: 2px;
+        border-radius: 50%;
+        background: #94a3b8;
+        transition: transform 0.2s, background 0.2s;
+      }
+
+      .switch input:checked + span {
+        background: linear-gradient(90deg, #f59e0b, #ef4444);
+      }
+
+      .switch input:checked + span::before {
+        transform: translateX(18px);
+        background: #fff7ed;
+      }
+
+      .hint {
+        padding-top: 10px;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        font-size: 11px;
+        line-height: 1.65;
+        color: #94a3b8;
+      }
+
+      #city-panel {
+        position: absolute;
+        top: 76px;
+        right: 18px;
+        bottom: 34px;
+        z-index: 10;
+        width: 326px;
+        border-radius: 18px;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .panel-summary {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+
+      .stat-card {
+        border-radius: 13px;
+        padding: 12px 13px;
+        background: rgba(255, 255, 255, 0.055);
+        border: 1px solid rgba(255, 255, 255, 0.07);
+      }
+
+      .stat-card .num {
+        font-size: 25px;
+        font-weight: 750;
+        color: #fbbf24;
+        line-height: 1;
+      }
+
+      .stat-card .lbl {
+        font-size: 11px;
+        color: #94a3b8;
+        margin-top: 5px;
+      }
+
+      #city-list {
+        min-height: 0;
+        overflow: auto;
+        padding-right: 4px;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(251, 191, 36, 0.72) rgba(15, 23, 42, 0.6);
+      }
+
+      #city-list::-webkit-scrollbar {
+        width: 6px;
+      }
+
+      #city-list::-webkit-scrollbar-thumb {
+        background: rgba(251, 191, 36, 0.72);
+        border-radius: 999px;
+      }
+
+      .city-card {
+        width: 100%;
+        display: grid;
+        grid-template-columns: 36px 1fr auto;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 8px;
+        padding: 10px;
+        color: #e2e8f0;
+        background: rgba(15, 23, 42, 0.7);
+        border: 1px solid rgba(255, 255, 255, 0.07);
+        border-radius: 14px;
+        cursor: pointer;
+        text-align: left;
+        transition:
+          transform 0.18s ease,
+          border-color 0.18s ease,
+          background 0.18s ease,
+          box-shadow 0.18s ease;
+      }
+
+      .city-card:hover,
+      .city-card.active {
+        transform: translateX(-4px);
+        border-color: rgba(251, 191, 36, 0.58);
+        background: linear-gradient(90deg, rgba(251, 191, 36, 0.2), rgba(15, 23, 42, 0.82));
+        box-shadow: 0 0 26px rgba(251, 146, 60, 0.16);
+      }
+
+      .city-card.active .rank {
+        background: #f59e0b;
+        color: #111827;
+      }
+
+      .rank {
+        display: grid;
+        place-items: center;
+        width: 32px;
+        height: 32px;
+        border-radius: 10px;
+        background: rgba(148, 163, 184, 0.16);
+        color: #fcd34d;
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .city-main {
+        min-width: 0;
+      }
+
+      .city-title {
+        display: flex;
+        align-items: baseline;
+        gap: 6px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .city-title strong {
+        font-size: 15px;
+      }
+
+      .city-title span {
+        font-size: 11px;
+        color: #94a3b8;
+      }
+
+      .city-subtitle {
+        margin-top: 3px;
+        font-size: 11px;
+        color: #94a3b8;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .city-pop {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        color: #fbbf24;
+        font-weight: 760;
+      }
+
+      .city-pop span {
+        color: #fed7aa;
+        font-size: 10px;
+        font-weight: 500;
+      }
+
+      #legend {
+        position: absolute;
+        bottom: 34px;
+        left: 18px;
+        z-index: 10;
+        border-radius: 16px;
+        padding: 15px 17px;
+        min-width: 214px;
+      }
+
+      .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 8px;
+        font-size: 12px;
+        color: #dbeafe;
+      }
+
+      .legend-item:last-child {
+        margin-bottom: 0;
+      }
+
+      .bubble {
+        display: inline-block;
+        border-radius: 50%;
+        background: radial-gradient(circle at 32% 28%, #fff7ed, #f97316 42%, #991b1b 100%);
+        box-shadow: 0 0 18px rgba(249, 115, 22, 0.74);
+        border: 1px solid rgba(255, 255, 255, 0.72);
+        flex-shrink: 0;
+      }
+
+      .bubble.large {
+        width: 24px;
+        height: 24px;
+      }
+
+      .bubble.medium {
+        width: 16px;
+        height: 16px;
+      }
+
+      .bubble.small {
+        width: 10px;
+        height: 10px;
+      }
+
+      .mapboxgl-popup-content {
+        background: rgba(8, 13, 30, 0.95);
+        color: #f8fafc;
+        border: 1px solid rgba(251, 191, 36, 0.38);
+        border-radius: 14px;
+        box-shadow: 0 20px 48px rgba(0, 0, 0, 0.38);
+        padding: 14px 16px;
+      }
+
+      .mapboxgl-popup-tip {
+        border-top-color: rgba(8, 13, 30, 0.95) !important;
+        border-bottom-color: rgba(8, 13, 30, 0.95) !important;
+      }
+
+      .popup-title {
+        font-size: 16px;
+        font-weight: 750;
+        margin-bottom: 5px;
+      }
+
+      .popup-meta {
+        color: #cbd5e1;
+        font-size: 12px;
+        line-height: 1.55;
+      }
+
+      @media (max-width: 900px) {
+        #header {
+          align-items: flex-start;
+          flex-direction: column;
+          gap: 4px;
+          padding: 14px 18px 36px;
+        }
+
+        #controls {
+          display: none;
+        }
+
+        #city-panel {
+          top: auto;
+          left: 14px;
+          right: 14px;
+          bottom: 26px;
+          width: auto;
+          max-height: 42vh;
+        }
+
+        #legend {
+          display: none;
+        }
+      }
+    </style>
+    <script src="../map-interactions.js"></script>
+  <link rel="stylesheet" href="../touch.css">
+<script src="../touch.js"></script>
+</head>
+  <body>
+    <div id="map"></div>
+
+    <div id="header">
+      <h1>🌆 中国城市人口排行 · <span>UN 城市聚集区热力地球</span></h1>
+      <div id="update-time">图标大小代表 UN WUP 2025 城市聚集区人口 · 右侧按人口降序 · 再点当前城市恢复全国视角</div>
+    </div>
+
+    <div id="controls">
+      <h3>图层开关</h3>
+      <div class="filter-row switch-row">
+        <label for="city-toggle">中国城市图标</label>
+        <label class="switch">
+          <input type="checkbox" id="city-toggle" checked />
+          <span></span>
+        </label>
+      </div>
+      <div class="filter-row switch-row">
+        <label for="label-toggle">城市名称标注</label>
+        <label class="switch">
+          <input type="checkbox" id="label-toggle" checked />
+          <span></span>
+        </label>
+      </div>
+      <div class="filter-row switch-row">
+        <label for="base-label-toggle">地图底图地名</label>
+        <label class="switch">
+          <input type="checkbox" id="base-label-toggle" checked />
+          <span></span>
+        </label>
+      </div>
+      <div class="hint">
+        选取 UN WUP 2025 中国城市聚集区人口靠前城市；人口单位为百万，全球与中国页使用同一口径。
+      </div>
+    </div>
+
+    <aside id="city-panel">
+      <h3>城市人口排行</h3>
+      <div class="panel-summary">
+        <div class="stat-card">
+          <div class="num" id="stat-count">24</div>
+          <div class="lbl">标注城市</div>
+        </div>
+        <div class="stat-card">
+          <div class="num" id="stat-largest">29.6</div>
+          <div class="lbl">最大人口 / 百万</div>
+        </div>
+      </div>
+      <div id="city-list" aria-label="中国城市人口排行"></div>
+    </aside>
+
+    <div id="legend">
+      <h3>人口图例</h3>
+      <div class="legend-item">
+        <span class="bubble large"></span>
+        25M+ 超级城市聚集区
+      </div>
+      <div class="legend-item">
+        <span class="bubble medium"></span>
+        10M–25M 巨型城市聚集区
+      </div>
+      <div class="legend-item">
+        <span class="bubble small"></span>
+        3M–10M 大型城市聚集区
+      </div>
+    </div>
+
+    <script>
+      mapboxgl.accessToken =
+        "pk.eyJ1IjoiZHJhZ29uem9lYmFpIiwiYSI6ImNrcDZlZjd3ODAwN2Uyd21qdWlpdGRqdWUifQ.-4OIwa9MuCxHvVxS0mbV0g";
+
+      const DEFAULT_VIEW = {
+        center: [104, 35],
+        zoom: 3.2,
+        pitch: 0,
+        bearing: 0,
+      };
+      const baseLabelLayerIds = [];
+      const cityLayers = ["city-halo", "city-point"];
+      const labelLayers = ["city-label"];
+      const CITIES = [
+        { name: "上海", en: "Shanghai", country: "中国", continent: "亚洲", pop: 29.6, coordinates: [121.4369, 31.2148], note: "UN WUP 2025 城市聚集区人口" },
+        { name: "广州", en: "Guangzhou", country: "中国", continent: "亚洲", pop: 27.6, coordinates: [113.2859, 23.1423], note: "UN WUP 2025 城市聚集区人口" },
+        { name: "北京", en: "Beijing", country: "中国", continent: "亚洲", pop: 17.0, coordinates: [116.3722, 39.9275], note: "UN WUP 2025 城市聚集区人口" },
+        { name: "深圳", en: "Shenzhen", country: "中国", continent: "亚洲", pop: 13.9, coordinates: [114.0066, 22.7078], note: "UN WUP 2025 城市聚集区人口" },
+        { name: "苏州", en: "Suzhou", country: "中国", continent: "亚洲", pop: 7.7, coordinates: [120.6235, 31.3814], note: "UN WUP 2025 城市聚集区人口" },
+        { name: "杭州", en: "Hangzhou", country: "中国", continent: "亚洲", pop: 7.5, coordinates: [120.2512, 30.2813], note: "UN WUP 2025 城市聚集区人口" },
+        { name: "武汉", en: "Wuhan", country: "中国", continent: "亚洲", pop: 7.4, coordinates: [114.2968, 30.5661], note: "UN WUP 2025 城市聚集区人口" },
+        { name: "天津", en: "Tianjin", country: "中国", continent: "亚洲", pop: 7.3, coordinates: [117.1942, 39.1327], note: "UN WUP 2025 城市聚集区人口" },
+        { name: "重庆", en: "Chongqing", country: "中国", continent: "亚洲", pop: 7.1, coordinates: [106.516, 29.5454], note: "UN WUP 2025 城市聚集区人口" },
+        { name: "南京", en: "Nanjing", country: "中国", continent: "亚洲", pop: 6.8, coordinates: [118.7777, 32.0355], note: "UN WUP 2025 城市聚集区人口" },
+        { name: "潮州", en: "Chaozhou", country: "中国", continent: "亚洲", pop: 6.4, coordinates: [116.3201, 23.653], note: "UN WUP 2025 城市聚集区人口" },
+        { name: "成都", en: "Chengdu", country: "中国", continent: "亚洲", pop: 6.1, coordinates: [104.046, 30.6723], note: "UN WUP 2025 城市聚集区人口" },
+        { name: "沈阳", en: "Shenyang", country: "中国", continent: "亚洲", pop: 5.7, coordinates: [123.389, 41.7968], note: "UN WUP 2025 城市聚集区人口" },
+        { name: "西安", en: "Xi'an", country: "中国", continent: "亚洲", pop: 5.2, coordinates: [108.9468, 34.2549], note: "UN WUP 2025 城市聚集区人口" },
+        { name: "郑州", en: "Zhengzhou", country: "中国", continent: "亚洲", pop: 4.9, coordinates: [113.6531, 34.767], note: "UN WUP 2025 城市聚集区人口" },
+        { name: "合肥", en: "Hefei", country: "中国", continent: "亚洲", pop: 4.9, coordinates: [117.2671, 31.8472], note: "UN WUP 2025 城市聚集区人口" },
+        { name: "哈尔滨", en: "Harbin", country: "中国", continent: "亚洲", pop: 4.4, coordinates: [126.659, 45.7443], note: "UN WUP 2025 城市聚集区人口" },
+        { name: "温州", en: "Wenzhou", country: "中国", continent: "亚洲", pop: 4.2, coordinates: [120.6304, 28.0154], note: "UN WUP 2025 城市聚集区人口" },
+        { name: "太原", en: "Taiyuan", country: "中国", continent: "亚洲", pop: 4.0, coordinates: [112.548, 37.8531], note: "UN WUP 2025 城市聚集区人口" },
+        { name: "普宁", en: "Puning", country: "中国", continent: "亚洲", pop: 4.0, coordinates: [116.3952, 23.2618], note: "UN WUP 2025 城市聚集区人口" },
+        { name: "乌鲁木齐", en: "Ürümqi", country: "中国", continent: "亚洲", pop: 3.8, coordinates: [87.5924, 43.8286], note: "UN WUP 2025 城市聚集区人口" },
+        { name: "青岛", en: "Qingdao", country: "中国", continent: "亚洲", pop: 3.6, coordinates: [120.3921, 36.1674], note: "UN WUP 2025 城市聚集区人口" },
+        { name: "济南", en: "Jinan", country: "中国", continent: "亚洲", pop: 3.5, coordinates: [117.0185, 36.6614], note: "UN WUP 2025 城市聚集区人口" },
+        { name: "长沙", en: "Changsha", country: "中国", continent: "亚洲", pop: 3.5, coordinates: [112.989, 28.1923], note: "UN WUP 2025 城市聚集区人口" },
+      ];
+      const rankedCities = [...CITIES].sort((a, b) => b.pop - a.pop);
+      let activeCityName = null;
+
+      const map = new mapboxgl.Map({
+        container: "map",
+        style: "mapbox://styles/mapbox/satellite-streets-v12",
+        center: DEFAULT_VIEW.center,
+        zoom: DEFAULT_VIEW.zoom,
+        pitch: DEFAULT_VIEW.pitch,
+        bearing: DEFAULT_VIEW.bearing,
+        projection: "globe",
+        antialias: true,
+      });
+
+      map.addControl(
+        new mapboxgl.NavigationControl({ visualizePitch: true }),
+        "bottom-right",
+      );
+      map.addControl(new mapboxgl.ScaleControl(), "bottom-right");
+
+      map.on("style.load", () => {
+        map.setFog({
+          color: "rgb(230, 236, 255)",
+          "high-color": "rgb(255, 248, 232)",
+          "horizon-blend": 0.018,
+          "space-color": "rgb(5, 7, 20)",
+          "star-intensity": 0.72,
+        });
+
+        map.getStyle().layers.forEach((layer) => {
+          if (layer.type === "symbol" && layer.layout?.["text-field"]) {
+            map.setLayoutProperty(layer.id, "text-field", [
+              "coalesce",
+              ["get", "name_zh-Hans"],
+              ["get", "name_zh"],
+              ["get", "name"],
+            ]);
+
+            if (isBaseLabelLayer(layer)) {
+              baseLabelLayerIds.push(layer.id);
+            }
+          }
+        });
+
+        setupCityLayers();
+        setupControls();
+        setupCityInteractions();
+        renderCityList();
+        updateStats();
+      });
+
+      function isBaseLabelLayer(layer) {
+        const sourceLayer = layer["source-layer"] || "";
+        const id = layer.id || "";
+        return (
+          sourceLayer.includes("place_label") ||
+          id.includes("place-label") ||
+          id.includes("settlement") ||
+          id.includes("country-label") ||
+          id.includes("state-label")
+        );
+      }
+
+      function makeCityCollection() {
+        return {
+          type: "FeatureCollection",
+          features: rankedCities.map((city, index) => ({
+            type: "Feature",
+            properties: {
+              name: city.name,
+              en: city.en,
+              country: city.country,
+              continent: city.continent,
+              pop: city.pop,
+              note: city.note,
+              rank: index + 1,
+              label: `${city.name} ${city.pop.toFixed(1)}M`,
+            },
+            geometry: { type: "Point", coordinates: city.coordinates },
+          })),
+        };
+      }
+
+      function setupCityLayers() {
+        map.addSource("global-cities", {
+          type: "geojson",
+          data: makeCityCollection(),
+        });
+
+        map.addLayer({
+          id: "city-halo",
+          type: "circle",
+          source: "global-cities",
+          paint: {
+            "circle-radius": ["interpolate", ["linear"], ["get", "pop"], 9, 14, 16, 22, 24, 30, 38, 44],
+            "circle-color": [
+              "interpolate",
+              ["linear"],
+              ["get", "pop"],
+              9,
+              "rgba(251, 191, 36, 0.2)",
+              22,
+              "rgba(249, 115, 22, 0.28)",
+              38,
+              "rgba(239, 68, 68, 0.34)",
+            ],
+            "circle-blur": 0.82,
+            "circle-opacity": 0.92,
+          },
+        });
+
+        map.addLayer({
+          id: "city-point",
+          type: "circle",
+          source: "global-cities",
+          paint: {
+            "circle-radius": ["interpolate", ["linear"], ["get", "pop"], 9, 5, 16, 8, 24, 11, 38, 16],
+            "circle-color": [
+              "case",
+              ["==", ["get", "name"], ["literal", activeCityName || ""]],
+              "#fef08a",
+              ["interpolate", ["linear"], ["get", "pop"], 9, "#fbbf24", 22, "#f97316", 38, "#ef4444"],
+            ],
+            "circle-stroke-color": "rgba(255, 255, 255, 0.88)",
+            "circle-stroke-width": ["interpolate", ["linear"], ["get", "pop"], 9, 1.2, 38, 2.4],
+            "circle-opacity": 0.96,
+          },
+        });
+
+        map.addLayer({
+          id: "city-label",
+          type: "symbol",
+          source: "global-cities",
+          layout: {
+            "text-field": ["get", "label"],
+            "text-size": ["interpolate", ["linear"], ["get", "pop"], 9, 11, 22, 12.5, 38, 15],
+            "text-font": ["Open Sans Semibold", "Arial Unicode MS Bold"],
+            "text-allow-overlap": false,
+            "text-ignore-placement": false,
+            "text-anchor": "left",
+            "text-offset": [1.08, 0.04],
+            "symbol-sort-key": ["*", -1, ["get", "pop"]],
+          },
+          paint: {
+            "text-color": "#fff7ed",
+            "text-halo-color": "rgba(5, 7, 20, 0.96)",
+            "text-halo-width": 1.7,
+            "text-opacity": 0.97,
+          },
+        });
+      }
+
+      function setupCityInteractions() {
+        const popup = new mapboxgl.Popup({
+          closeButton: false,
+          closeOnClick: false,
+          maxWidth: "260px",
+        });
+
+        bindMapPopup(map, popup, {
+          layers: ["city-point", "city-label"],
+          hover: "mouseenter",
+          onSelect: (e) => {
+            const city = rankedCities.find((item) => item.name === e.features[0].properties.name);
+            toggleCityFocus(city);
+          },
+          show: (e) => {
+            map.getCanvas().style.cursor = "pointer";
+            const feature = e.features[0];
+            const city = feature.properties;
+            popup
+              .setLngLat(feature.geometry.coordinates.slice())
+              .setHTML(makePopupHtml(city))
+              .addTo(map);
+          },
+        });
+      }
+
+      function makePopupHtml(city) {
+        return `<div class="popup-title">${city.rank}. ${city.name} <span style="color:#fbbf24">${city.en}</span></div>
+          <div class="popup-meta">${city.country} · ${city.continent}<br />城市聚集区人口约 <strong>${Number(city.pop).toFixed(1)} 百万</strong><br />${city.note}</div>`;
+      }
+
+      function renderCityList() {
+        const list = document.getElementById("city-list");
+        list.innerHTML = rankedCities
+          .map(
+            (city, index) => `
+              <button class="city-card" type="button" data-city="${city.name}" aria-label="跳转到${city.name}">
+                <span class="rank">${index + 1}</span>
+                <span class="city-main">
+                  <span class="city-title"><strong>${city.name}</strong><span>${city.en}</span></span>
+                  <span class="city-subtitle">${city.country} · ${city.note}</span>
+                </span>
+                <span class="city-pop">${city.pop.toFixed(1)}<span>百万</span></span>
+              </button>`,
+          )
+          .join("");
+
+        list.querySelectorAll(".city-card").forEach((card) => {
+          card.addEventListener("click", () => {
+            const city = rankedCities.find((item) => item.name === card.dataset.city);
+            toggleCityFocus(city);
+          });
+        });
+      }
+
+      function toggleCityFocus(city) {
+        if (!city) return;
+        if (activeCityName === city.name) {
+          resetView();
+          return;
+        }
+
+        activeCityName = city.name;
+        updateActiveCity();
+        map.flyTo({
+          center: city.coordinates,
+          zoom: 4.25,
+          pitch: 38,
+          bearing: 0,
+          speed: 0.72,
+          curve: 1.35,
+          essential: true,
+        });
+      }
+
+      function resetView() {
+        activeCityName = null;
+        updateActiveCity();
+        map.flyTo({
+          center: DEFAULT_VIEW.center,
+          zoom: DEFAULT_VIEW.zoom,
+          pitch: DEFAULT_VIEW.pitch,
+          bearing: DEFAULT_VIEW.bearing,
+          speed: 0.82,
+          curve: 1.25,
+          essential: true,
+        });
+      }
+
+      function updateActiveCity() {
+        document.querySelectorAll(".city-card").forEach((card) => {
+          card.classList.toggle("active", card.dataset.city === activeCityName);
+        });
+
+        if (map.getLayer("city-point")) {
+          map.setPaintProperty("city-point", "circle-color", [
+            "case",
+            ["==", ["get", "name"], ["literal", activeCityName || ""]],
+            "#fef08a",
+            ["interpolate", ["linear"], ["get", "pop"], 9, "#fbbf24", 22, "#f97316", 38, "#ef4444"],
+          ]);
+          map.setPaintProperty("city-point", "circle-stroke-width", [
+            "case",
+            ["==", ["get", "name"], ["literal", activeCityName || ""]],
+            3.4,
+            ["interpolate", ["linear"], ["get", "pop"], 9, 1.2, 38, 2.4],
+          ]);
+        }
+      }
+
+      function setLayerGroupVisibility(layerIds, visible) {
+        layerIds.forEach((id) => {
+          if (map.getLayer(id)) {
+            map.setLayoutProperty(id, "visibility", visible ? "visible" : "none");
+          }
+        });
+      }
+
+      function setupControls() {
+        document.getElementById("city-toggle").addEventListener("change", (e) => {
+          setLayerGroupVisibility(cityLayers, e.target.checked);
+        });
+
+        document.getElementById("label-toggle").addEventListener("change", (e) => {
+          setLayerGroupVisibility(labelLayers, e.target.checked);
+        });
+
+        document.getElementById("base-label-toggle").addEventListener("change", (e) => {
+          setLayerGroupVisibility(baseLabelLayerIds, e.target.checked);
+        });
+      }
+
+      function updateStats() {
+        const largest = rankedCities.reduce((max, city) => Math.max(max, city.pop), 0);
+        document.getElementById("stat-count").textContent = rankedCities.length;
+        document.getElementById("stat-largest").textContent = largest.toFixed(1);
+      }
+    </script>
+  <script src="../speak.js"></script>
+  </body>
+</html>
