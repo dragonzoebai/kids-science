@@ -33,6 +33,7 @@
       color: #cce; font-size: 13px;
     }
     #panel input[type=range] { width: 160px; accent-color: #ffe066; }
+    #follow-earth { min-height: 44px; padding: 8px 14px; border: 1px solid #ffe066; border-radius: 18px; background: #172439; color: #ffe066; cursor: pointer; }
 
     #season-info {
       position: absolute;
@@ -79,6 +80,7 @@
     <li>🖱 拖拽 — 旋转视角</li>
     <li>🖱 滚轮 — 缩放</li>
     <li>🖱 右键 — 平移</li>
+    <li>轻触地球 — 跟随公转</li>
     <li class="season-marker">● 绿色点 — 四季节点</li>
     <li>🔴 红线 — 地球自转轴</li>
     <li>🟡 黄面 — 黄道面</li>
@@ -94,6 +96,7 @@
   <span>速度</span>
   <input type="range" id="speed" min="0" max="20" step="0.2" value="1">
   <span id="speed-val" style="min-width:36px">1.0×</span>
+  <button id="follow-earth" type="button" aria-pressed="false">跟随地球</button>
 </div>
 
 <script type="importmap">
@@ -323,6 +326,50 @@ const earthMesh = new THREE.Mesh(
 earthMesh.position.x = EARTH_DIST;
 earthPivot.add(earthMesh);
 
+/* ── 点击或轻触地球后跟随公转 ──────────────────── */
+let followingEarth = false;
+const followButton = document.getElementById('follow-earth');
+const overviewPosition = new THREE.Vector3();
+const overviewTarget = new THREE.Vector3();
+const followPosition = new THREE.Vector3();
+const followDelta = new THREE.Vector3();
+function setEarthFollowing(value) {
+  if (value === followingEarth) return;
+  // Flush damping before changing the orbit center.
+  const damping = controls.enableDamping;
+  controls.enableDamping = false;
+  controls.update();
+  if (value) {
+    overviewPosition.copy(camera.position);
+    overviewTarget.copy(controls.target);
+    earthMesh.getWorldPosition(followPosition);
+    followDelta.copy(followPosition).sub(controls.target);
+    camera.position.add(followDelta);
+    controls.target.copy(followPosition);
+  } else {
+    camera.position.copy(overviewPosition);
+    controls.target.copy(overviewTarget);
+  }
+  followingEarth = value;
+  controls.enablePan = !value;
+  controls.update();
+  controls.enableDamping = damping;
+  followButton.textContent = value ? '返回全景' : '跟随地球';
+  followButton.setAttribute('aria-pressed', String(value));
+}
+followButton.addEventListener('click', () => setEarthFollowing(!followingEarth));
+const earthRaycaster = new THREE.Raycaster();
+const pointer = new THREE.Vector2();
+renderer.domElement.addEventListener('click', event => {
+  const rect = renderer.domElement.getBoundingClientRect();
+  pointer.set((event.clientX - rect.left) / rect.width * 2 - 1,
+    -(event.clientY - rect.top) / rect.height * 2 + 1);
+  scene.updateMatrixWorld(true);
+  earthRaycaster.setFromCamera(pointer, camera);
+  const hit = earthRaycaster.intersectObjects([earthMesh, sunMesh], false)[0];
+  if (hit?.object === earthMesh) setEarthFollowing(true);
+});
+
 /* ── 地球自转轴（红色线）────────────────────────── */
 const axisLength = EARTH_R * 3;
 const axisGeo = new THREE.BufferGeometry().setFromPoints([
@@ -441,6 +488,12 @@ function animate() {
   // 更新太阳光线指向
   const earthPos = new THREE.Vector3();
   earthMesh.getWorldPosition(earthPos);
+  if (followingEarth) {
+    followDelta.copy(earthPos).sub(followPosition);
+    camera.position.add(followDelta);
+    controls.target.copy(earthPos);
+    followPosition.copy(earthPos);
+  }
   const rayDir = earthPos.clone().normalize();
   sunRay.geometry.setFromPoints([
     new THREE.Vector3(0, 0, 0),
