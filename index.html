@@ -79,13 +79,6 @@
       ['earth/subway.html', '中国地铁城市 · 三维地球'],
       ['earth/timezone.html', '理论标准时区边界线 · 三维地球'],
     ]},
-    { dir: 'jtg', name: '港区堆场', pages: [
-      ['jtg/index.html', '堆场 & 路网 GeoJSON 地图'],
-      ['jtg/three.html', '小堆场 3857 - Three.js'],
-      ['jtg/three1.html', '小堆场 3857 - Three.js（1）'],
-      ['jtg/three2.html', '小堆场 3857 - Three.js（2）'],
-      ['jtg/threebox.html', '小堆场 3857 - Threebox'],
-    ]},
     { dir: 'physics', name: '物理', pages: [
       ['physics/rainbow.html', '彩虹形成实验 · 光的魔法小剧场'],
       ['physics/sound.html', '声音是怎么传播的 · 声波小剧场'],
@@ -110,7 +103,7 @@
     total += g.pages.length;
     const group = document.createElement('details');
     group.className = 'group';
-    group.open = g.dir !== 'jtg';
+    group.open = true;
     group.classList.toggle('is-expanded', group.open);
     const summary = document.createElement('summary');
     const h = document.createElement('h2');
