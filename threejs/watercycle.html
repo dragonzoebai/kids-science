@@ -368,8 +368,6 @@
     scene.add(rimLight);
 
     const earthGroup = new THREE.Group();
-    earthGroup.rotation.x = -8 * Math.PI / 180;
-    earthGroup.rotation.y = -122 * Math.PI / 180;
     scene.add(earthGroup);
 
     const earth = new THREE.Mesh(
@@ -398,6 +396,12 @@
     const CHINA = { lat: 31.6, lon: 108.5 };
     const EAST_SEA = { lat: 30.8, lon: 122.6 };
     const BOHAI = { lat: 38.7, lon: 119.4 };
+
+    // Start with the China rainfall region facing the camera.
+    earthGroup.quaternion.setFromUnitVectors(
+      latLon3D(CHINA.lat, CHINA.lon, 1),
+      camera.position.clone().normalize()
+    );
 
     const labels = [
       { text: '太平洋蒸发区', color: '#89f7ff', pos: latLon3D(PACIFIC.lat, PACIFIC.lon, EARTH_R + 9) },
