@@ -478,14 +478,14 @@ for (const [lat, color] of [[POLAR_CIRCLE_LAT, 0x88ccff], [-POLAR_CIRCLE_LAT, 0x
 
 /* ── Rotation formula ─────────────────────────── */
 // Sub-solar longitude at UTC hours T:  L = (12 - T) * 15°
-// Earth Y-rotation to put L at +X:     θ = -L * π / 180
-// (derivation: in SphereGeometry, point at lon L is at dir (cos((L+180)°), 0, sin((L+180)°))
-//  after Y-rotation θ: x_world = -cos(θ - L·π/180), maximised at θ = -L·π/180)
+// Resolve sunlight in the tilted frame so changing seasons preserves solar time.
 function subSolarLon(utcHours) {
   return (12 - utcHours) * 15;
 }
 function earthRotation(utcHours) {
-  return -subSolarLon(utcHours) * Math.PI / 180;
+  const orientation = earthGroup.getWorldQuaternion(new THREE.Quaternion());
+  const localSun = new THREE.Vector3(1, 0, 0).applyQuaternion(orientation.invert());
+  return Math.atan2(-localSun.z, localSun.x) - subSolarLon(utcHours) * Math.PI / 180;
 }
 
 /* ── Season control ───────────────────────────── */
@@ -813,6 +813,7 @@ function animate() {
   // Set Earth rotation around the tilted axis
   // earthGroup is tilted (fixed), earthMesh rotates inside it
   earthMesh.rotation.y = earthRotation(utcH);
+  earthMesh.updateWorldMatrix(true, true);
 
   // Update pole positions (they move with Earth rotation)
   for (const pole of POLES) {
