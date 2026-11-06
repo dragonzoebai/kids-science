@@ -906,9 +906,13 @@ function animate() {
   earthMesh.rotation.y = earthRotation(utcH);
   earthMesh.updateWorldMatrix(true, true);
 
+  // Intersect the tilted equatorial plane with the terminator plane (world X=0).
+  const northAxis = new THREE.Vector3(0, 1, 0).applyQuaternion(earthGroup.getWorldQuaternion(new THREE.Quaternion()));
+  const equatorialTerminatorDirection = new THREE.Vector3(0, -northAxis.z, northAxis.y).normalize();
+
   if (seasonTransition) {
     const startDirection = seasonTransition.cameraPosition.clone().normalize();
-    const terminatorViewDirection = new THREE.Vector3(0, 0, 1);
+    const terminatorViewDirection = equatorialTerminatorDirection;
     const turn = new THREE.Quaternion().setFromUnitVectors(startDirection, terminatorViewDirection);
     const partialTurn = new THREE.Quaternion().slerp(turn, seasonProgress);
     const distance = THREE.MathUtils.lerp(seasonTransition.cameraPosition.length(), seasonTransition.distance, seasonProgress);
@@ -922,14 +926,14 @@ function animate() {
     }
   }
 
-  // View perpendicular to the sunlight so the terminator divides the globe centrally.
+  // Open above the equator at its intersection with the terminator.
   if (!initialViewSet) {
     const distance = Math.max(EARTH_R * 2, camera.position.length());
     // Flush any remaining drag inertia before setting the new viewing direction.
     const damping = controls.enableDamping;
     controls.enableDamping = false;
     controls.update();
-    camera.position.set(0, 0, distance);
+    camera.position.copy(equatorialTerminatorDirection).multiplyScalar(distance);
     controls.target.set(0, 0, 0);
     camera.lookAt(controls.target);
     controls.update();
