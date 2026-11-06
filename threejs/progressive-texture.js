@@ -11,7 +11,7 @@ function drain() {
 }
 
 export function previewPath(path) {
-  return path.replace(/textures\/(2k_[^/]+)\.jpg$/, 'textures/preview/$1.webp');
+  return path.replace(/textures\/(2k_[^/]+)\.(?:webp|jpg)$/, 'textures/preview/$1.webp');
 }
 
 export function loadProgressiveTexture(path, fallback = '#2255aa', onLoad) {

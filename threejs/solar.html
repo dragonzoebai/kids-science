@@ -186,16 +186,16 @@ function tex(file, fallback) {
   return t;
 }
 const T = {
-  sun:     tex('2k_sun.jpg',              '#ffcc00'),
-  mercury: tex('2k_mercury.jpg',          '#888888'),
-  venus:   tex('2k_venus_atmosphere.jpg', '#d4a040'),
-  earth:   tex('2k_earth_daymap.jpg',     '#2255aa'),
-  moon:    tex('2k_moon.jpg',             '#999999'),
-  mars:    tex('2k_mars.jpg',             '#cc3300'),
-  jupiter: tex('2k_jupiter.jpg',          '#c08030'),
-  saturn:  tex('2k_saturn.jpg',           '#e8d070'),
-  uranus:  tex('2k_uranus.jpg',           '#55cccc'),
-  neptune: tex('2k_neptune.jpg',          '#2244cc'),
+  sun:     tex('2k_sun.webp',              '#ffcc00'),
+  mercury: tex('2k_mercury.webp',          '#888888'),
+  venus:   tex('2k_venus_atmosphere.webp', '#d4a040'),
+  earth:   tex('2k_earth_daymap.webp',     '#2255aa'),
+  moon:    tex('2k_moon.webp',             '#999999'),
+  mars:    tex('2k_mars.webp',             '#cc3300'),
+  jupiter: tex('2k_jupiter.webp',          '#c08030'),
+  saturn:  tex('2k_saturn.webp',           '#e8d070'),
+  uranus:  tex('2k_uranus.webp',           '#55cccc'),
+  neptune: tex('2k_neptune.webp',          '#2244cc'),
 };
 
 /* ── 土星光环纹理（逐像素，含 D/C/B/卡西尼缝/A/恩克缝/F 环）── */
@@ -517,8 +517,8 @@ function showInfo(pd) {
 
 // 右侧星球列表：点击定位
 const THUMB = {
-  Sun:'2k_sun.jpg', Mercury:'2k_mercury.jpg', Venus:'2k_venus_atmosphere.jpg', Earth:'2k_earth_daymap.jpg',
-  Mars:'2k_mars.jpg', Jupiter:'2k_jupiter.jpg', Saturn:'2k_saturn.jpg', Uranus:'2k_uranus.jpg', Neptune:'2k_neptune.jpg',
+  Sun:'2k_sun.webp', Mercury:'2k_mercury.webp', Venus:'2k_venus_atmosphere.webp', Earth:'2k_earth_daymap.webp',
+  Mars:'2k_mars.webp', Jupiter:'2k_jupiter.webp', Saturn:'2k_saturn.webp', Uranus:'2k_uranus.webp', Neptune:'2k_neptune.webp',
 };
 const listEl = document.getElementById('bodies');
 for (const b of bodies) {

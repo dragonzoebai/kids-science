@@ -91,7 +91,7 @@ const stars = (() => {
 })();
 
 /* ── Earth ────────────────────────────────────── */
-const earthTex = loadProgressiveTexture('textures/2k_earth_daymap.jpg', '#2255aa', t => buildLandMask(t.image));
+const earthTex = loadProgressiveTexture('textures/2k_earth_daymap.webp', '#2255aa', t => buildLandMask(t.image));
 earthTex.colorSpace = THREE.SRGBColorSpace;
 earthTex.anisotropy = renderer.capabilities.getMaxAnisotropy();
 
