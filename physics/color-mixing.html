@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>染料调色实验 · 加一份，搅一搅</title>
+<link rel="stylesheet" href="../touch.css">
+<script src="../touch.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  :root { color-scheme: light; font-family: system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; color: #253e43; background: #f7f4eb; }
+  body { margin: 0; background: radial-gradient(ellipse at 50% 40%, #fffdf8, #f2eee2); min-height: 100svh; }
+  button, a { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+  button { font: inherit; cursor: pointer; }
+  button:focus-visible, a:focus-visible { outline: 3px solid #167d85; outline-offset: 5px; }
+  button:disabled { cursor: default; opacity: .55; }
+  main { max-width: 1080px; margin: auto; padding: 28px 28px 36px; }
+  header { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+  .eyebrow { font-size: 12px; font-weight: 800; letter-spacing: .18em; color: #65807d; }
+  h1 { margin: 7px 0 10px; font-size: clamp(28px, 4vw, 42px); letter-spacing: -.04em; }
+  p { line-height: 1.8; }
+  header p { margin: 0; color: #657774; }
+  .home { color: #41665f; text-decoration: none; border: 1px solid #d4ded5; border-radius: 24px; padding: 12px 18px; white-space: nowrap; }
+  .lab { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 26px; margin-top: 30px; align-items: center; }
+  .workspace { position: relative; text-align: center; padding: 22px; border: 1px solid #fff; border-radius: 32px; background: #ffffff70; }
+  .tag { display: inline-block; color: #667d76; background: #eaf0e8; padding: 7px 16px; border-radius: 30px; font-size: 13px; }
+  .plate { position: relative; width: min(100%, 420px); aspect-ratio: 1; margin: 16px auto 0; }
+  canvas { display: block; width: 100%; height: 100%; }
+  .empty { position: absolute; inset: 0; display: grid; place-content: center; pointer-events: none; color: #8c9b91; gap: 8px; }
+  .empty strong { font-size: 23px; color: #637a70; }
+  .empty[hidden] { display: none; }
+  .status { min-height: 54px; margin: 5px 0 4px; color: #526b63; font-size: 15px; }
+  aside h2 { font-size: 18px; margin: 0 0 14px; }
+  .dyes { display: grid; gap: 12px; }
+  .dye { display: flex; align-items: center; text-align: left; gap: 16px; width: 100%; border: 1px solid #fff; border-radius: 20px; background: #fffaf3; padding: 16px 18px; box-shadow: 0 5px 18px #3e4d3810; transition: transform .15s; }
+  .dye:active { transform: scale(.97); }
+  .bottle { position: relative; width: 44px; height: 52px; flex-shrink: 0; border-radius: 10px 10px 15px 15px; background: var(--dye); box-shadow: inset 6px 0 0 #ffffff30, inset 0 -5px 0 #00000012; }
+  .bottle::before { content: ''; position: absolute; top: -6px; left: 11px; width: 22px; height: 10px; background: #536962; border-radius: 4px 4px 1px 1px; }
+  .dye strong { display: block; font-size: 18px; }
+  .dye small { color: #7a8981; display: block; margin-top: 4px; }
+  .count { margin-left: auto; font-size: 22px; font-weight: 800; white-space: nowrap; }
+  .count small { font-size: 12px; text-align: center; }
+  .actions { display: flex; gap: 10px; margin-top: 20px; }
+  .actions button { min-height: 54px; border-radius: 17px; border: 0; font-weight: 750; }
+  #stir { background: #286e60; color: white; flex: 1; box-shadow: 0 6px 14px #286e6020; }
+  #reset { background: #e7eadf; color: #526559; padding: 0 18px; }
+  .recipe { display: flex; gap: 10px; align-items: center; background: #fff; border-radius: 16px; padding: 14px; margin-top: 16px; font-size: 13px; min-height: 62px; }
+  .swatch { width: 30px; height: 30px; border-radius: 50%; border: 1px solid #00000012; flex-shrink: 0; }
+  .knowledge { border-top: 1px dashed #ccd6c9; margin-top: 26px; padding-top: 18px; display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+  .knowledge strong { font-size: 14px; }
+  .knowledge p { margin: 5px 0 0; font-size: 13px; color: #708077; }
+  @media (max-width: 740px) {
+    main { padding: 20px 16px; } header { align-items: flex-start; } .home { padding: 10px 12px; font-size: 13px; }
+    .lab { grid-template-columns: 1fr; gap: 20px; margin-top: 20px; } .workspace { padding: 16px 12px 6px; } .plate { width: min(100%, 340px); margin-top: 6px; }
+    .dyes { grid-template-columns: repeat(3, 1fr); gap: 8px; } .dye { flex-direction: column; gap: 10px; padding: 16px 8px 12px; text-align: center; }
+    .dye strong { font-size: 16px; } .count { margin: 0; font-size: 20px; } .count small { display: inline; margin-left: 4px; } .knowledge { gap: 16px; }
+  }
+  @media (prefers-reduced-motion: reduce) { .dye { transition: none; } }
+</style>
+</head>
+<body>
+<main>
+  <header><div><div class="eyebrow">LITTLE COLOR LAB / 小小实验室</div><h1>加一份，搅一搅</h1><p>红、绿、黄，今天你会调出什么颜色？</p></div><a class="home" href="../index.html">返回目录 ↗</a></header>
+  <section class="lab" aria-label="调色实验台">
+    <div class="workspace">
+      <span class="tag">① 加入染料 → ② 搅拌 → ③ 观察颜色</span>
+      <div class="plate"><canvas id="plate" width="840" height="840" aria-label="盛放染料的调色盘"></canvas><div class="empty" id="empty"><strong>小盘子准备好啦</strong><span>轻触染料瓶，倒入第一份</span></div></div>
+      <p class="status" id="status" role="status" aria-live="polite">先猜一猜：黄色加绿色，会变成什么颜色？</p>
+    </div>
+    <aside aria-label="选择染料">
+      <h2>每次轻触，加入 1 份</h2>
+      <div class="dyes">
+        <button class="dye" data-color="red" aria-label="加入一份红色染料"><span class="bottle" style="--dye:#de3540" aria-hidden="true"></span><span><strong>红色</strong><small>点一下 +1 份</small></span><span class="count"><span id="red-count">0</span><small>份</small></span></button>
+        <button class="dye" data-color="green" aria-label="加入一份绿色染料"><span class="bottle" style="--dye:#28995e" aria-hidden="true"></span><span><strong>绿色</strong><small>点一下 +1 份</small></span><span class="count"><span id="green-count">0</span><small>份</small></span></button>
+        <button class="dye" data-color="yellow" aria-label="加入一份黄色染料"><span class="bottle" style="--dye:#facd30" aria-hidden="true"></span><span><strong>黄色</strong><small>点一下 +1 份</small></span><span class="count"><span id="yellow-count">0</span><small>份</small></span></button>
+      </div>
+      <div class="actions"><button id="stir" disabled>搅拌变色 ↻</button><button id="reset">重新开始</button></div>
+      <div class="recipe"><span class="swatch" id="swatch" style="background:#f3f1e8"></span><span id="recipe">空盘子 · 共 0 份</span></div>
+    </aside>
+  </section>
+  <section class="knowledge" aria-label="调色小知识"><div><strong>试一试 · 改变份数</strong><p>先试 1 份黄 + 1 份绿，再多加 2 份黄。颜色有什么变化？混好后也能继续加。</p></div><div><strong>想一想 · 染料和光不一样</strong><p>这里使用红、绿、黄三种染料，并非三原色。混色是近似模拟，真实结果还取决于染料种类和浓度。</p></div></section>
+</main>
+<script src="pigment-mix.js"></script>
+<script>
+(() => {
+  const { COLORS, mixPigments } = PigmentMix;
+  const canvas = document.getElementById('plate'), ctx = canvas.getContext('2d');
+  const status = document.getElementById('status'), stir = document.getElementById('stir');
+  const dyeButtons = [...document.querySelectorAll('[data-color]')];
+  const names = { red: '红', green: '绿', yellow: '黄' };
+  let counts, spots, baseColor, busy = false, frame = 0;
+  const rgb = color => `rgb(${color.join(',')})`;
+  function total() { return Object.values(counts).reduce((a, b) => a + b, 0); }
+  function update() {
+    Object.keys(counts).forEach(key => { document.getElementById(key + '-count').textContent = counts[key]; });
+    document.getElementById('empty').hidden = total() > 0;
+    stir.disabled = busy || !spots.length;
+    dyeButtons.forEach(button => { button.disabled = busy || total() >= 60; });
+    document.getElementById('recipe').textContent = total() ? Object.keys(counts).filter(key => counts[key]).map(key => `${names[key]} ${counts[key]} 份`).join(' + ') + ` · 共 ${total()} 份` : '空盘子 · 共 0 份';
+    document.getElementById('swatch').style.background = spots.length ? '#f3f1e8' : baseColor ? rgb(baseColor) : '#f3f1e8';
+  }
+  function circle(x, y, r, fill) { ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fillStyle = fill; ctx.fill(); }
+  function draw(progress = 0, target = null) {
+    ctx.clearRect(0, 0, 840, 840);
+    ctx.save(); ctx.shadowColor = '#334c3924'; ctx.shadowBlur = 35; ctx.shadowOffsetY = 18;
+    circle(420, 416, 360, '#fffefa'); ctx.restore();
+    const rim = ctx.createRadialGradient(420, 400, 277, 420, 416, 354);
+    rim.addColorStop(0, '#e6e9df'); rim.addColorStop(.45, '#f5f5ed'); rim.addColorStop(1, '#ffffff');
+    circle(420, 416, 348, rim); circle(420, 416, 290, '#eeefe5');
+    ctx.save(); ctx.beginPath(); ctx.arc(420, 416, 281, 0, Math.PI * 2); ctx.clip();
+    if (baseColor) circle(420, 416, 281, rgb(baseColor));
+    if (target && progress) { ctx.globalAlpha = progress; circle(420, 416, 281, rgb(target)); ctx.globalAlpha = 1; }
+    spots.forEach((spot, i) => {
+      const angle = spot.angle + progress * Math.PI * 5;
+      const radius = spot.distance * (1 - progress * .75);
+      ctx.globalAlpha = 1 - progress;
+      circle(420 + Math.cos(angle) * radius, 416 + Math.sin(angle) * radius, spot.radius + progress * 60, rgb(COLORS[spot.key]));
+    });
+    ctx.globalAlpha = 1;
+    if (busy) {
+      ctx.save(); ctx.translate(420, 416); ctx.rotate(progress * Math.PI * 6);
+      ctx.lineWidth = 18; ctx.lineCap = 'round'; ctx.strokeStyle = '#ad8152'; ctx.beginPath(); ctx.moveTo(40, -180); ctx.lineTo(-50, 75); ctx.stroke();
+      ctx.fillStyle = '#ddbb85'; ctx.beginPath(); ctx.ellipse(-50, 75, 25, 42, .35, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+    }
+    ctx.restore();
+  }
+  function add(key) {
+    if (busy || total() >= 60) return;
+    counts[key]++;
+    // 均匀铺开色块，避免连续加入同色时全部重叠。
+    const angle = spots.length * 2.39996;
+    spots.push({ key, angle, distance: spots.length ? 55 + (spots.length * 47) % 145 : 0, radius: 58 + Math.min(25, total() * 2) });
+    status.textContent = total() === 60 ? '盘子装满啦！搅拌看看，或重新开始。' : `加入了 1 份${names[key]}色。点“搅拌变色”，看看会发生什么！`;
+    update(); draw();
+  }
+  function startStir() {
+    if (busy || !spots.length) return;
+    busy = true; update(); status.textContent = '搅呀搅……染料正在慢慢融合。';
+    const target = mixPigments(counts), start = performance.now();
+    const duration = matchMedia('(prefers-reduced-motion: reduce)').matches ? 1 : 1800;
+    function tick(now) {
+      const progress = Math.min(1, (now - start) / duration);
+      draw(progress, target);
+      if (progress < 1) frame = requestAnimationFrame(tick);
+      else {
+        baseColor = target; spots = []; busy = false; frame = 0; update(); draw();
+        status.textContent = '调好啦！观察盘子里的颜色，再加几份染料试试看。';
+      }
+    }
+    frame = requestAnimationFrame(tick);
+  }
+  function reset() {
+    cancelAnimationFrame(frame); frame = 0; busy = false;
+    counts = { red: 0, green: 0, yellow: 0 }; spots = []; baseColor = null;
+    status.textContent = '先猜一猜：黄色加绿色，会变成什么颜色？'; update(); draw();
+  }
+  dyeButtons.forEach(button => button.addEventListener('click', () => add(button.dataset.color)));
+  stir.addEventListener('click', startStir);
+  document.getElementById('reset').addEventListener('click', reset);
+  reset();
+})();
+</script>
+</body>
+</html>
