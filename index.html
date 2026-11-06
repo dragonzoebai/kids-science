@@ -85,11 +85,6 @@
       ['threejs/typhoon.html', '台风路径 · 西北太平洋到华南'],
       ['threejs/watercycle.html', '水循环 · 从太平洋到中国'],
     ]},
-    { dir: 'biology', name: '生物', pages: [
-      ['biology/digestion.html', '食物去哪儿了 · 消化之旅'],
-      ['biology/food-chain.html', '食物链小森林 · 谁的午饭'],
-      ['biology/plant.html', '小种子花园 · 亲手种与比一比'],
-    ]},
     { dir: 'earth', name: '地球与地图', pages: [
       ['earth/beijing-subway.html', '北京地铁图'],
       ['earth/china.html', '中国省份与省会 · 三维地球'],
@@ -103,6 +98,11 @@
       ['earth/longitude.html', '经纬网可视化 · 三维地球'],
       ['earth/subway.html', '中国地铁城市 · 三维地球'],
       ['earth/timezone.html', '理论标准时区边界线 · 三维地球'],
+    ]},
+    { dir: 'biology', name: '生物', pages: [
+      ['biology/digestion.html', '食物去哪儿了 · 消化之旅'],
+      ['biology/food-chain.html', '食物链小森林 · 谁的午饭'],
+      ['biology/plant.html', '小种子花园 · 亲手种与比一比'],
     ]},
     { dir: 'physics', name: '物理', pages: [
       ['physics/color-mixing.html', '染料三原色 CMY · 调色实验'],
@@ -129,8 +129,8 @@
       const a = document.createElement('a');
       a.className = 'card';
       a.href = href;
-      const pictures = ['🌎','☀️','🌙','🍂','🪐','🌀','🌧️','🍎','🐰','🌻','🚇','🌏','🐓','🌍','🏙️','🌃','🌋','🚄','🚗','🌐','🚉','🕒','🎨','🔦','🌈','🥁'];
-      const names = ['转动看地球','白天和黑夜','看月亮','春夏秋冬','太阳系','看台风','小水滴旅行','食物去哪儿','谁的午饭','种小花','北京地铁','认识中国','雄鸡地图','唱儿歌看中国','中国城市','世界城市','看看地震','坐高铁','走高速','经线和纬线','找地铁','世界的时间','调颜色','玩彩色光','找彩虹','听声音'];
+      const pictures = ['🌎','☀️','🌙','🍂','🪐','🌀','🌧️','🚇','🌏','🐓','🌍','🏙️','🌃','🌋','🚄','🚗','🌐','🚉','🕒','🍎','🐰','🌻','🎨','🔦','🌈','🥁'];
+      const names = ['转动看地球','白天和黑夜','看月亮','春夏秋冬','太阳系','看台风','小水滴旅行','北京地铁','认识中国','雄鸡地图','唱儿歌看中国','中国城市','世界城市','看看地震','坐高铁','走高速','经线和纬线','找地铁','世界的时间','食物去哪儿','谁的午饭','种小花','调颜色','玩彩色光','找彩虹','听声音'];
       const number = [...list.querySelectorAll('a.card')].length + grid.children.length;
       a.setAttribute('data-speak', names[number]);
       const picture = document.createElement('span'); picture.className = 'picture'; picture.setAttribute('aria-hidden', 'true'); picture.textContent = pictures[number];
