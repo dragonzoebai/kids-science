@@ -20,6 +20,7 @@
     #ui h2 { font-size: 20px; margin-bottom: 8px; color: #ffe066; letter-spacing: 1px; }
     #ui li  { margin: 4px 0; list-style: none; }
     #ui .season-marker { color: #88ff88; }
+    #earth-lines { margin-top: 8px; font-size: 12px; line-height: 1.7; }
 
     #panel {
       position: absolute;
@@ -86,6 +87,11 @@
     <li>🟢 绿线 — 赤道</li>
     <li>⭐ 北方星空 — 查看北极星与北斗七星（示意）</li>
   </ul>
+  <div id="earth-lines">
+    <div style="color:#ffbb44">━ 南北回归线 ±23.4°</div>
+    <div style="color:#66ddff">━ 南北极圈 ±66.6°</div>
+    <div style="color:#ff77dd">━ 晨昏线（昼夜分界）</div>
+  </div>
 </div>
 
 <div id="season-info">
@@ -463,6 +469,31 @@ const equatorRing = new THREE.Mesh(
 equatorRing.rotation.x = Math.PI / 2;
 earthMesh.add(equatorRing);
 
+/* ── 回归线与极圈：随地球倾斜、自转 ─────────────── */
+function addLatitudeRing(latitude, color) {
+  const radius = EARTH_R * 1.01;
+  const ring = new THREE.Mesh(
+    new THREE.TorusGeometry(radius * Math.cos(latitude), EARTH_R * 0.007, 8, 128),
+    new THREE.MeshBasicMaterial({ color })
+  );
+  ring.rotation.x = Math.PI / 2;
+  ring.position.y = radius * Math.sin(latitude);
+  earthMesh.add(ring);
+  return ring;
+}
+for (const sign of [-1, 1]) {
+  addLatitudeRing(sign * OBLIQUITY, 0xffbb44);
+  addLatitudeRing(sign * (Math.PI / 2 - OBLIQUITY), 0x66ddff);
+}
+
+/* ── 晨昏线：独立于自转，所在平面垂直于日地方向 ── */
+const terminatorRing = new THREE.Mesh(
+  new THREE.TorusGeometry(EARTH_R * 1.015, EARTH_R * 0.009, 8, 128),
+  new THREE.MeshBasicMaterial({ color: 0xff77dd })
+);
+const terminatorNormal = new THREE.Vector3(0, 0, 1);
+scene.add(terminatorRing);
+
 /* ── 指向太阳的光线 ─────────────────────────────── */
 const sunRayGeo = new THREE.BufferGeometry().setFromPoints([
   new THREE.Vector3(0, 0, 0),
@@ -578,6 +609,8 @@ function animate() {
     followPosition.copy(earthPos);
   }
   const rayDir = earthPos.clone().normalize();
+  terminatorRing.position.copy(earthPos);
+  terminatorRing.quaternion.setFromUnitVectors(terminatorNormal, rayDir);
   sunRay.geometry.setFromPoints([
     new THREE.Vector3(0, 0, 0),
     earthPos
