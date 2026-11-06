@@ -5,15 +5,16 @@ const path = require('node:path');
 const vm = require('node:vm');
 const { COLORS, mixPigments } = require('../physics/pigment-mix.js');
 
-test('pigment mixing preserves pure colors and ratios, and yellow shifts green toward yellow', () => {
+test('CMY primaries produce RGB secondary colors and black with equal ratios', () => {
   assert.equal(mixPigments({}), null);
   for (const key of Object.keys(COLORS)) assert.deepEqual(mixPigments({ [key]: 3 }), COLORS[key]);
-  assert.deepEqual(mixPigments({ red: 1, green: 2 }), mixPigments({ red: 3, green: 6 }));
-  const equal = mixPigments({ green: 1, yellow: 1 });
-  const moreYellow = mixPigments({ green: 1, yellow: 3 });
-  assert.ok(moreYellow[0] > equal[0] && moreYellow[1] > equal[1] && moreYellow[2] < equal[2]);
-  const redGreen = mixPigments({ red: 1, green: 1 });
-  assert.ok(redGreen[0] < 150 && redGreen[1] < 150, 'pigments do not add up to bright yellow light');
+  assert.deepEqual(mixPigments({ cyan: 1, yellow: 1 }), [0, 255, 0]);
+  assert.deepEqual(mixPigments({ magenta: 1, yellow: 1 }), [255, 0, 0]);
+  assert.deepEqual(mixPigments({ cyan: 1, magenta: 1 }), [0, 0, 255]);
+  assert.deepEqual(mixPigments({ cyan: 1, magenta: 1, yellow: 1 }), [0, 0, 0]);
+  assert.deepEqual(mixPigments({ cyan: 1, yellow: 2 }), mixPigments({ cyan: 3, yellow: 6 }));
+  const moreYellow = mixPigments({ cyan: 1, yellow: 3 });
+  assert.ok(moreYellow[0] > 0 && moreYellow[1] === 255 && moreYellow[2] === 0);
 });
 
 test('experiment supports adding, stirring, continued mixing and reset during animation', () => {
@@ -38,25 +39,25 @@ test('experiment supports adding, stirring, continued mixing and reset during an
   const click = id => element(id).handlers.click();
   const finish = () => { const pending = [...frames.values()]; frames.clear(); pending.forEach(fn => fn(2000)); };
   assert.equal(element('stir').disabled, true);
-  click('yellow'); click('green'); click('yellow');
+  click('yellow'); click('cyan'); click('yellow');
   assert.equal(element('yellow-count').textContent, 2);
-  assert.equal(element('green-count').textContent, 1);
+  assert.equal(element('cyan-count').textContent, 1);
   click('stir');
   assert.ok(buttons.every(button => button.disabled));
-  click('red');
-  assert.equal(element('red-count').textContent, 0);
+  click('magenta');
+  assert.equal(element('magenta-count').textContent, 0);
   finish();
-  assert.equal(element('swatch').style.background, `rgb(${mixPigments({ yellow: 2, green: 1 }).join(',')})`);
+  assert.equal(element('swatch').style.background, `rgb(${mixPigments({ yellow: 2, cyan: 1 }).join(',')})`);
   assert.equal(element('stir').disabled, true);
-  click('red'); click('stir'); finish();
-  assert.equal(element('swatch').style.background, `rgb(${mixPigments({ yellow: 2, green: 1, red: 1 }).join(',')})`);
-  click('red'); click('stir'); click('reset');
+  click('magenta'); click('stir'); finish();
+  assert.equal(element('swatch').style.background, `rgb(${mixPigments({ yellow: 2, cyan: 1, magenta: 1 }).join(',')})`);
+  click('magenta'); click('stir'); click('reset');
   assert.equal(frames.size, 0);
-  assert.equal(element('red-count').textContent, 0);
+  assert.equal(element('magenta-count').textContent, 0);
   assert.equal(element('empty').hidden, false);
   assert.equal(element('stir').disabled, true);
   assert.ok(buttons.every(button => !button.disabled));
-  for (let i = 0; i < 65; i++) click('red');
-  assert.equal(element('red-count').textContent, 60);
+  for (let i = 0; i < 65; i++) click('magenta');
+  assert.equal(element('magenta-count').textContent, 60);
   assert.ok(buttons.every(button => button.disabled));
 });

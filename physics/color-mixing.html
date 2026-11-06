@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>染料调色实验 · 加一份，搅一搅</title>
+<title>染料三原色 CMY · 加一份，搅一搅</title>
 <link rel="stylesheet" href="../touch.css">
 <script src="../touch.js"></script>
 <style>
@@ -60,25 +60,25 @@
 </head>
 <body>
 <main>
-  <header><div><div class="eyebrow">LITTLE COLOR LAB / 小小实验室</div><h1>加一份，搅一搅</h1><p>红、绿、黄，今天你会调出什么颜色？</p></div><a class="home" href="../index.html">返回目录 ↗</a></header>
+  <header><div><div class="eyebrow">LITTLE COLOR LAB / 小小实验室</div><h1>加一份，搅一搅</h1><p>染料三原色 CMY：青、品红、黄，混合出新颜色。</p></div><a class="home" href="../index.html">返回目录 ↗</a></header>
   <section class="lab" aria-label="调色实验台">
     <div class="workspace">
       <span class="tag">① 加入染料 → ② 搅拌 → ③ 观察颜色</span>
       <div class="plate"><canvas id="plate" width="840" height="840" aria-label="盛放染料的调色盘"></canvas><div class="empty" id="empty"><strong>小盘子准备好啦</strong><span>轻触染料瓶，倒入第一份</span></div></div>
-      <p class="status" id="status" role="status" aria-live="polite">先猜一猜：黄色加绿色，会变成什么颜色？</p>
+      <p class="status" id="status" role="status" aria-live="polite">先猜一猜：青色加黄色，会变成什么颜色？</p>
     </div>
     <aside aria-label="选择染料">
       <h2>每次轻触，加入 1 份</h2>
       <div class="dyes">
-        <button class="dye" data-color="red" aria-label="加入一份红色染料"><span class="bottle" style="--dye:#de3540" aria-hidden="true"></span><span><strong>红色</strong><small>点一下 +1 份</small></span><span class="count"><span id="red-count">0</span><small>份</small></span></button>
-        <button class="dye" data-color="green" aria-label="加入一份绿色染料"><span class="bottle" style="--dye:#28995e" aria-hidden="true"></span><span><strong>绿色</strong><small>点一下 +1 份</small></span><span class="count"><span id="green-count">0</span><small>份</small></span></button>
-        <button class="dye" data-color="yellow" aria-label="加入一份黄色染料"><span class="bottle" style="--dye:#facd30" aria-hidden="true"></span><span><strong>黄色</strong><small>点一下 +1 份</small></span><span class="count"><span id="yellow-count">0</span><small>份</small></span></button>
+        <button class="dye" data-color="cyan" aria-label="加入一份青色染料"><span class="bottle" style="--dye:#00ffff" aria-hidden="true"></span><span><strong>青色</strong><small>点一下 +1 份</small></span><span class="count"><span id="cyan-count">0</span><small>份</small></span></button>
+        <button class="dye" data-color="magenta" aria-label="加入一份品红色染料"><span class="bottle" style="--dye:#ff00ff" aria-hidden="true"></span><span><strong>品红</strong><small>点一下 +1 份</small></span><span class="count"><span id="magenta-count">0</span><small>份</small></span></button>
+        <button class="dye" data-color="yellow" aria-label="加入一份黄色染料"><span class="bottle" style="--dye:#ffff00" aria-hidden="true"></span><span><strong>黄色</strong><small>点一下 +1 份</small></span><span class="count"><span id="yellow-count">0</span><small>份</small></span></button>
       </div>
       <div class="actions"><button id="stir" disabled>搅拌变色 ↻</button><button id="reset">重新开始</button></div>
       <div class="recipe"><span class="swatch" id="swatch" style="background:#f3f1e8"></span><span id="recipe">空盘子 · 共 0 份</span></div>
     </aside>
   </section>
-  <section class="knowledge" aria-label="调色小知识"><div><strong>试一试 · 改变份数</strong><p>先试 1 份黄 + 1 份绿，再多加 2 份黄。颜色有什么变化？混好后也能继续加。</p></div><div><strong>想一想 · 染料和光不一样</strong><p>这里使用红、绿、黄三种染料，并非三原色。混色是近似模拟，真实结果还取决于染料种类和浓度。</p></div></section>
+  <section class="knowledge" aria-label="调色小知识"><div><strong>试一试 · 改变份数</strong><p>先试 1 份青 + 1 份黄，再多加 2 份黄。颜色有什么变化？混好后也能继续加。</p></div><div><strong>想一想 · 染料的减色混合</strong><p>青 + 黄 → 绿，品红 + 黄 → 红，青 + 品红 → 蓝。此页采用理想 CMY 比例模型，三色等份呈黑色；真实染料受浓度和种类影响，可能偏深灰或深褐色。</p></div></section>
 </main>
 <script src="pigment-mix.js"></script>
 <script>
@@ -87,7 +87,7 @@
   const canvas = document.getElementById('plate'), ctx = canvas.getContext('2d');
   const status = document.getElementById('status'), stir = document.getElementById('stir');
   const dyeButtons = [...document.querySelectorAll('[data-color]')];
-  const names = { red: '红', green: '绿', yellow: '黄' };
+  const names = { cyan: '青', magenta: '品红', yellow: '黄' };
   let counts, spots, baseColor, busy = false, frame = 0;
   const rgb = color => `rgb(${color.join(',')})`;
   function total() { return Object.values(counts).reduce((a, b) => a + b, 0); }
@@ -151,8 +151,8 @@
   }
   function reset() {
     cancelAnimationFrame(frame); frame = 0; busy = false;
-    counts = { red: 0, green: 0, yellow: 0 }; spots = []; baseColor = null;
-    status.textContent = '先猜一猜：黄色加绿色，会变成什么颜色？'; update(); draw();
+    counts = { cyan: 0, magenta: 0, yellow: 0 }; spots = []; baseColor = null;
+    status.textContent = '先猜一猜：青色加黄色，会变成什么颜色？'; update(); draw();
   }
   dyeButtons.forEach(button => button.addEventListener('click', () => add(button.dataset.color)));
   stir.addEventListener('click', startStir);

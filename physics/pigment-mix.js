@@ -1,13 +1,13 @@
 (function (root) {
   'use strict';
-  const COLORS = { red: [222, 53, 64], green: [40, 153, 94], yellow: [250, 205, 48] };
-  // 用反射率的几何平均近似颜料的吸光混合，不是光的 RGB 相加。
+  const COLORS = { cyan: [0, 255, 255], magenta: [255, 0, 255], yellow: [255, 255, 0] };
+  // 理想 CMY 减色教学模型：青吸收红、品红吸收绿、黄吸收蓝。
+  // 以最多的份数归一化，展示比例对色相的影响，不模拟溶剂浓度或真实光谱。
   function mixPigments(counts) {
-    const total = Object.keys(COLORS).reduce((sum, key) => sum + (counts[key] || 0), 0);
-    if (!total) return null;
-    return [0, 1, 2].map(channel => Math.round(255 * Math.exp(
-      Object.keys(COLORS).reduce((sum, key) => sum + (counts[key] || 0) / total * Math.log(COLORS[key][channel] / 255), 0)
-    )));
+    const amounts = Object.keys(COLORS).map(key => counts[key] || 0);
+    const maximum = Math.max(...amounts);
+    if (!maximum) return null;
+    return amounts.map(amount => Math.round(255 * (1 - amount / maximum)));
   }
   const api = { COLORS, mixPigments };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
