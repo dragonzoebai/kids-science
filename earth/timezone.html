@@ -395,6 +395,7 @@
     <script src="../map-interactions.js"></script>
   <link rel="stylesheet" href="../touch.css">
 <script src="../touch.js"></script>
+<script src="../map-health.js"></script>
 </head>
   <body>
     <div id="map"></div>
@@ -445,7 +446,7 @@
           max="100"
           step="5"
           value="70"
-        />
+        / aria-label="时区透明度">
       </div>
     </div>
 
@@ -559,6 +560,7 @@
           projection: "globe",
           antialias: true,
         });
+      window.watchKidMap?.(map);
 
         map.addControl(
           new mapboxgl.NavigationControl({ visualizePitch: true }),
@@ -1124,8 +1126,13 @@
             `本地时间：${new Date().toLocaleString("zh-CN")}`;
           updateHotelTimes();
         }
-        tick();
-        setInterval(tick, 1000);
+        let interval;
+        function syncClock() {
+          clearInterval(interval);
+          if (!document.hidden) { tick(); interval = setInterval(tick, 1000); }
+        }
+        document.addEventListener('visibilitychange', syncClock);
+        syncClock();
       }
     </script>
   <script src="../speak.js"></script>

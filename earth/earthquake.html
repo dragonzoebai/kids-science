@@ -381,6 +381,7 @@
     <script src="../map-interactions.js"></script>
   <link rel="stylesheet" href="../touch.css">
 <script src="../touch.js"></script>
+<script src="../map-health.js"></script>
 </head>
   <body>
     <div id="map"></div>
@@ -403,7 +404,7 @@
           max="9"
           step="0.5"
           value="1"
-        />
+        / aria-label="最低震级">
       </div>
       <div class="filter-row">
         <label>时间范围</label>
@@ -524,6 +525,7 @@
           projection: "globe", // 三维地球投影
           antialias: true,
         });
+      window.watchKidMap?.(map);
 
         /* 导航控件 */
         map.addControl(

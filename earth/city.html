@@ -417,6 +417,7 @@
     <script src="../map-interactions.js"></script>
   <link rel="stylesheet" href="../touch.css">
 <script src="../touch.js"></script>
+<script src="../map-health.js"></script>
 </head>
   <body>
     <div id="map"></div>
@@ -543,6 +544,7 @@
         projection: "globe",
         antialias: true,
       });
+      window.watchKidMap?.(map);
 
       map.addControl(
         new mapboxgl.NavigationControl({ visualizePitch: true }),

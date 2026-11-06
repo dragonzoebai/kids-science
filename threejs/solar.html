@@ -113,9 +113,9 @@
 <div id="ui">
   <h2>☀ 太阳系</h2>
   <ul>
-    <li>🖱 拖拽 — 旋转视角</li>
-    <li>🖱 滚轮 — 缩放</li>
-    <li>🖱 右键 — 平移</li>
+    <li>🖱 拖动 / 单指轻扫 — 转动</li>
+    <li>🖱 滚轮 / 双指开合 — 缩放</li>
+    <li>🖱 右键 / 双指拖动 — 平移</li>
   </ul>
 </div>
 
@@ -127,7 +127,7 @@
 
 <div id="panel">
   <span>速度</span>
-  <input type="range" id="speed" min="0" max="5" step="0.2" value="1">
+  <input type="range" id="speed" min="0" max="5" step="0.2" value="1" aria-label="播放速度">
   <span id="speed-val" style="min-width:36px">1.0×</span>
 </div>
 
@@ -182,7 +182,7 @@ controls.maxDistance = 10000;
 
 /* ── Texture loader（本地 2K 真实纹理） ──────────── */
 function tex(file, fallback) {
-  const t = loadProgressiveTexture('textures/' + file, fallback);
+  const t = loadProgressiveTexture('textures/' + file, fallback, requestRender);
   return t;
 }
 const T = {
@@ -634,10 +634,18 @@ const _spinAxis = new THREE.Vector3(0, 1, 0);  // 复用，避免每帧分配
 const _invQ     = new THREE.Quaternion();
 const _spinQ    = new THREE.Quaternion();
 const clock = new THREE.Clock();
-let animationFrame;
+let animationFrame = 0;
+function requestRender() {
+  if (!animationFrame && !document.hidden) animationFrame = requestAnimationFrame(animate);
+}
+function refreshScene() { clock.getDelta(); requestRender(); }
+controls.addEventListener('change', requestRender);
+document.addEventListener('click', refreshScene);
+document.addEventListener('input', refreshScene);
+window.addEventListener('resize', refreshScene);
 function animate() {
+  animationFrame = 0;
   if (document.hidden) return;
-  animationFrame = requestAnimationFrame(animate);
   const dt = clock.getDelta() * speedFactor;
 
   sunMesh.rotation.y += dt * 0.18;
@@ -683,12 +691,13 @@ function animate() {
     }
   }
 
-  controls.update();
+  const cameraMoving = controls.update();
   renderer.render(scene, camera);
   drawLabels();
+  if (speedFactor > 0 || transitioning || cameraMoving) requestRender();
 }
 document.addEventListener('visibilitychange', () => {
-  cancelAnimationFrame(animationFrame);
+  cancelAnimationFrame(animationFrame); animationFrame = 0;
   clock.getDelta();
   if (!document.hidden) animate();
 });

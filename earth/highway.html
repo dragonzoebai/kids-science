@@ -290,7 +290,8 @@
         }
       }
     </style>
-  </head>
+  <script src="../map-health.js"></script>
+</head>
   <body>
     <div id="map" aria-label="全国主要高速公路三维地图"></div>
     <header>
@@ -416,6 +417,7 @@
         projection: "globe",
         antialias: true,
       });
+      window.watchKidMap?.(map);
       map.addControl(new mapboxgl.NavigationControl(), "top-left");
       const popup = new mapboxgl.Popup({
         closeButton: true,
@@ -704,7 +706,18 @@
       });
       const reduced = matchMedia("(prefers-reduced-motion: reduce)");
       if (reduced.matches) $("motion").checked = false;
+      let carFrame = 0;
+      function requestCarFrame() {
+        if (!carFrame && !document.hidden) carFrame = requestAnimationFrame(animate);
+      }
+      document.addEventListener('click', requestCarFrame);
+      document.addEventListener('change', requestCarFrame);
+      document.addEventListener('visibilitychange', () => {
+        cancelAnimationFrame(carFrame); carFrame = 0;
+        if (!document.hidden) requestCarFrame();
+      });
       function animate(t) {
+        carFrame = 0;
         if (
           ready &&
           active >= 0 &&
@@ -717,7 +730,7 @@
           );
           if (!carEl.isConnected) car.addTo(map);
         } else car.remove();
-        requestAnimationFrame(animate);
+        if (ready && active >= 0 && $("motion").checked && carTrack.length) requestCarFrame();
       }
       $("download-lines").addEventListener("click", (event) => {
         event.preventDefault();
@@ -734,7 +747,7 @@
         setTimeout(() => URL.revokeObjectURL(url), 1000);
       });
       render();
-      requestAnimationFrame(animate);
+      requestCarFrame();
     </script>
     <script src="../speak.js"></script>
   </body>

@@ -630,6 +630,7 @@
     <script src="../map-interactions.js"></script>
   <link rel="stylesheet" href="../touch.css">
 <script src="../touch.js"></script>
+<script src="../map-health.js"></script>
 </head>
   <body data-zoom="far">
     <div id="map"></div>
@@ -831,6 +832,7 @@
         antialias: true,
         attributionControl: false,
       });
+      window.watchKidMap?.(map);
 
       map.addControl(new mapboxgl.AttributionControl({ compact: true }), "bottom-left");
 
@@ -868,7 +870,7 @@
         renderPanel();
         renderLegendIcons();
         updateZoomClass();
-        requestAnimationFrame(animateFlow);
+        startFlow();
       });
 
       map.on("zoom", updateZoomClass);
@@ -1448,7 +1450,20 @@
         map.getSource("metro-train").setData({ type: "FeatureCollection", features });
       }
 
+      let flowFrame = 0, flowStarted = false;
+      function startFlow() {
+        flowStarted = true;
+        cancelAnimationFrame(flowFrame);
+        if (!document.hidden) flowFrame = requestAnimationFrame(animateFlow);
+      }
+      document.addEventListener('click', () => { if (flowStarted) startFlow(); });
+      document.addEventListener('change', () => { if (flowStarted) startFlow(); });
+      document.addEventListener('visibilitychange', () => {
+        cancelAnimationFrame(flowFrame);
+        if (flowStarted && !document.hidden) startFlow();
+      });
       function animateFlow(timestamp) {
+        if (document.hidden) return;
         animateBorder(timestamp);
         animateTrain(timestamp);
         if (activeCity && flowEnabled) {
@@ -1458,7 +1473,7 @@
             flowStep = step;
           }
         }
-        requestAnimationFrame(animateFlow);
+        if (borderEnabled || (activeCity && flowEnabled) || (trainEnabled && activeCity && activeLine >= 0)) flowFrame = requestAnimationFrame(animateFlow);
       }
 
       function setupMapInteractions() {

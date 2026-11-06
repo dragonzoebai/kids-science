@@ -130,7 +130,7 @@
 <div id="panel">
   <button id="play">暂停</button>
   <span>速度</span>
-  <input type="range" id="speed" min="0" max="10" step="0.1" value="1">
+  <input type="range" id="speed" min="0" max="10" step="0.1" value="1" aria-label="播放速度">
   <span id="speed-val" style="min-width:36px">1.0×</span>
 </div>
 
@@ -188,7 +188,7 @@ controls.target.set(0, 0, 0);
 
 /* ── Texture loader ───────────────────────────── */
 function tex(file, fallback) {
-  const t = loadProgressiveTexture('textures/' + file, fallback);
+  const t = loadProgressiveTexture('textures/' + file, fallback, requestRender);
   t.colorSpace = THREE.SRGBColorSpace;
   return t;
 }
@@ -507,10 +507,18 @@ const earthWP = new THREE.Vector3();
 const moonWP = new THREE.Vector3();
 const sunDirForEarth = new THREE.Vector3();
 const sunDirForMoon = new THREE.Vector3();
-let animationFrame;
+let animationFrame = 0;
+function requestRender() {
+  if (!animationFrame && !document.hidden) animationFrame = requestAnimationFrame(animate);
+}
+function refreshScene() { clock.getDelta(); requestRender(); }
+controls.addEventListener('change', requestRender);
+document.addEventListener('click', refreshScene);
+document.addEventListener('input', refreshScene);
+window.addEventListener('resize', refreshScene);
 function animate() {
+  animationFrame = 0;
   if (document.hidden) return;
-  animationFrame = requestAnimationFrame(animate);
   const frameDt = clock.getDelta();
   const dt = playing ? frameDt * speedFactor : 0;
 
@@ -536,14 +544,15 @@ function animate() {
   markerGroup.rotation.y = 0;
   sunArrow.setDirection(new THREE.Vector3(1, 0, 0));
 
-  controls.update();
+  const cameraMoving = controls.update();
   renderer.render(scene, camera);
   drawLabels();
   updatePhasePanel();
+  if ((playing && speedFactor > 0) || cameraMoving) requestRender();
 }
 updatePhasePanel();
 document.addEventListener('visibilitychange', () => {
-  cancelAnimationFrame(animationFrame);
+  cancelAnimationFrame(animationFrame); animationFrame = 0;
   if (document.hidden) { clock.stop(); return; }
   const elapsed = clock.elapsedTime;
   clock.start(); clock.elapsedTime = elapsed;

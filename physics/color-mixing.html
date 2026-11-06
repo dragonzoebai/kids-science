@@ -92,6 +92,8 @@
   const names = { cyan: '青', magenta: '品红', yellow: '黄' };
   const audio = typeof createLabAudio === 'function' ? createLabAudio({ intro: '欢迎来到染料调色实验。染料三原色是青、品红和黄。轻触染料瓶，每次加入一份，再点搅拌变色。青加黄变绿，品红加黄变红，青加品红变蓝。试试改变份数！点击重新开始可以清空盘子。' }) : { say() {}, effect() {} };
   let counts, spots, baseColor, busy = false, frame = 0;
+  let stirVisibility = () => {};
+  document.addEventListener('visibilitychange', () => stirVisibility());
   const rgb = color => `rgb(${color.join(',')})`;
   function total() { return Object.values(counts).reduce((a, b) => a + b, 0); }
   function update() {
@@ -141,7 +143,16 @@
     if (busy || !spots.length) return;
     busy = true; update(); status.textContent = '搅呀搅……染料正在慢慢融合。';
     audio.effect('stir'); audio.say('搅一搅，让染料慢慢融合。');
-    const target = mixPigments(counts), start = performance.now();
+    const target = mixPigments(counts);
+    let start = performance.now(), hiddenSince = null;
+    stirVisibility = () => {
+      if (!busy) return;
+      if (document.hidden) { hiddenSince = performance.now(); cancelAnimationFrame(frame); }
+      else if (hiddenSince !== null) {
+        start += performance.now() - hiddenSince; hiddenSince = null;
+        frame = requestAnimationFrame(tick);
+      }
+    };
     const duration = matchMedia('(prefers-reduced-motion: reduce)').matches ? 1 : 1800;
     function tick(now) {
       const progress = Math.min(1, (now - start) / duration);

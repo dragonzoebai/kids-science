@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 
 function setup() {
-  const requests = [], timers = [], handlers = {};
+  const requests = [], timers = [], handlers = {}, timeoutTimers = [];
   class Texture {
     constructor(image) {this.image = image; this.disposed = 0;}
     dispose() {this.disposed++;}
@@ -14,13 +14,14 @@ function setup() {
   }
   const context = vm.createContext({THREE: {Texture}, Image,
     window: {addEventListener(type, fn) {handlers[type] = fn;}},
-    setTimeout: fn => timers.push(fn),
-    document: {createElement: () => ({getContext: () => ({fillRect() {}})})},
+    setTimeout: (fn, delay) => {if (delay === 15000) {timeoutTimers.push(fn); return fn;} timers.push(fn); return fn;},
+    clearTimeout() {}, Error,
+    document: {body: {append() {}}, createElement: () => ({style: {}, setAttribute() {}, getContext: () => ({fillRect() {}})})},
   });
   const code = fs.readFileSync(require.resolve('../threejs/progressive-texture.js'), 'utf8')
     .replace(/^import .*;\r?\n/m, '').replace(/export function /g, 'function ');
   vm.runInContext(code, context);
-  return {context, requests, timers, handlers};
+  return {context, requests, timers, handlers, timeoutTimers};
 }
 const settle = async () => {for (let i=0;i<8;i++) await Promise.resolve();};
 
@@ -70,4 +71,14 @@ test('network recovery retries failed full textures once without duplicating act
   assert.equal(texture.image, requests[2]);
   handlers.online();
   assert.equal(requests.length, 3);
+});
+
+test('a stalled high-resolution request times out, retains preview and can recover', async () => {
+  const {context, requests, timers, handlers, timeoutTimers} = setup();
+  const texture = context.loadProgressiveTexture('textures/2k_moon.webp');
+  requests[0].onload(); await settle(); timers.shift()();
+  timeoutTimers[1](); await settle();
+  assert.equal(texture.image, requests[0]);
+  handlers.online(); requests[2].onload(); await settle();
+  assert.equal(texture.image, requests[2]);
 });

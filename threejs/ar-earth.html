@@ -355,7 +355,7 @@ window.addEventListener('resize', fitCamera);
 
 /* ── Loop ─────────────────────────────────────── */
 const camPos = new THREE.Vector3();
-renderer.setAnimationLoop((now) => {
+function renderFrame(now) {
   camQuatTarget.copy(baseQuat).multiply(devRel);
   camera.quaternion.slerp(camQuatTarget, 0.25);   // 平滑一下陀螺仪抖动
   camPos.set(0, 0, view.dist).applyQuaternion(camera.quaternion);
@@ -363,6 +363,11 @@ renderer.setAnimationLoop((now) => {
   camera.position.setLength(THREE.MathUtils.lerp(camera.position.length(), view.dist, 0.2));
   updateInfo(now);
   renderer.render(scene, camera);
+}
+renderer.setAnimationLoop(renderFrame);
+window.addEventListener('pagehide', () => { if (camStream) setCamera(false); });
+document.addEventListener('visibilitychange', () => {
+  renderer.setAnimationLoop(document.hidden ? null : renderFrame);
 });
 </script>
 <script src="../speak.js"></script>

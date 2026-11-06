@@ -82,9 +82,9 @@
 <div id="ui">
   <h2>🌍 地球公转与四季</h2>
   <ul>
-    <li>🖱 拖拽 — 旋转视角</li>
-    <li>🖱 滚轮 — 缩放</li>
-    <li>🖱 右键 — 平移</li>
+    <li>🖱 拖动 / 单指轻扫 — 转动</li>
+    <li>🖱 滚轮 / 双指开合 — 缩放</li>
+    <li>🖱 右键 / 双指拖动 — 平移</li>
     <li>轻触地球 — 跟随公转</li>
     <li class="season-marker">● 绿色点 — 四季节点</li>
     <li>🔴 红线 — 地球自转轴</li>
@@ -106,7 +106,7 @@
 <div id="panel">
   <button id="play-pause" type="button" aria-label="播放动画">播放</button>
   <span>速度</span>
-  <input type="range" id="speed" min="0" max="5" step="0.2" value="1">
+  <input type="range" id="speed" min="0" max="5" step="0.2" value="1" aria-label="播放速度">
   <span id="speed-val" style="min-width:36px">1.0×</span>
   <button id="follow-earth" type="button" aria-pressed="false">跟随地球</button>
   <button id="north-sky" type="button" aria-pressed="false">北方星空</button>
@@ -163,7 +163,7 @@ controls.maxDistance = 2000;
 
 /* ── Texture loader ───────────────────────────── */
 function tex(file, fallback) {
-  const t = loadProgressiveTexture('textures/' + file, fallback);
+  const t = loadProgressiveTexture('textures/' + file, fallback, requestRender);
   return t;
 }
 const T = {
@@ -218,7 +218,7 @@ scene.add(orbitLine(EARTH_DIST));
 
 /* ── 创建文字标签容器 ───────────────────────────── */
 const labelContainer = document.createElement('div');
-labelContainer.style.cssText = 'position:absolute;top:0;left:0;pointer-events:none;';
+labelContainer.style.cssText = 'position:fixed;inset:0;overflow:hidden;pointer-events:none;';
 document.body.appendChild(labelContainer);
 
 /* ── 创建文字标签（DOM）────────────────────────── */
@@ -605,10 +605,18 @@ const _spinQ = new THREE.Quaternion();
 let spinAngle = 0;
 let orbitAngle = Math.PI; // 从春分位置开始
 
-let animationFrame;
+let animationFrame = 0;
+function requestRender() {
+  if (!animationFrame && !document.hidden) animationFrame = requestAnimationFrame(animate);
+}
+function refreshScene() { clock.getDelta(); requestRender(); }
+controls.addEventListener('change', requestRender);
+document.addEventListener('click', refreshScene);
+document.addEventListener('input', refreshScene);
+window.addEventListener('resize', refreshScene);
 function animate() {
+  animationFrame = 0;
   if (document.hidden) return;
-  animationFrame = requestAnimationFrame(animate);
   const dt = clock.getDelta() * speedFactor * (playing ? 1 : 0);
   const previousAngle = orbitAngle;
   orbitAngle = advanceOrbit(orbitAngle, dt * 0.25);
@@ -643,12 +651,13 @@ function animate() {
   updateSeasonInfo(-orbitAngle);
 
   // 更新标签位置
-  controls.update();
+  const cameraMoving = controls.update();
   updateLabels();
   renderer.render(scene, camera);
+  if ((playing && speedFactor > 0) || cameraMoving || followTransition) requestRender();
 }
 document.addEventListener('visibilitychange', () => {
-  cancelAnimationFrame(animationFrame);
+  cancelAnimationFrame(animationFrame); animationFrame = 0;
   if (document.hidden) { clock.stop(); return; }
   const elapsed = clock.elapsedTime;
   clock.start(); clock.elapsedTime = elapsed;

@@ -162,7 +162,20 @@
     update(); status.textContent = '地图准备好啦！点“朗读儿歌”开始，也可以点选一句歌词。';
   }
   selectPart(0,false);
-  fetch('china-provinces.json').then(response => { if (!response.ok) throw new Error('Map fetch failed'); return response.json(); }).then(drawMap).catch(() => {
-    document.getElementById('error').hidden = false; status.textContent = '地图加载失败，可以先朗读儿歌，或刷新重试。';
-  });
+  let provinceLoading = false;
+  function loadProvinceMap() {
+    if (provinceLoading) return;
+    provinceLoading = true;
+    return fetch('china-provinces.json').then(response => { if (!response.ok) throw new Error('Map fetch failed'); return response.json(); }).then(data => {
+      drawMap(data);
+      if (!mapRenderer) document.getElementById('error').hidden = true;
+    }).catch(() => {
+      const error = document.getElementById('error');
+      error.hidden = false; error.textContent = '省份地图没加载好，可以再试一次。';
+      const retry = document.createElement('button'); retry.type = 'button'; retry.textContent = '重新加载';
+      retry.onclick = () => { retry.disabled = true; loadProvinceMap(); }; error.appendChild(retry);
+      status.textContent = '地图加载失败，可以先朗读儿歌，或点重新加载。';
+    }).finally(() => { provinceLoading = false; });
+  }
+  loadProvinceMap();
 })();

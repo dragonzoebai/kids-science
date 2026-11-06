@@ -305,9 +305,9 @@
   <canvas id="stage" aria-label="彩虹形成实验画布"></canvas>
 
   <section id="title-card">
-    <div class="eyebrow">LIGHT LAB · 儿童科普</div>
+    <div class="eyebrow">光的小实验</div>
     <h1>彩虹形成<span>实验</span></h1>
-    <p>白色阳光钻进小雨滴，会先折弯，再在雨滴里反射，最后分成红橙黄绿青蓝紫。拖动右侧按钮，观察彩虹什么时候最亮！</p>
+    <p>阳光里藏着许多颜色。光经过小雨滴，就能形成彩虹。拖动滑块，看看彩虹的变化！</p>
   </section>
 
   <section id="controls" aria-label="实验控制台">
@@ -317,17 +317,17 @@
     </div>
     <div class="control-row">
       <label for="sunAngle">太阳高度</label>
-      <input id="sunAngle" type="range" min="8" max="56" step="1" value="28">
+      <input id="sunAngle" type="range" min="8" max="56" step="1" value="28" aria-label="太阳高度">
       <span class="val" id="sunAngleVal">28°</span>
     </div>
     <div class="control-row">
       <label for="rainAmount">小雨滴</label>
-      <input id="rainAmount" type="range" min="15" max="90" step="1" value="52">
+      <input id="rainAmount" type="range" min="15" max="90" step="1" value="52" aria-label="雨滴数量">
       <span class="val" id="rainAmountVal">52</span>
     </div>
     <div class="control-row">
       <label for="beamPower">阳光强度</label>
-      <input id="beamPower" type="range" min="35" max="100" step="1" value="82">
+      <input id="beamPower" type="range" min="35" max="100" step="1" value="82" aria-label="光线亮度">
       <span class="val" id="beamPowerVal">82%</span>
     </div>
     <div id="tip">试试看：太阳低一点、雨滴多一点、阳光强一点，彩虹会更清楚。点击画面里的大雨滴，还会出现光点！</div>

@@ -4,7 +4,7 @@
   button, select, a, input, label { touch-action: manipulation; }
   input[type="checkbox"], input[type="radio"] { min-width: 22px; min-height: 22px; }
   .switch-row { min-height: 44px; }
-  .switch { min-height: 32px; display: inline-flex; align-items: center; }
+  .switch { min-height: 44px; min-width: 44px; display: inline-flex; align-items: center; }
   #bodies .item { min-height: 44px; }
   input, select { font-size: 16px; }
 }

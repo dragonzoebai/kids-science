@@ -29,20 +29,27 @@ test('experiment supports adding, stirring, continued mixing and reset during an
   element('plate').getContext = () => ctx;
   const html = fs.readFileSync(path.join(__dirname, '../physics/color-mixing.html'), 'utf8');
   const script = [...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)].map(match => match[1]).filter(Boolean).join('\n');
+  let now = 0;
+  const documentHandlers = {};
+  const document = {hidden: false, getElementById: element, querySelectorAll: () => buttons, addEventListener(type, fn) {documentHandlers[type] = fn;}};
   vm.runInNewContext(script, {
     PigmentMix: { COLORS, mixPigments },
-    document: { getElementById: element, querySelectorAll: () => buttons },
-    performance: { now: () => 0 }, matchMedia: () => ({ matches: false }),
+    document,
+    performance: { now: () => now }, matchMedia: () => ({ matches: false }),
     requestAnimationFrame(fn) { frames.set(++nextFrame, fn); return nextFrame; },
     cancelAnimationFrame(id) { frames.delete(id); },
   });
   const click = id => element(id).handlers.click();
-  const finish = () => { const pending = [...frames.values()]; frames.clear(); pending.forEach(fn => fn(2000)); };
+  const finish = () => { const pending = [...frames.values()]; frames.clear(); pending.forEach(fn => fn(now + 2000)); };
   assert.equal(element('stir').disabled, true);
   click('yellow'); click('cyan'); click('yellow');
   assert.equal(element('yellow-count').textContent, 2);
   assert.equal(element('cyan-count').textContent, 1);
   click('stir');
+  document.hidden = true; documentHandlers.visibilitychange();
+  assert.equal(frames.size, 0, 'mixing stops drawing in background');
+  now = 10000; document.hidden = false; documentHandlers.visibilitychange();
+  assert.equal(frames.size, 1, 'mixing resumes a single loop');
   assert.ok(buttons.every(button => button.disabled));
   click('magenta');
   assert.equal(element('magenta-count').textContent, 0);

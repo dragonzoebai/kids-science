@@ -104,7 +104,7 @@
     .ks-reading { outline: 3px solid #ffb300 !important; outline-offset: 2px; border-radius: 6px; }
     #ks-toggle {
       position: fixed; left: 12px; bottom: 40px; z-index: 2147483647;
-      width: 44px; height: 44px; border-radius: 50%; border: 2px solid #fff;
+      width: 44px; height: 44px; min-width:44px; min-height:44px; transform:none !important; border-radius: 50%; border: 2px solid #fff;
       background: #ffb300; color: #fff; font-size: 22px; line-height: 1; cursor: pointer;
       box-shadow: 0 3px 10px rgba(0,0,0,.3); display: flex; align-items: center; justify-content: center;
     }
