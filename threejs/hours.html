@@ -89,6 +89,8 @@
   <p style="font-size:12px;line-height:1.7;margin:8px 0 0">
     <span style="color:#88ccff">━ 北极圈 66.56°N</span><br>
     <span style="color:#ffbb88">━ 南极圈 66.56°S</span><br>
+    <span style="color:#ff88cc">━ 北回归线 23.44°N</span><br>
+    <span style="color:#ffcc66">━ 南回归线 23.44°S</span><br>
     <span style="color:#00ff88">━ 赤道 0°纬线</span><br>
     <span style="color:#ffd700">━ 本初子午线 0°经线</span><br>
     <span style="color:#ffd700">━ 国际日期变更线（180°经线示意）</span>
@@ -468,7 +470,11 @@ earthMesh.add(equator);
 
 // Polar circles follow the same axial tilt as the Earth (90 degrees minus obliquity).
 const POLAR_CIRCLE_LAT = 90 - AXIAL_TILT * 180 / Math.PI;
-for (const [lat, color] of [[POLAR_CIRCLE_LAT, 0x88ccff], [-POLAR_CIRCLE_LAT, 0xffbb88]]) {
+const TROPIC_LAT = AXIAL_TILT * 180 / Math.PI;
+for (const [lat, color] of [
+  [POLAR_CIRCLE_LAT, 0x88ccff], [-POLAR_CIRCLE_LAT, 0xffbb88],
+  [TROPIC_LAT, 0xff88cc], [-TROPIC_LAT, 0xffcc66]
+]) {
   const circle = createLatitudeLine(lat, color, 0.95);
   circle.scale.setScalar(1.003); // Keep the line above the globe surface.
   earthMesh.add(circle);
@@ -634,6 +640,8 @@ function drawLabels() {
   const geographicLabels = [
     { lat: POLAR_CIRCLE_LAT, name: '北极圈', color: '#88ccff' },
     { lat: -POLAR_CIRCLE_LAT, name: '南极圈', color: '#ffbb88' },
+    { lat: TROPIC_LAT, name: '北回归线', color: '#ff88cc' },
+    { lat: -TROPIC_LAT, name: '南回归线', color: '#ffcc66' },
     { lat: 0, name: '赤道', color: '#00ff88' }
   ].map(label => ({ ...label, lon: labelLon }));
   // These meridians stay at their real longitudes; hidden-side labels are culled below.
