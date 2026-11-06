@@ -180,7 +180,8 @@ const T = {
 };
 
 /* ── Lighting ─────────────────────────────────── */
-scene.add(new THREE.AmbientLight(0xffffff, 0.4));
+// 只保留微弱环境光，让背向太阳的一侧明显变暗。
+scene.add(new THREE.AmbientLight(0xffffff, 0.025));
 const sunLight = new THREE.PointLight(0xfff4e0, 2.5, 0, 0);
 scene.add(sunLight);
 
