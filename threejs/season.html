@@ -300,8 +300,9 @@ const seasonMarkers = seasons.map(s => {
 });
 
 /* ── 北方星空示意：北极星位于地轴北端延长方向 ──── */
-const northDirection = new THREE.Vector3(-Math.sin(OBLIQUITY), Math.cos(OBLIQUITY), 0);
-const skyRight = new THREE.Vector3(0, 0, 1);
+// 春秋分位于 X 轴两端：地轴在 YZ 平面倾斜，确保分点直射赤道。
+const northDirection = new THREE.Vector3(0, Math.cos(OBLIQUITY), -Math.sin(OBLIQUITY));
+const skyRight = new THREE.Vector3(1, 0, 0);
 const skyUp = new THREE.Vector3().crossVectors(skyRight, northDirection).normalize();
 function skyPosition(x, y) {
   return northDirection.clone().addScaledVector(skyRight, x)
@@ -606,7 +607,7 @@ window.addEventListener('resize', () => {
 /* ── Animate ───────────────────────────────────── */
 const clock = new THREE.Clock();
 const _spinAxis = new THREE.Vector3(0, 1, 0);
-const _axisQ = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), OBLIQUITY);
+const _axisQ = new THREE.Quaternion().setFromUnitVectors(_spinAxis, northDirection);
 const _invQ = new THREE.Quaternion();
 const _spinQ = new THREE.Quaternion();
 let spinAngle = 0;
