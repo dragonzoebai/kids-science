@@ -140,6 +140,7 @@
 }
 </script>
 <script type="module">
+import { loadProgressiveTexture, previewPath } from './progressive-texture.js';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
@@ -180,18 +181,8 @@ controls.maxDistance = 10000;
 }
 
 /* ── Texture loader（本地 2K 真实纹理） ──────────── */
-const tl = new THREE.TextureLoader();
-function tex(file, fallbackColor) {
-  const t = tl.load('textures/' + file, undefined, undefined, () => {
-    // 加载失败时用纯色兜底，避免灰色球
-    t.image = (() => {
-      const c = document.createElement('canvas'); c.width = c.height = 2;
-      const ctx = c.getContext('2d');
-      ctx.fillStyle = fallbackColor; ctx.fillRect(0,0,2,2);
-      return c;
-    })();
-    t.needsUpdate = true;
-  });
+function tex(file, fallback) {
+  const t = loadProgressiveTexture('textures/' + file, fallback);
   return t;
 }
 const T = {
@@ -533,7 +524,7 @@ const listEl = document.getElementById('bodies');
 for (const b of bodies) {
   const item = document.createElement('div');
   item.className = 'item';
-  item.innerHTML = `<div class="thumb" style="background-image:url(textures/${THUMB[b.pd.en]})"></div><span>${b.pd.name}</span>`;
+  item.innerHTML = `<div class="thumb" style="background-image:url(${previewPath('textures/' + THUMB[b.pd.en])})"></div><span>${b.pd.name}</span>`;
   item.onclick = () => setFocus(b);
   b.listItem = item;
   listEl.appendChild(item);

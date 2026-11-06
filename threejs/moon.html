@@ -143,6 +143,7 @@
 }
 </script>
 <script type="module">
+import { loadProgressiveTexture } from './progressive-texture.js';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
@@ -186,19 +187,9 @@ controls.target.set(0, 0, 0);
 }
 
 /* ── Texture loader ───────────────────────────── */
-const tl = new THREE.TextureLoader();
-function tex(file, fallbackColor) {
-  const t = tl.load('textures/' + file, texture => {
-    texture.colorSpace = THREE.SRGBColorSpace;
-  }, undefined, () => {
-    t.image = (() => {
-      const c = document.createElement('canvas'); c.width = c.height = 2;
-      const ctx = c.getContext('2d');
-      ctx.fillStyle = fallbackColor; ctx.fillRect(0,0,2,2);
-      return c;
-    })();
-    t.needsUpdate = true;
-  });
+function tex(file, fallback) {
+  const t = loadProgressiveTexture('textures/' + file, fallback);
+  t.colorSpace = THREE.SRGBColorSpace;
   return t;
 }
 const T = {

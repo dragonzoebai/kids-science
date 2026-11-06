@@ -60,6 +60,7 @@
 }
 </script>
 <script type="module">
+import { loadProgressiveTexture } from './progressive-texture.js';
 import * as THREE from 'three';
 
 const DEG = Math.PI / 180;
@@ -90,8 +91,7 @@ const stars = (() => {
 })();
 
 /* ── Earth ────────────────────────────────────── */
-const tl = new THREE.TextureLoader();
-const earthTex = tl.load('textures/2k_earth_daymap.jpg', (t) => buildLandMask(t.image));
+const earthTex = loadProgressiveTexture('textures/2k_earth_daymap.jpg', '#2255aa', t => buildLandMask(t.image));
 earthTex.colorSpace = THREE.SRGBColorSpace;
 earthTex.anisotropy = renderer.capabilities.getMaxAnisotropy();
 

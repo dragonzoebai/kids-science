@@ -231,6 +231,7 @@
   }
   </script>
   <script type="module">
+    import { loadProgressiveTexture } from './progressive-texture.js';
     import * as THREE from 'three';
     import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
@@ -268,17 +269,8 @@
       { title: '长江黄河回到大海', text: '雨水在地表汇流，进入长江与黄河，穿过平原和三角洲，最终重新注入海洋。' },
     ];
 
-    const tl = new THREE.TextureLoader();
     function texture(path, fallback) {
-      const t = tl.load(path, undefined, undefined, () => {
-        const c = document.createElement('canvas');
-        c.width = c.height = 2;
-        const ctx = c.getContext('2d');
-        ctx.fillStyle = fallback;
-        ctx.fillRect(0, 0, 2, 2);
-        t.image = c;
-        t.needsUpdate = true;
-      });
+      const t = loadProgressiveTexture(path, fallback);
       t.colorSpace = THREE.SRGBColorSpace;
       return t;
     }

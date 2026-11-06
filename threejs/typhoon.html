@@ -275,6 +275,7 @@
   }
   </script>
   <script type="module">
+    import { loadProgressiveTexture } from './progressive-texture.js';
     import * as THREE from 'three';
     import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
@@ -321,17 +322,8 @@
       { name: '内陆消散', lat: 27.2, lon: 116.5 },
     ];
 
-    const tl = new THREE.TextureLoader();
     function texture(path, fallback) {
-      const t = tl.load(path, undefined, undefined, () => {
-        const c = document.createElement('canvas');
-        c.width = c.height = 2;
-        const ctx = c.getContext('2d');
-        ctx.fillStyle = fallback;
-        ctx.fillRect(0, 0, 2, 2);
-        t.image = c;
-        t.needsUpdate = true;
-      });
+      const t = loadProgressiveTexture(path, fallback);
       t.colorSpace = THREE.SRGBColorSpace;
       return t;
     }
