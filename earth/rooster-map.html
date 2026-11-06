@@ -16,6 +16,10 @@ main{padding:14px 18px 24px;max-width:1440px}header{gap:12px}h1{font-size:28px;m
 @media(min-width:600px) and (max-width:899px){main{padding:12px 14px}header .eyebrow,header p{display:none}.lab{grid-template-columns:1fr}.map-card{padding:10px}#map{max-height:calc(100svh - 145px);min-height:360px}.poem-panel{display:grid;grid-template-columns:230px minmax(0,1fr);gap:0 14px}.poem-panel #poem-lines{grid-column:2;grid-row:1/4;max-height:250px;margin:0}.poem-panel .current-line{grid-column:1}.poem-panel #status{grid-column:1}}
 @media(max-width:599px){main{padding:12px}h1{font-size:24px}header .eyebrow,header p{display:none}.lab{margin-top:10px}.poem-panel #poem-lines{max-height:240px}}
 #audio-controls{display:none!important}.lab{margin-top:0}@media(min-width:900px) and (min-height:500px){.lab{height:min(800px,calc(100svh - 48px))}}
+/* SVG 版扩大地图空间，歌词仍保留适合轻触的宽度。 */
+main{max-width:none;padding:8px}.lab{gap:10px}.map-card{padding:8px}.map-card>.map-note{display:none}#map{margin:4px 0 0}
+@media(min-width:900px) and (min-height:500px){.lab{grid-template-columns:minmax(0,1fr) 240px;height:calc(100svh - 24px)}}
+@media(min-width:600px) and (max-width:899px){#map{max-height:calc(100svh - 60px)}}
 </style>
 </head>
 <body><main>
