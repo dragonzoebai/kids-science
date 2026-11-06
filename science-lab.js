@@ -19,7 +19,20 @@
    input.addEventListener('change',()=>{update();audio.say(activity.evaluate(state).message);});
  }
  function sync(){for(const [key,{input,output,c}] of fields){input.value=state[key];output.textContent=c.options?'':Number(state[key].toFixed(c.step<1?1:0))+c.unit;}render();}
- function render(){g.clearRect(0,0,800,500);g.fillStyle='#f8fcfd';g.fillRect(0,0,800,500);const value=activity.evaluate(state);activity.draw(g,state,value,elapsed);if(result.textContent!==value.message)result.textContent=value.message;}
+ function render(){
+  const width=canvas.clientWidth,height=canvas.clientHeight,dpr=Math.min(window.devicePixelRatio||1,2);
+  if(!width||!height)return;
+  const pixelWidth=Math.round(width*dpr),pixelHeight=Math.round(height*dpr);
+  if(canvas.width!==pixelWidth||canvas.height!==pixelHeight){canvas.width=pixelWidth;canvas.height=pixelHeight;}
+  g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,canvas.width,canvas.height);
+  g.fillStyle='#f8fcfd';g.fillRect(0,0,canvas.width,canvas.height);
+  // 人体图两侧无需保留原画布的空白，竖屏时让人物充分放大。
+  const contentWidth=activity===ScienceActivities.digestion?580:800;
+  const scale=Math.min(width/contentWidth,height/500);
+  g.setTransform(scale*dpr,0,0,scale*dpr,(width/2-400*scale)*dpr,(height/2-250*scale)*dpr);
+  const value=activity.evaluate(state);activity.draw(g,state,value,elapsed);
+  if(result.textContent!==value.message)result.textContent=value.message;
+ }
  function stop(){running=false;document.getElementById('run').textContent=activity===ScienceActivities.friction?'释放':'播放';}
  document.getElementById('reset').onclick=()=>{state=Object.fromEntries(activity.controls.map(c=>[c.key,c.value]));elapsed=0;stop();sync();audio.stop();};
  document.getElementById('explain').onclick=()=>audio.say(activity.evaluate(state).message+' '+activity.fact);
@@ -38,5 +51,5 @@
   }frame=requestAnimationFrame(tick);
  }
  document.addEventListener('visibilitychange',()=>{if(document.hidden){stop();cancelAnimationFrame(frame);previous=0;}else{cancelAnimationFrame(frame);frame=requestAnimationFrame(tick);}});
- sync();frame=requestAnimationFrame(tick);
+ sync();new ResizeObserver(render).observe(canvas);frame=requestAnimationFrame(tick);
 })();
