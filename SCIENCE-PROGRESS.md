@@ -10,7 +10,7 @@
 | 沉浮实验室 | physics/buoyancy.html | 已实现：四种材料、橡皮泥变船 |
 | 跷跷板与杠杆 | physics/levers.html | 已实现：两侧质量与力臂、平衡反馈 |
 | 水的三态 | physics/water-states.html | 已实现：可逆进度、相变平台、播放 |
-| 食物去哪儿了 | biology/digestion.html | 已实现：五站消化过程、逐站播放 |
+| 食物去哪儿了 | biology/digestion.html | 已实现：完整卡通人物、人体内消化器官、五站高亮与播放 |
 | 蝴蝶的一生 | biology/butterfly.html | 已实现：四阶段、逐站播放 |
 | 月相、日食与月食 | threejs/eclipses.html | 已实现：轨道位置、偏离平面、太空/月相视图 |
 | 搭桥挑战 | physics/bridges.html | 已实现：三种桥形、载荷与超限反馈 |
@@ -33,6 +33,8 @@
 - 云与水汽凝结：[NOAA](https://www.noaa.gov/jetstream/clouds/how-clouds-form)。
 
 ## 后续验收
+
+- 2026-11-06：根据用户反馈，将消化页的圆点流程图替换为完整卡通小朋友与腹部透视图。口腔、食道、袋状胃、盘曲小肠、包围小肠的大肠按正面人体关系绘制；肝脏单独标注为辅助器官，食物不经过。绘图独立于其他实验，保留原阶段控件与播放。
 
 - 在真实 iPad Safari 上检查讲解发声、横竖屏和滑块轻触。
 - 根据孩子实际使用反馈调整示意图大小和讲解节奏。

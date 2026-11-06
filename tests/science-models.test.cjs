@@ -34,7 +34,9 @@ test('bridge load, friction threshold and condensation conditions',()=>{
  assert.equal(M.weather(20,100,0).dewPoint,20);
 });
 test('all 12 activity defaults and extrema render without errors and have real local pages',()=>{
- const ctx={window:{},ScienceModels:M};vm.runInNewContext(fs.readFileSync(require.resolve('../science-activities.js'),'utf8'),ctx);
+ const ctx={window:{},ScienceModels:M};
+ vm.runInNewContext(fs.readFileSync(require.resolve('../biology/digestion-drawing.js'),'utf8'),ctx);
+ vm.runInNewContext(fs.readFileSync(require.resolve('../science-activities.js'),'utf8'),ctx);
  const draw=new Proxy({}, {get:()=>()=>{},set:()=>true});
  const activities=ctx.window.ScienceActivities;assert.equal(Object.keys(activities).length,12);
  for(const [key,a] of Object.entries(activities)){
