@@ -622,14 +622,22 @@ function drawLabels() {
     lctx.fill();
   }
 
-  // Anchor each circle label on the side facing the camera, even as Earth rotates.
+  // Anchor latitude labels on the side facing the camera, even as Earth rotates.
   const localCamera = earthMesh.worldToLocal(camera.position.clone());
   const labelLon = Math.atan2(-localCamera.z, localCamera.x) * 180 / Math.PI;
-  for (const circle of [
+  const geographicLabels = [
     { lat: POLAR_CIRCLE_LAT, name: '北极圈', color: '#88ccff' },
-    { lat: -POLAR_CIRCLE_LAT, name: '南极圈', color: '#ffbb88' }
-  ]) {
-    const localPos = latLon3D(circle.lat, labelLon, (EARTH_R + 0.5) * 1.003);
+    { lat: -POLAR_CIRCLE_LAT, name: '南极圈', color: '#ffbb88' },
+    { lat: 0, name: '赤道', color: '#00ff88' }
+  ].map(label => ({ ...label, lon: labelLon }));
+  // These meridians stay at their real longitudes; hidden-side labels are culled below.
+  // The date line is shown as the page's simplified 180-degree meridian.
+  geographicLabels.push(
+    { lat: 28, lon: 0, name: '本初子午线（0°）', color: '#ffd700' },
+    { lat: -28, lon: 180, name: '国际日期变更线（示意）', color: '#ffd700' }
+  );
+  for (const circle of geographicLabels) {
+    const localPos = latLon3D(circle.lat, circle.lon, (EARTH_R + 0.5) * 1.003);
     const wp = earthMesh.localToWorld(localPos.clone());
     const center = earthMesh.getWorldPosition(new THREE.Vector3());
     if (wp.clone().sub(center).normalize().dot(camera.position.clone().sub(wp).normalize()) < 0.03) continue;
