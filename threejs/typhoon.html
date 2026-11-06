@@ -418,6 +418,11 @@
     const chinaViewDirection = earthGroup.localToWorld(latLon3D(35, 105, 1)).normalize();
     camera.position.copy(controls.target).addScaledVector(chinaViewDirection, 295);
     controls.update();
+    controls.enablePan = false;
+    const followDirection = chinaViewDirection.clone();
+    const followRotation = new THREE.Quaternion();
+    const followOffset = new THREE.Vector3();
+    const stormWorld = new THREE.Vector3();
 
     const earth = new THREE.Mesh(
       new THREE.SphereGeometry(EARTH_R, 96, 96),
@@ -696,8 +701,18 @@
         p.scale.setScalar(.1 + spread * .26);
       });
 
-      controls.update();
       earthGroup.updateMatrixWorld();
+      // 同时跟随台风路径和地球自转，平滑转向；保留用户旋转和缩放后的观察偏移。
+      stormWorld.copy(stormPos).applyMatrix4(earthGroup.matrixWorld);
+      const nextDirection = followDirection.clone().lerp(
+        stormWorld.clone().normalize(), 1 - Math.exp(-dt * 3)
+      ).normalize();
+      followRotation.setFromUnitVectors(followDirection, nextDirection);
+      followOffset.copy(camera.position).sub(controls.target).applyQuaternion(followRotation);
+      controls.target.lerp(stormWorld, 1 - Math.exp(-dt * 3));
+      camera.position.copy(controls.target).add(followOffset);
+      followDirection.copy(nextDirection);
+      controls.update();
       drawLabels();
       renderer.render(scene, camera);
       requestAnimationFrame(animate);
