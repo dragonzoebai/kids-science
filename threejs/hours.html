@@ -528,11 +528,24 @@ const SEASON_ANGLES = [
 const SEASON_NAMES = ['春分', '夏至', '秋分', '冬至'];
 
 let currentSeason = 0; // Default to 春分
+let seasonTransition = null;
 
 // Set season by index (0-3)
-function setSeason(seasonIndex) {
+function setSeason(seasonIndex, animated = false) {
   currentSeason = seasonIndex;
-  seasonGroup.rotation.y = SEASON_ANGLES[seasonIndex];
+  if (animated) {
+    const startAngle = seasonGroup.rotation.y;
+    const delta = SEASON_ANGLES[seasonIndex] - startAngle;
+    seasonTransition = {
+      elapsed: 0, duration: 1.2, startAngle,
+      endAngle: startAngle + Math.atan2(Math.sin(delta), Math.cos(delta)),
+      cameraPosition: camera.position.clone(), target: controls.target.clone(),
+      distance: Math.max(EARTH_R * 2, camera.position.length())
+    };
+    controls.enabled = false;
+  } else {
+    seasonGroup.rotation.y = SEASON_ANGLES[seasonIndex];
+  }
   const destination = ['赤道（0°）', '北回归线（23.44°N）', '赤道（0°）', '南回归线（23.44°S）'][seasonIndex];
   document.getElementById('solar-info').textContent = `${SEASON_NAMES[seasonIndex]}：太阳直射${destination}。箭头指向直射点；季节变化由地轴倾斜示意。`;
 
@@ -552,9 +565,13 @@ setSeason(0);
 // Season dropdown handler
 document.getElementById('season').addEventListener('change', e => {
   const seasonIndex = parseInt(e.target.value);
-  setSeason(seasonIndex);
   clearCityFocus();
-  initialViewSet = false;
+  // Clear drag inertia before starting a new transition, including rapid switches.
+  const damping = controls.enableDamping;
+  controls.enableDamping = false;
+  controls.update();
+  controls.enableDamping = damping;
+  setSeason(seasonIndex, true);
 });
 
 /* ── Simulated time (driven by speed slider) ──── */
@@ -775,6 +792,7 @@ hint.textContent = '按 Esc 或点击空白处返回全景';
 document.body.appendChild(hint);
 
 function setCityFocus(city) {
+  if (seasonTransition) return;
   window.kidSpeak?.(city.name);
   focusedCity = city;
   transitioning = true;
@@ -849,6 +867,13 @@ let initialViewSet = false;
 function animate() {
   requestAnimationFrame(animate);
   const dt = clock.getDelta();
+  let seasonProgress = 0;
+  if (seasonTransition) {
+    seasonTransition.elapsed += dt;
+    const t = Math.min(1, seasonTransition.elapsed / seasonTransition.duration);
+    seasonProgress = t * t * (3 - 2 * t);
+    seasonGroup.rotation.y = THREE.MathUtils.lerp(seasonTransition.startAngle, seasonTransition.endAngle, seasonProgress);
+  }
 
   simMs += dt * speedFactor * 1000;
 
@@ -862,6 +887,22 @@ function animate() {
   // earthGroup is tilted (fixed), earthMesh rotates inside it
   earthMesh.rotation.y = earthRotation(utcH);
   earthMesh.updateWorldMatrix(true, true);
+
+  if (seasonTransition) {
+    const startDirection = seasonTransition.cameraPosition.clone().normalize();
+    const chinaDirection = earthMesh.localToWorld(latLon3D(35, 105, EARTH_R)).normalize();
+    const turn = new THREE.Quaternion().setFromUnitVectors(startDirection, chinaDirection);
+    const partialTurn = new THREE.Quaternion().slerp(turn, seasonProgress);
+    const distance = THREE.MathUtils.lerp(seasonTransition.cameraPosition.length(), seasonTransition.distance, seasonProgress);
+    camera.position.copy(startDirection.applyQuaternion(partialTurn).multiplyScalar(distance));
+    controls.target.copy(seasonTransition.target).multiplyScalar(1 - seasonProgress);
+    camera.lookAt(controls.target);
+    if (seasonProgress === 1) {
+      seasonTransition = null;
+      controls.enabled = true;
+      controls.update();
+    }
+  }
 
   // Return to China after applying the current time and seasonal tilt.
   if (!initialViewSet) {
@@ -915,7 +956,7 @@ function animate() {
   }
 
   updateClock();
-  if (!focusedCity) {
+  if (!focusedCity && !seasonTransition) {
     controls.update();
   }
   renderer.render(scene, camera);
