@@ -4,18 +4,20 @@ const vm = require('node:vm');
 const fs = require('node:fs');
 test('Mapbox adapter retains early highlights until data and style are loaded', () => {
   const layers = new Map(), sources = new Map(), handlers = new Map(), paints = new Map(), layouts = new Map();
-  let selected;
+  let selected, timer, satelliteStyle, markerCount = 0;
   const map = { addControl() {}, on(type, layer, callback) { handlers.set(typeof layer === 'function' ? type : type + ':' + layer, typeof layer === 'function' ? layer : callback); },
     getStyle: () => ({ layers: [{ id: 'country-label', type: 'symbol', layout: { 'text-field': ['get', 'name_en'] } }, { id: 'water', type: 'fill' }] }),
     setLayoutProperty(id, property, value) { layouts.set(id + ':' + property, value); },
     getLayer: id => layers.get(id), getSource: id => sources.get(id), addSource(id, source) { sources.set(id, source); }, addLayer(layer) { layers.set(layer.id, layer); },
     setPaintProperty(id, property, value) { paints.set(id + ':' + property, value); }, setPadding(value) { this.padding = value; }, setFog() {}, resize() {}, flyTo() {}, getCanvas: () => ({ style: {} }),
+    setStyle(style) { satelliteStyle = style; layers.clear(); sources.clear(); },
   };
   const elements = new Map();
-  const document = { getElementById(id) { if (!elements.has(id)) elements.set(id, { addEventListener() {} }); return elements.get(id); } };
+  const document = { createElement: () => ({ style: {} }), getElementById(id) { if (!elements.has(id)) elements.set(id, { addEventListener() {} }); return elements.get(id); } };
   const mapboxgl = { supported: () => true, Map: function () { return map; }, AttributionControl: function () {}, NavigationControl: function () {} };
   const window = { mapboxgl, innerWidth: 1024, innerHeight: 768 };
-  vm.runInNewContext(fs.readFileSync(require.resolve('../earth/rooster-map-mapbox.js'), 'utf8'), { window, mapboxgl, document, ResizeObserver: class { observe() {} } });
+  mapboxgl.Marker = function () { markerCount++; this.setLngLat = () => this; this.addTo = () => this; this.remove = () => {}; };
+  vm.runInNewContext(fs.readFileSync(require.resolve('../earth/rooster-map-mapbox.js'), 'utf8'), { window, mapboxgl, document, setTimeout(fn) { timer = fn; return 1; }, clearTimeout() {}, ResizeObserver: class { observe() {} } });
   const renderer = window.createRoosterMapbox(code => { selected = code; });
   renderer.highlight([210000,220000,230000], null);
   renderer.setData(JSON.parse(fs.readFileSync(require.resolve('../earth/china-provinces.json'), 'utf8')));
@@ -34,4 +36,16 @@ test('Mapbox adapter retains early highlights until data and style are loaded', 
   assert.equal(selected, 710000);
   renderer.highlight([], 710000);
   assert.ok(JSON.stringify(paints.get('province-fill:fill-color')).includes('710000'));
+  // A failed Mapbox resource switches once and restores the current selection.
+  handlers.get('error')({ error: { message: 'Failed to fetch https://api.mapbox.com/styles/v1/mapbox/dark-v11' } });
+  assert.equal(satelliteStyle.sources['amap-satellite'].type, 'raster');
+  assert.ok(satelliteStyle.sources['amap-satellite'].tiles.every(url => url.startsWith('https://webst')));
+  assert.equal(satelliteStyle.glyphs, undefined);
+  handlers.get('style.load')();
+  assert.ok(layers.has('province-fill'));
+  assert.equal(markerCount, 34, 'satellite labels work without Mapbox glyph requests');
+  assert.ok(JSON.stringify(paints.get('province-fill:fill-color')).includes('710000'));
+  timer();
+  handlers.get('error')({ error: { message: 'satellite unavailable' } });
+  assert.ok(layers.has('province-fill'), 'fallback does not repeatedly reset its style');
 });

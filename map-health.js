@@ -56,5 +56,5 @@ window.watchKidMap = function (map) {
     if (optionsButton) { optionsButton.remove(); window.removeEventListener('resize', syncOptions); options.classList.remove('kid-options-open'); }
     window.removeEventListener('online', onOnline); window.removeEventListener('offline', onError);
   });
-  return { showError: onError };
+  return { showError: onError, clearError() { failed = false; clearTimeout(slow); panel.hidden = true; } };
 };
