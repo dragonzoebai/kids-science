@@ -499,14 +499,11 @@ const terminatorNormal = new THREE.Vector3(0, 0, 1);
 scene.add(terminatorRing);
 
 /* ── 指向太阳的光线 ─────────────────────────────── */
-const sunRayGeo = new THREE.BufferGeometry().setFromPoints([
-  new THREE.Vector3(0, 0, 0),
-  new THREE.Vector3(EARTH_DIST, 0, 0)
-]);
-const sunRay = new THREE.Line(
-  sunRayGeo,
-  new THREE.LineBasicMaterial({ color: 0xffff44, transparent: true, opacity: 0.5 })
+const sunRay = new THREE.Mesh(
+  new THREE.CylinderGeometry(0.35, 0.35, 1, 8),
+  new THREE.MeshBasicMaterial({ color: 0xffff66 })
 );
+const sunRayAxis = new THREE.Vector3(0, 1, 0);
 scene.add(sunRay);
 
 /* ── 状态更新 ───────────────────────────────────── */
@@ -615,10 +612,10 @@ function animate() {
   const rayDir = earthPos.clone().normalize();
   terminatorRing.position.copy(earthPos);
   terminatorRing.quaternion.setFromUnitVectors(terminatorNormal, rayDir);
-  sunRay.geometry.setFromPoints([
-    new THREE.Vector3(0, 0, 0),
-    earthPos
-  ]);
+  // 通过物体变换更新光线，包围范围随之移动，避免动态顶点的旧包围球误裁剪。
+  sunRay.position.copy(earthPos).multiplyScalar(0.5);
+  sunRay.scale.y = earthPos.length();
+  sunRay.quaternion.setFromUnitVectors(sunRayAxis, rayDir);
 
   // 更新季节信息
   // 绕 Y 轴正转对应轨道 XZ 平面中的负角度，与节点位置保持一致。
