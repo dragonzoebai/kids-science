@@ -26,6 +26,7 @@
   let poemCodes = null, poemIndex = 0, poemPlaying = false, poemGeneration = 0;
   const lyricButtons = [];
   const status = document.getElementById('status');
+  const mapRenderer = typeof createRoosterMapbox === 'function' ? createRoosterMapbox(selectProvince) : null;
   function svgElement(name, attributes) { const el = document.createElementNS(NS, name); Object.entries(attributes).forEach(([key,value]) => el.setAttribute(key,value)); return el; }
   function shortName(code) { return NAMES[CODES.indexOf(Number(code))] || ''; }
   function selectPart(index, speak = true) {
@@ -53,6 +54,7 @@
     update(); audio.effect(); audio.say(text);
   }
   function update() {
+    mapRenderer?.highlight(poemCodes || (chosen === null ? PARTS[current].codes : []), chosen);
     document.querySelectorAll('[data-part]').forEach(button => button.setAttribute('aria-pressed', String(chosen === null && Number(button.dataset.part) === current)));
     document.querySelectorAll('[data-dot]').forEach(dot => dot.classList.toggle('active', chosen === null && Number(dot.dataset.dot) === current));
     document.querySelectorAll('[data-province]').forEach(button => button.setAttribute('aria-pressed', String(Number(button.dataset.province) === chosen)));
@@ -132,6 +134,7 @@
   function drawMap(data) {
     features = data.features;
     if (CODES.some(code => !features.some(feature => Number(feature.properties.adcode) === code))) throw new Error('Incomplete province data');
+    if (mapRenderer) { mapRenderer.setData(data); update(); status.textContent = '省界数据已准备好，点“朗读儿歌”开始。'; return; }
     features.forEach(feature => {
       const code = feature.properties.adcode, name = shortName(code);
       for (const [id,projection] of [['main-map',project],['sea-map',seaProject]]) {
