@@ -908,8 +908,8 @@ function animate() {
 
   if (seasonTransition) {
     const startDirection = seasonTransition.cameraPosition.clone().normalize();
-    const chinaDirection = earthMesh.localToWorld(latLon3D(35, 105, EARTH_R)).normalize();
-    const turn = new THREE.Quaternion().setFromUnitVectors(startDirection, chinaDirection);
+    const terminatorViewDirection = new THREE.Vector3(0, 0, 1);
+    const turn = new THREE.Quaternion().setFromUnitVectors(startDirection, terminatorViewDirection);
     const partialTurn = new THREE.Quaternion().slerp(turn, seasonProgress);
     const distance = THREE.MathUtils.lerp(seasonTransition.cameraPosition.length(), seasonTransition.distance, seasonProgress);
     camera.position.copy(startDirection.applyQuaternion(partialTurn).multiplyScalar(distance));
@@ -922,15 +922,14 @@ function animate() {
     }
   }
 
-  // Open above the equator at Beijing's longitude after applying time and tilt.
+  // View perpendicular to the sunlight so the terminator divides the globe centrally.
   if (!initialViewSet) {
     const distance = Math.max(EARTH_R * 2, camera.position.length());
     // Flush any remaining drag inertia before setting the new viewing direction.
     const damping = controls.enableDamping;
     controls.enableDamping = false;
     controls.update();
-    const initialDirection = earthMesh.localToWorld(latLon3D(0, CITIES[0].lon, EARTH_R)).normalize();
-    camera.position.copy(initialDirection.multiplyScalar(distance));
+    camera.position.set(0, 0, distance);
     controls.target.set(0, 0, 0);
     camera.lookAt(controls.target);
     controls.update();
