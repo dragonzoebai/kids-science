@@ -416,7 +416,7 @@
     // 将中国中部的经纬度转换到旋转后的地球坐标，作为默认观察方向。
     earthGroup.updateMatrixWorld(true);
     const chinaViewDirection = earthGroup.localToWorld(latLon3D(35, 105, 1)).normalize();
-    camera.position.copy(controls.target).addScaledVector(chinaViewDirection, 295);
+    camera.position.copy(controls.target).addScaledVector(chinaViewDirection, 220);
     controls.update();
     controls.enablePan = false;
     const followDirection = chinaViewDirection.clone();
