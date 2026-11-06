@@ -20,7 +20,7 @@
  }
  function sync(){for(const [key,{input,output,c}] of fields){input.value=state[key];output.textContent=c.options?'':Number(state[key].toFixed(c.step<1?1:0))+c.unit;}render();}
  function render(){
-  const width=canvas.clientWidth,height=canvas.clientHeight,dpr=Math.min(window.devicePixelRatio||1,2);
+  const width=canvas.clientWidth,height=canvas.clientHeight,dpr=Math.min(window.devicePixelRatio||1,3);
   if(!width||!height)return;
   const pixelWidth=Math.round(width*dpr),pixelHeight=Math.round(height*dpr);
   if(canvas.width!==pixelWidth||canvas.height!==pixelHeight){canvas.width=pixelWidth;canvas.height=pixelHeight;}
@@ -33,12 +33,12 @@
   const value=activity.evaluate(state);activity.draw(g,state,value,elapsed);
   if(result.textContent!==value.message)result.textContent=value.message;
  }
- function stop(){running=false;document.getElementById('run').textContent=activity===ScienceActivities.friction?'释放':'播放';}
+ function stop(){running=false;document.getElementById('run').textContent='播放';}
  document.getElementById('reset').onclick=()=>{state=Object.fromEntries(activity.controls.map(c=>[c.key,c.value]));elapsed=0;stop();sync();audio.stop();};
  document.getElementById('explain').onclick=()=>audio.say(activity.evaluate(state).message+' '+activity.fact);
  const run=document.getElementById('run');
  {
-  run.hidden=false;run.textContent=key==='friction'?'释放':'播放';
+  run.hidden=false;run.textContent='播放';
   run.onclick=()=>{if(running){stop();return;}elapsed=0;startStage=state.stage||0;running=true;run.textContent='暂停';};
  }
  function tick(now){const dt=previous?Math.min(.05,(now-previous)/1000):0;previous=now;

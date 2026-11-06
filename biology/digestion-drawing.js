@@ -27,12 +27,15 @@ window.drawDigestiveSystem = function (g, state, time = 0) {
   oval(400, 478, 106, 10, '#dce8e5');
 
   // 四肢与衣服，保留完整的人体轮廓。
-  path([['moveTo', 341, 179], ['quadraticCurveTo', 306, 193, 295, 258],
-    ['lineTo', 282, 315], ['quadraticCurveTo', 281, 334, 296, 336],
-    ['quadraticCurveTo', 310, 338, 316, 318], ['lineTo', 338, 250]], '#f6d3b8');
-  path([['moveTo', 459, 179], ['quadraticCurveTo', 494, 193, 505, 258],
-    ['lineTo', 518, 315], ['quadraticCurveTo', 519, 334, 504, 336],
-    ['quadraticCurveTo', 490, 338, 484, 318], ['lineTo', 462, 250]], '#f6d3b8');
+  // 裸露前臂从袖口内起笔，避免肩部皮肤轮廓穿过衣袖。
+  path([['moveTo', 320, 211], ['quadraticCurveTo', 310, 241, 306, 271],
+    ['lineTo', 296, 312], ['quadraticCurveTo', 291, 329, 301, 333],
+    ['quadraticCurveTo', 313, 337, 318, 320], ['lineTo', 332, 277],
+    ['lineTo', 341, 226], ['closePath']], '#f6d3b8');
+  path([['moveTo', 480, 211], ['quadraticCurveTo', 490, 241, 494, 271],
+    ['lineTo', 504, 312], ['quadraticCurveTo', 509, 329, 499, 333],
+    ['quadraticCurveTo', 487, 337, 482, 320], ['lineTo', 468, 277],
+    ['lineTo', 459, 226], ['closePath']], '#f6d3b8');
   path([['moveTo', 343, 350], ['lineTo', 351, 451], ['lineTo', 388, 451],
     ['lineTo', 400, 380], ['lineTo', 412, 451], ['lineTo', 449, 451],
     ['lineTo', 457, 350], ['closePath']], '#9fc5cf');
@@ -41,11 +44,16 @@ window.drawDigestiveSystem = function (g, state, time = 0) {
   path([['moveTo', 378, 139], ['lineTo', 378, 177], ['lineTo', 422, 177],
     ['lineTo', 422, 139]], '#f6d3b8');
   path([['moveTo', 370, 167], ['quadraticCurveTo', 349, 164, 330, 185],
-    ['lineTo', 316, 215], ['lineTo', 335, 229], ['lineTo', 333, 363],
-    ['quadraticCurveTo', 400, 382, 467, 363], ['lineTo', 465, 229],
-    ['lineTo', 484, 215], ['lineTo', 470, 185],
+    ['lineTo', 311, 219], ['lineTo', 337, 233], ['lineTo', 340, 218],
+    ['lineTo', 337, 360],
+    ['quadraticCurveTo', 400, 373, 463, 360], ['lineTo', 460, 218],
+    ['lineTo', 463, 233], ['lineTo', 489, 219], ['lineTo', 470, 185],
     ['quadraticCurveTo', 450, 164, 430, 167], ['quadraticCurveTo', 400, 189, 370, 167],
     ['closePath']], '#c1dfd6');
+  // 袖口与领口明确分开，短袖覆盖上臂，前臂自然露出。
+  path([['moveTo', 316, 214], ['lineTo', 338, 226]], null, '#74a89a', 2);
+  path([['moveTo', 484, 214], ['lineTo', 462, 226]], null, '#74a89a', 2);
+  path([['moveTo', 376, 168], ['quadraticCurveTo', 400, 194, 424, 168]], null, '#74a89a', 3);
   // 浅色“透视窗”，让器官在躯干内有清晰的空间关系。
   oval(400, 272, 61, 93, '#fff2e4', '#e6c5ad');
 
@@ -124,9 +132,8 @@ window.drawDigestiveSystem = function (g, state, time = 0) {
     oval(tx, ty, 3, 3, selected ? active : '#8da6ad');
     text(name, x, y, selected ? 25 : 22, selected ? active : ink);
   }
-  text('肝脏', 245, 239, 16, '#94766b');
+  text('肝脏', 245, 239, 19, '#69534a');
   path([['moveTo', 271, 234], ['lineTo', 342, 227]], null, '#b9a59c', 1);
-  text('帮助消化，食物不经过', 195, 260, 13, '#8e9292');
-  text('正面人体示意 · 不按真实比例', 400, 499, 13, '#718c92');
+  text('帮助消化，食物不经过', 210, 260, 14, '#52656a');
   g.restore();
 };
