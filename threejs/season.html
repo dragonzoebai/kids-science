@@ -83,6 +83,7 @@
     <li>轻触地球 — 跟随公转</li>
     <li class="season-marker">● 绿色点 — 四季节点</li>
     <li>🔴 红线 — 地球自转轴</li>
+    <li>🟢 绿线 — 赤道</li>
     <li>🟡 黄面 — 黄道面</li>
   </ul>
 </div>
@@ -396,10 +397,10 @@ bottomArrow.position.y = -axisLength - 2;
 bottomArrow.rotation.x = Math.PI;
 earthMesh.add(bottomArrow);
 
-/* ── 赤道面指示（半透明圆环）──────────────────────── */
+/* ── 地表赤道线 ─────────────────────────────────── */
 const equatorRing = new THREE.Mesh(
-  new THREE.RingGeometry(EARTH_R * 1.1, EARTH_R * 1.15, 64),
-  new THREE.MeshBasicMaterial({ color: 0x44ff44, transparent: true, opacity: 0.5, side: THREE.DoubleSide })
+  new THREE.TorusGeometry(EARTH_R * 1.01, EARTH_R * 0.01, 8, 128),
+  new THREE.MeshBasicMaterial({ color: 0x44ff44 })
 );
 equatorRing.rotation.x = Math.PI / 2;
 earthMesh.add(equatorRing);
