@@ -41,6 +41,8 @@ window.drawDigestiveSystem = function (g, state, time = 0) {
     ['lineTo', 457, 350], ['closePath']], '#9fc5cf');
   oval(365, 461, 32, 13, '#577f93', ink);
   oval(435, 461, 32, 13, '#577f93', ink);
+  path([['moveTo', 349, 457], ['lineTo', 374, 457]], null, '#d8eef0', 3);
+  path([['moveTo', 426, 457], ['lineTo', 451, 457]], null, '#d8eef0', 3);
   path([['moveTo', 378, 139], ['lineTo', 378, 177], ['lineTo', 422, 177],
     ['lineTo', 422, 139]], '#f6d3b8');
   path([['moveTo', 370, 167], ['quadraticCurveTo', 349, 164, 330, 185],
@@ -58,17 +60,29 @@ window.drawDigestiveSystem = function (g, state, time = 0) {
   oval(400, 272, 61, 93, '#fff2e4', '#e6c5ad');
 
   // 头、耳朵、头发和面部。
-  oval(345, 96, 10, 17, '#f6d3b8', ink);
-  oval(455, 96, 10, 17, '#f6d3b8', ink);
-  oval(400, 91, 55, 64, '#f8dbc3', ink, 3);
-  path([['moveTo', 346, 77], ['bezierCurveTo', 341, 23, 391, 15, 408, 30],
-    ['bezierCurveTo', 451, 20, 465, 53, 453, 83],
-    ['quadraticCurveTo', 438, 71, 432, 54],
-    ['quadraticCurveTo', 408, 78, 374, 62], ['quadraticCurveTo', 363, 78, 346, 77],
-    ['closePath']], '#665045');
-  oval(379, 93, 4, 6, ink); oval(421, 93, 4, 6, ink);
-  oval(367, 108, 9, 5, '#edb5a4'); oval(433, 108, 9, 5, '#edb5a4');
-  path([['moveTo', 399, 99], ['lineTo', 396, 106], ['lineTo', 402, 106]], null, '#c28e73', 2);
+  oval(339, 97, 11, 16, '#f6d3b8', ink);
+  oval(461, 97, 11, 16, '#f6d3b8', ink);
+  oval(339, 99, 4, 8, '#eab49c'); oval(461, 99, 4, 8, '#eab49c');
+  // 饱满脸颊和圆下巴，面部轮廓比原来更接近低龄儿童。
+  path([['moveTo', 339, 78], ['bezierCurveTo', 335, 29, 462, 25, 461, 79],
+    ['bezierCurveTo', 470, 118, 444, 151, 401, 154],
+    ['bezierCurveTo', 360, 153, 330, 124, 339, 78], ['closePath']], '#ffe0c6');
+  path([['moveTo', 338, 84], ['bezierCurveTo', 327, 53, 345, 27, 371, 29],
+    ['quadraticCurveTo', 377, 15, 396, 24], ['quadraticCurveTo', 411, 12, 423, 27],
+    ['bezierCurveTo', 458, 22, 476, 52, 462, 85],
+    ['quadraticCurveTo', 447, 79, 439, 58],
+    ['quadraticCurveTo', 429, 76, 414, 77], ['quadraticCurveTo', 418, 69, 415, 62],
+    ['quadraticCurveTo', 395, 82, 374, 75], ['quadraticCurveTo', 378, 69, 376, 64],
+    ['quadraticCurveTo', 357, 82, 338, 84], ['closePath']], '#70513f');
+  path([['moveTo', 351, 53], ['quadraticCurveTo', 364, 37, 381, 40]], null, '#947056', 4);
+  // 有高光的大眼睛、轻轻上扬的眉毛与腮红。
+  path([['moveTo', 369, 86], ['quadraticCurveTo', 377, 80, 385, 85]], null, '#70513f', 2.5);
+  path([['moveTo', 415, 85], ['quadraticCurveTo', 423, 80, 431, 86]], null, '#70513f', 2.5);
+  oval(378, 99, 7, 9, '#394b54'); oval(422, 99, 7, 9, '#394b54');
+  oval(376, 96, 2.5, 3, '#fffaf1'); oval(420, 96, 2.5, 3, '#fffaf1');
+  oval(381, 103, 1.3, 1.5, '#a4ced0'); oval(425, 103, 1.3, 1.5, '#a4ced0');
+  oval(357, 114, 11, 6, '#f2ad9e'); oval(443, 114, 11, 6, '#f2ad9e');
+  path([['moveTo', 398, 106], ['quadraticCurveTo', 394, 112, 402, 111]], null, '#d19a79', 2);
 
   // 口腔和食道；食道沿胸部向下进入胃。
   tube([['moveTo', 401, 125], ['lineTo', 401, 192],
@@ -76,6 +90,8 @@ window.drawDigestiveSystem = function (g, state, time = 0) {
   oval(400, 121, 16, 9, state.stage === 0 ? '#f5b568' : '#bc6b76',
     state.stage === 0 ? active : '#9f5964', state.stage === 0 ? 4 : 2);
   path([['moveTo', 390, 118], ['lineTo', 410, 118]], null, '#fff8ed', 3);
+  path([['moveTo', 379, 119], ['quadraticCurveTo', 377, 124, 383, 126]], null, '#c28e73', 2);
+  path([['moveTo', 421, 119], ['quadraticCurveTo', 423, 124, 417, 126]], null, '#c28e73', 2);
 
   // 肝脏位于人物右上腹，不作为食物经过的通道。
   path([['moveTo', 345, 215], ['quadraticCurveTo', 371, 201, 400, 214],

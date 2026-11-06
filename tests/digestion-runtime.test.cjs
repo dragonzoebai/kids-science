@@ -14,12 +14,14 @@ test('digestion initializes its high-DPI canvas and playback after other activit
   Object.assign(canvas, { width: 800, height: 500, clientWidth: 900, clientHeight: 700,
     getContext: () => ({ setTransform() {}, clearRect() {}, fillRect() {} }) });
   const document = { body: { dataset: { activity: 'digestion' } },
-    getElementById: id => elements[id], createElement: element, addEventListener() {} };
+    getElementById: id => elements[id], createElement: element, addEventListener() {},
+    querySelector: () => ({ getBoundingClientRect: () => ({left: 620, top: 16}) }) };
+  elements.result.getBoundingClientRect = () => ({top: 620, bottom: 680});
   const activityContext = { window: { drawDigestiveSystem() { draws++; } } };
   vm.runInNewContext(fs.readFileSync(require.resolve('../science-activities.js'), 'utf8'), activityContext);
   vm.runInNewContext(fs.readFileSync(require.resolve('../science-lab.js'), 'utf8'), {
     document, ScienceActivities: activityContext.window.ScienceActivities,
-    window: { devicePixelRatio: 3, createLabAudio: () => ({ say() {}, stop() { stopped++; } }) },
+    window: { devicePixelRatio: 3, matchMedia: () => ({matches:false}), createLabAudio: () => ({ say() {}, stop() { stopped++; } }) },
     ResizeObserver: class { observe() {} },
     requestAnimationFrame: callback => { pending = callback; return 1; }, cancelAnimationFrame() {},
   });

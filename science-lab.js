@@ -27,9 +27,14 @@
   g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,canvas.width,canvas.height);
   g.fillStyle='#f8fcfd';g.fillRect(0,0,canvas.width,canvas.height);
   // 人体图两侧无需保留原画布的空白，竖屏时让人物充分放大。
-  const contentWidth=580;
-  const scale=Math.min(width/contentWidth,height/500);
-  g.setTransform(scale*dpr,0,0,scale*dpr,(width/2-400*scale)*dpr,(height/2-250*scale)*dpr);
+  const panel=document.querySelector('aside').getBoundingClientRect();
+  const feedback=result.getBoundingClientRect();
+  const portrait=window.matchMedia('(orientation:portrait),(max-width:640px)').matches;
+  const left=12,top=portrait?feedback.bottom+8:12;
+  const right=portrait?width-12:panel.left-12;
+  const bottom=portrait?panel.top-8:feedback.top-8;
+  const scale=Math.min(Math.max(1,right-left)/580,Math.max(1,bottom-top)/500);
+  g.setTransform(scale*dpr,0,0,scale*dpr,((left+right)/2-400*scale)*dpr,((top+bottom)/2-250*scale)*dpr);
   const value=activity.evaluate(state);activity.draw(g,state,value,elapsed);
   if(result.textContent!==value.message)result.textContent=value.message;
  }
@@ -48,5 +53,5 @@
   }frame=requestAnimationFrame(tick);
  }
  document.addEventListener('visibilitychange',()=>{if(document.hidden){stop();cancelAnimationFrame(frame);previous=0;}else{cancelAnimationFrame(frame);frame=requestAnimationFrame(tick);}});
- sync();new ResizeObserver(render).observe(canvas);frame=requestAnimationFrame(tick);
+ sync();const resize=new ResizeObserver(render);resize.observe(canvas);resize.observe(document.querySelector('aside'));resize.observe(result);frame=requestAnimationFrame(tick);
 })();
