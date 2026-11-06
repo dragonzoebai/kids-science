@@ -315,10 +315,13 @@ const northernStars = [
 ];
 const skyLabels = northernStars.map((star, index) => {
   const position = skyPosition(star.x, star.y);
-  const geometry = new THREE.BufferGeometry().setFromPoints([position]);
-  scene.add(new THREE.Points(geometry, new THREE.PointsMaterial({
-    color: star.color || '#bbddff', size: index === 0 ? 12 : 8, sizeAttenuation: false
-  })));
+  const color = star.color || '#bbddff';
+  const sphere = new THREE.Mesh(
+    new THREE.SphereGeometry(index === 0 ? 220 : 160, 24, 16),
+    new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.35, roughness: 0.5 })
+  );
+  sphere.position.copy(position);
+  scene.add(sphere);
   const label = createTextLabel(star.name, star.color || '#bbddff');
   label.style.fontSize = '12px';
   label.style.padding = '3px 6px';
@@ -327,7 +330,8 @@ const skyLabels = northernStars.map((star, index) => {
 });
 // 使用有实际宽度的连线，避免 iPad/PC 上 WebGL 线宽固定为一像素。
 const dipperMaterial = new THREE.MeshBasicMaterial({ color: 0x99ccff });
-for (const [from, to] of [[1, 2], [2, 3], [3, 4], [4, 1], [4, 5], [5, 6], [6, 7]]) {
+// 依次连接七星，斗口不封边，形成开口勺子。
+for (const [from, to] of [[1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 7]]) {
   const start = skyLabels[from].labelPos;
   const end = skyLabels[to].labelPos;
   const direction = new THREE.Vector3().subVectors(end, start);
