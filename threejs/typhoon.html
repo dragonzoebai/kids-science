@@ -288,7 +288,6 @@
     scene.fog = new THREE.FogExp2(0x020713, 0.00165);
 
     const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 80000);
-    camera.position.set(18, 78, 286);
 
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
@@ -413,6 +412,12 @@
     earthGroup.rotation.x = -8 * Math.PI / 180;
     earthGroup.rotation.y = -120 * Math.PI / 180;
     scene.add(earthGroup);
+
+    // 将中国中部的经纬度转换到旋转后的地球坐标，作为默认观察方向。
+    earthGroup.updateMatrixWorld(true);
+    const chinaViewDirection = earthGroup.localToWorld(latLon3D(35, 105, 1)).normalize();
+    camera.position.copy(controls.target).addScaledVector(chinaViewDirection, 295);
+    controls.update();
 
     const earth = new THREE.Mesh(
       new THREE.SphereGeometry(EARTH_R, 96, 96),
