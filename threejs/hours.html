@@ -622,6 +622,38 @@ function drawLabels() {
     lctx.fill();
   }
 
+  // Anchor each circle label on the side facing the camera, even as Earth rotates.
+  const localCamera = earthMesh.worldToLocal(camera.position.clone());
+  const labelLon = Math.atan2(-localCamera.z, localCamera.x) * 180 / Math.PI;
+  for (const circle of [
+    { lat: POLAR_CIRCLE_LAT, name: '北极圈', color: '#88ccff' },
+    { lat: -POLAR_CIRCLE_LAT, name: '南极圈', color: '#ffbb88' }
+  ]) {
+    const localPos = latLon3D(circle.lat, labelLon, (EARTH_R + 0.5) * 1.003);
+    const wp = earthMesh.localToWorld(localPos.clone());
+    const center = earthMesh.getWorldPosition(new THREE.Vector3());
+    if (wp.clone().sub(center).normalize().dot(camera.position.clone().sub(wp).normalize()) < 0.03) continue;
+    const proj = wp.project(camera);
+    if (proj.z < -1 || proj.z > 1) continue;
+    const x = (proj.x * .5 + .5) * labelCanvas.width;
+    const y = (-proj.y * .5 + .5) * labelCanvas.height;
+    lctx.font = 'bold 14px Arial';
+    const width = lctx.measureText(circle.name).width + 16;
+    const bx = Math.max(4, Math.min(x + 18, labelCanvas.width - width - 4));
+    const by = Math.max(4, Math.min(y - 14, labelCanvas.height - 32));
+    lctx.strokeStyle = circle.color;
+    lctx.lineWidth = 1.5;
+    lctx.beginPath();
+    lctx.moveTo(x, y);
+    lctx.lineTo(bx, by + 14);
+    lctx.stroke();
+    lctx.fillStyle = 'rgba(0,0,0,.75)';
+    roundRect(lctx, bx, by, width, 28, 6);
+    lctx.fill();
+    lctx.fillStyle = circle.color;
+    lctx.fillText(circle.name, bx + 8, by + 19);
+  }
+
   // North and South pole annotations
   for (const pole of POLES) {
     const proj = pole.position.clone().project(camera);
