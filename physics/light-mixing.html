@@ -52,6 +52,7 @@ input[type="range"] { width: 100%; min-height: 42px; margin: 3px 0 0; accent-col
 <body>
 <main>
 <header><div><div class="eyebrow">LITTLE LIGHT LAB / 小小光学实验室</div><h1>让光，叠出新颜色</h1><p>光的三原色 RGB：红、绿、蓝，相遇会发生什么？</p></div><a class="home" href="../index.html">返回目录 ↗</a></header>
+<div id="audio-controls" aria-label="讲解与音效"></div>
 <section class="lab" aria-label="光的三原色实验台">
   <div>
     <div class="screen"><div class="screen-title"><span><i class="dot"></i>黑暗中的投影屏</span><span>拖动光斑，寻找重叠区</span></div><canvas id="screen" width="960" height="700" tabindex="0" aria-label="三色光叠加屏幕。先选择右侧光源，再轻触屏幕移动；也可拖动光斑，或使用方向键。"></canvas><div class="reading"><span id="swatch"></span><div>屏幕中心的光<br><span id="sample"></span></div></div></div>
@@ -68,12 +69,14 @@ input[type="range"] { width: 100%; min-height: 42px; margin: 3px 0 0; accent-col
 <p class="note">这是光的加色混合，和染料混合不同。黑色表示没有光；RGB 是屏幕显示颜色的三原色。这里用屏幕颜色近似模拟，实际光学效果还与光源的光谱、强度和投影表面有关。</p>
 </main>
 <script src="light-mix.js"></script>
+<script src="lab-audio.js"></script>
 <script>
 (() => {
   const { DEFAULT_POSITIONS, RADIUS, sampleLight } = LightMix;
   const canvas = document.getElementById('screen'), ctx = canvas.getContext('2d');
   const colors = ['255,0,0', '0,255,0', '0,0,255'], names = ['红光', '绿光', '蓝光'];
   const status = document.getElementById('status');
+  const audio = typeof createLabAudio === 'function' ? createLabAudio({ intro: '欢迎来到光的三原色实验。光的三原色是红、绿、蓝。移动光斑，让它们重叠。红加绿变黄，绿加蓝变青，红加蓝变品红。三束等强度的光叠加变成白光！也可以调节亮度、关掉一束光，再观察颜色变化。' }) : { say() {}, effect() {} };
   let lights, selected = 0, activePointer = null;
   function draw() {
     ctx.globalCompositeOperation = 'source-over'; ctx.fillStyle = '#000'; ctx.fillRect(0, 0, 960, 700);
@@ -111,14 +114,17 @@ input[type="range"] { width: 100%; min-height: 42px; margin: 3px 0 0; accent-col
   lights.forEach((_, i) => {
     document.getElementById('enabled-' + i).addEventListener('change', event => {
       lights[i].enabled = event.target.checked; status.textContent = `${names[i]}已${lights[i].enabled ? '打开' : '关闭'}，看看重叠区有什么变化。`; sync();
+      audio.effect(); audio.say(status.textContent);
     });
     document.getElementById('power-' + i).addEventListener('input', event => {
       lights[i].power = Number(event.target.value); sync();
       status.textContent = `${names[i]}亮度：${lights[i].power}%。比较三束光的亮度，试着调出不同颜色。`;
     });
+    document.getElementById('power-' + i).addEventListener('change', () => { audio.say(`${names[i]}亮度${lights[i].power}%。观察重叠区的变化。`); });
   });
   document.querySelectorAll('[data-select]').forEach(button => button.addEventListener('click', () => {
     selected = Number(button.dataset.select); status.textContent = `已选择${names[selected]}，轻触屏幕就能移动它。`; sync();
+    audio.effect(); audio.say(status.textContent);
   }));
   document.querySelectorAll('[data-preset]').forEach(button => button.addEventListener('click', () => {
     const preset = button.dataset.preset;
@@ -126,6 +132,7 @@ input[type="range"] { width: 100%; min-height: 42px; margin: 3px 0 0; accent-col
     const separated = [[175, 175], [785, 175], [480, 525]];
     lights.forEach((light, i) => { light.enabled = enabled[i]; light.power = 100; [light.x, light.y] = preset === 'apart' ? separated[i] : [480, 350]; });
     status.textContent = { redgreen: '红光 + 绿光 = 黄光。试试降低一束光的亮度。', greenblue: '绿光 + 蓝光 = 青光。', redblue: '红光 + 蓝光 = 品红光。', all: '三束等强度的红、绿、蓝光重叠，合成白光！', apart: '三束光分开了。拖动光斑，让它们重新相遇。' }[preset]; sync();
+    audio.effect('done'); audio.say(status.textContent.replaceAll('+', '加').replaceAll('=', '变成'));
   }));
   function point(event) {
     const rect = canvas.getBoundingClientRect();
@@ -145,14 +152,14 @@ input[type="range"] { width: 100%; min-height: 42px; margin: 3px 0 0; accent-col
     status.textContent = `正在移动${names[selected]}，观察相遇处的颜色。`;
   });
   canvas.addEventListener('pointermove', event => { if (event.pointerId === activePointer) moveTo(point(event)); });
-  function endPointer(event) { if (event.pointerId === activePointer) { activePointer = null; } }
+  function endPointer(event) { if (event.pointerId === activePointer) { activePointer = null; if (event.type !== 'pointercancel') audio.effect(); } }
   canvas.addEventListener('pointerup', endPointer); canvas.addEventListener('pointercancel', endPointer); canvas.addEventListener('lostpointercapture', endPointer);
   canvas.addEventListener('keydown', event => {
     const offsets = { ArrowLeft: [-12, 0], ArrowRight: [12, 0], ArrowUp: [0, -12], ArrowDown: [0, 12] };
     if (!offsets[event.key]) return;
     event.preventDefault(); const [dx, dy] = offsets[event.key]; moveTo({ x: lights[selected].x + dx, y: lights[selected].y + dy });
   });
-  document.getElementById('reset').addEventListener('click', reset);
+  document.getElementById('reset').addEventListener('click', () => { reset(); audio.effect('reset'); audio.say('重新开始啦。三束等强度的光叠加，变成白光。'); });
   reset();
 })();
 </script>

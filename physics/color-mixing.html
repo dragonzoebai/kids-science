@@ -61,6 +61,7 @@
 <body>
 <main>
   <header><div><div class="eyebrow">LITTLE COLOR LAB / 小小实验室</div><h1>加一份，搅一搅</h1><p>染料三原色 CMY：青、品红、黄，混合出新颜色。</p></div><a class="home" href="../index.html">返回目录 ↗</a></header>
+  <div id="audio-controls" aria-label="讲解与音效"></div>
   <section class="lab" aria-label="调色实验台">
     <div class="workspace">
       <span class="tag">① 加入染料 → ② 搅拌 → ③ 观察颜色</span>
@@ -81,6 +82,7 @@
   <section class="knowledge" aria-label="调色小知识"><div><strong>试一试 · 改变份数</strong><p>先试 1 份青 + 1 份黄，再多加 2 份黄。颜色有什么变化？混好后也能继续加。</p></div><div><strong>想一想 · 染料的减色混合</strong><p>青 + 黄 → 绿，品红 + 黄 → 红，青 + 品红 → 蓝。此页采用理想 CMY 比例模型，三色等份呈黑色；真实染料受浓度和种类影响，可能偏深灰或深褐色。</p></div></section>
 </main>
 <script src="pigment-mix.js"></script>
+<script src="lab-audio.js"></script>
 <script>
 (() => {
   const { COLORS, mixPigments } = PigmentMix;
@@ -88,6 +90,7 @@
   const status = document.getElementById('status'), stir = document.getElementById('stir');
   const dyeButtons = [...document.querySelectorAll('[data-color]')];
   const names = { cyan: '青', magenta: '品红', yellow: '黄' };
+  const audio = typeof createLabAudio === 'function' ? createLabAudio({ intro: '欢迎来到染料调色实验。染料三原色是青、品红和黄。轻触染料瓶，每次加入一份，再点搅拌变色。青加黄变绿，品红加黄变红，青加品红变蓝。试试改变份数！点击重新开始可以清空盘子。' }) : { say() {}, effect() {} };
   let counts, spots, baseColor, busy = false, frame = 0;
   const rgb = color => `rgb(${color.join(',')})`;
   function total() { return Object.values(counts).reduce((a, b) => a + b, 0); }
@@ -132,10 +135,12 @@
     spots.push({ key, angle, distance: spots.length ? 55 + (spots.length * 47) % 145 : 0, radius: 58 + Math.min(25, total() * 2) });
     status.textContent = total() === 60 ? '盘子装满啦！搅拌看看，或重新开始。' : `加入了 1 份${names[key]}色。点“搅拌变色”，看看会发生什么！`;
     update(); draw();
+    audio.effect('add'); audio.say(`加入一份${names[key]}色，现在共${total()}份。`);
   }
   function startStir() {
     if (busy || !spots.length) return;
     busy = true; update(); status.textContent = '搅呀搅……染料正在慢慢融合。';
+    audio.effect('stir'); audio.say('搅一搅，让染料慢慢融合。');
     const target = mixPigments(counts), start = performance.now();
     const duration = matchMedia('(prefers-reduced-motion: reduce)').matches ? 1 : 1800;
     function tick(now) {
@@ -145,6 +150,12 @@
       else {
         baseColor = target; spots = []; busy = false; frame = 0; update(); draw();
         status.textContent = '调好啦！观察盘子里的颜色，再加几份染料试试看。';
+        const active = Object.keys(counts).filter(key => counts[key]);
+        let explanation = '观察盘子里的颜色，再加几份试试看。';
+        if (active.length === 2 && counts[active[0]] === counts[active[1]]) {
+          explanation = !counts.magenta ? '等份的青色加黄色，变成绿色。' : !counts.cyan ? '等份的品红加黄色，变成红色。' : '等份的青色加品红，变成蓝色。';
+        } else if (active.length === 3 && counts.cyan === counts.magenta && counts.magenta === counts.yellow) explanation = '三种染料等份混合，在理想模型中呈黑色。';
+        audio.effect('done'); audio.say('调好啦！' + explanation);
       }
     }
     frame = requestAnimationFrame(tick);
@@ -156,7 +167,7 @@
   }
   dyeButtons.forEach(button => button.addEventListener('click', () => add(button.dataset.color)));
   stir.addEventListener('click', startStir);
-  document.getElementById('reset').addEventListener('click', reset);
+  document.getElementById('reset').addEventListener('click', () => { reset(); audio.effect('reset'); audio.say('盘子清空啦，重新选几份染料试试看。'); });
   reset();
 })();
 </script>
