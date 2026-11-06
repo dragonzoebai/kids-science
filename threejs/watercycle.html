@@ -244,7 +244,6 @@
     scene.fog = new THREE.FogExp2(0x020713, 0.0017);
 
     const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 80000);
-    camera.position.set(22, 82, 285);
 
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
@@ -397,11 +396,13 @@
     const EAST_SEA = { lat: 30.8, lon: 122.6 };
     const BOHAI = { lat: 38.7, lon: 119.4 };
 
-    // Start with the China rainfall region facing the camera.
-    earthGroup.quaternion.setFromUnitVectors(
-      latLon3D(CHINA.lat, CHINA.lon, 1),
-      camera.position.clone().normalize()
-    );
+    // 与台风页面保持相同的中国默认朝向和观察距离。
+    earthGroup.rotation.x = -8 * Math.PI / 180;
+    earthGroup.rotation.y = -120 * Math.PI / 180;
+    earthGroup.updateMatrixWorld(true);
+    const chinaViewDirection = earthGroup.localToWorld(latLon3D(35, 105, 1)).normalize();
+    camera.position.copy(controls.target).addScaledVector(chinaViewDirection, 220);
+    controls.update();
 
     const labels = [
       { text: '太平洋蒸发区', color: '#89f7ff', pos: latLon3D(PACIFIC.lat, PACIFIC.lon, EARTH_R + 9) },
@@ -627,8 +628,6 @@
         updateHud(active);
       }
 
-      earthGroup.rotation.y += dt * .018;
-      oceanVeil.rotation.y -= dt * .026;
       pacificRing.scale.setScalar(1 + Math.sin(t * 2.8) * .12);
       pacificRing.material.opacity = .42 + Math.sin(t * 3.4) * .16;
       chinaRing.scale.setScalar(1 + Math.sin(t * 3.1) * .1);
