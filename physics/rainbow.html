@@ -651,7 +651,9 @@
       bubbleText.textContent = story[phase][1];
     }
 
+    let drawFrame;
     function draw() {
+      if (document.hidden) return;
       if (!paused) t += .016;
       updateUI();
       drawSky();
@@ -660,7 +662,7 @@
       drawRain();
       drawOptics(sun);
       drawSparkles();
-      requestAnimationFrame(draw);
+      drawFrame = requestAnimationFrame(draw);
     }
 
     function burst(x, y) {
@@ -696,6 +698,10 @@
     [sunAngle, rainAmount, beamPower].forEach(input => input.addEventListener('input', updateUI));
     window.addEventListener('resize', resize);
 
+    document.addEventListener('visibilitychange', () => {
+      cancelAnimationFrame(drawFrame);
+      if (!document.hidden) draw();
+    });
     resize();
     draw();
   </script>

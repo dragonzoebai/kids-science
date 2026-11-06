@@ -43,14 +43,14 @@
  const run=document.getElementById('run');
  {
   run.hidden=false;run.textContent='播放';
-  run.onclick=()=>{if(running){stop();return;}elapsed=0;startStage=state.stage||0;running=true;run.textContent='暂停';};
+  run.onclick=()=>{if(running){stop();return;}elapsed=0;startStage=state.stage||0;running=true;previous=0;cancelAnimationFrame(frame);frame=requestAnimationFrame(tick);run.textContent='暂停';};
  }
  function tick(now){const dt=previous?Math.min(.05,(now-previous)/1000):0;previous=now;
   if(running){elapsed+=dt;
    {state.stage=Math.min(activity.controls[0].max,startStage+Math.floor(elapsed/2.5));if(elapsed>(activity.controls[0].max-startStage+1)*2.5)stop();}
    sync();
-  }frame=requestAnimationFrame(tick);
+  }if(running)frame=requestAnimationFrame(tick);
  }
- document.addEventListener('visibilitychange',()=>{if(document.hidden){stop();cancelAnimationFrame(frame);previous=0;}else{cancelAnimationFrame(frame);frame=requestAnimationFrame(tick);}});
- sync();const resize=new ResizeObserver(render);resize.observe(canvas);resize.observe(document.querySelector('aside'));resize.observe(result);frame=requestAnimationFrame(tick);
+ document.addEventListener('visibilitychange',()=>{if(document.hidden){stop();cancelAnimationFrame(frame);previous=0;}else{render();}});
+ sync();const resize=new ResizeObserver(render);resize.observe(canvas);resize.observe(document.querySelector('aside'));resize.observe(result);
 })();

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>页面目录</title>
+<title>科学游乐园</title>
 <style>
   :root {
     --bg: #f5f6f8; --card: #fff; --text: #1f2328; --muted: #6b7280;
@@ -51,13 +51,26 @@
   a.card:hover { border-color: var(--accent); transform: translateY(-1px); }
   .title { font-weight: 600; }
   .path { color: var(--muted); font-size: 12px; font-family: ui-monospace, Consolas, monospace; margin-top: 4px; }
+  main { max-width: 1100px; padding-top: 24px; }
+  h1 { color: var(--text); font-size: 30px; }
+  .grid { grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); gap: 14px; }
+  a.card { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; min-height: 152px; border-radius: 24px; background: var(--card); text-align: center; box-shadow: 0 4px 12px #153b2810; }
+  .picture { display: block; font-size: 62px; line-height: 1.2; }
+  .title { font-size: 19px; }
+  a.card:nth-child(4n+1) { border-color: #83cbb2; }
+  a.card:nth-child(4n+2) { border-color: #edbd70; }
+  a.card:nth-child(4n+3) { border-color: #8bbde2; }
+  a.card:active { transform: scale(.97); }
+  a.card:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+  @media(max-width: 380px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .title { font-size: 17px; } }
+  @media(prefers-reduced-motion: reduce) { a.card { transition: none; } }
 </style>
 <link rel="stylesheet" href="touch.css">
 <script src="touch.js"></script>
 </head>
 <body>
 <main>
-  <h1>页面目录</h1>
+  <h1>科学游乐园</h1>
   <div class="sub" id="count"></div>
   <div id="list"></div>
 </main>
@@ -109,14 +122,20 @@
     group.classList.toggle('is-expanded', group.open);
     const summary = document.createElement('summary');
     const h = document.createElement('h2');
-    h.innerHTML = `${g.name} <small>${g.dir}/ · ${g.pages.length}</small>`;
+    h.textContent = g.name.replace('（Three.js）', '');
     const grid = document.createElement('div');
     grid.className = 'grid';
     for (const [href, title] of g.pages) {
       const a = document.createElement('a');
       a.className = 'card';
       a.href = href;
-      a.innerHTML = `<div class="title">${title}</div><div class="path">${href}</div>`;
+      const pictures = ['🍎','🐰','🌻','🚇','🌏','🐓','🌍','🏙️','🌃','🌋','🚄','🚗','🌐','🚉','🕒','🎨','🔦','🌈','🥁','🌎','☀️','🌙','🍂','🪐','🌀','🌧️'];
+      const names = ['食物去哪儿','谁的午饭','种小花','北京地铁','认识中国','雄鸡地图','唱儿歌看中国','中国城市','世界城市','看看地震','坐高铁','走高速','经线和纬线','找地铁','世界的时间','调颜色','玩彩色光','找彩虹','听声音','转动看地球','白天和黑夜','看月亮','春夏秋冬','太阳系','看台风','小水滴旅行'];
+      const number = [...list.querySelectorAll('a.card')].length + grid.children.length;
+      a.setAttribute('data-speak', names[number]);
+      const picture = document.createElement('span'); picture.className = 'picture'; picture.setAttribute('aria-hidden', 'true'); picture.textContent = pictures[number];
+      const caption = document.createElement('span'); caption.className = 'title'; caption.textContent = names[number];
+      a.append(picture, caption);
       grid.appendChild(a);
     }
     summary.appendChild(h);
@@ -158,7 +177,7 @@
       };
     });
   }
-  document.getElementById('count').textContent = `共 ${groups.length} 个目录，${total} 个页面`;
+  document.getElementById('count').textContent = '点一张图，开始探索吧';
 </script>
 <script src="speak.js"></script>
 </body>

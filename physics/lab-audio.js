@@ -2,6 +2,16 @@
 window.createLabAudio = function ({ intro }) {
   let speechEnabled = true, effectsEnabled = true, context;
   const synth = window.speechSynthesis;
+  try {
+    speechEnabled = localStorage.getItem('kid-speak-enabled') !== '0';
+    effectsEnabled = localStorage.getItem('kid-effects-enabled') !== '0';
+  } catch {}
+  function savePreferences() {
+    try {
+      localStorage.setItem('kid-speak-enabled', speechEnabled ? '1' : '0');
+      localStorage.setItem('kid-effects-enabled', effectsEnabled ? '1' : '0');
+    } catch {}
+  }
   const container = document.getElementById('audio-controls');
   container.innerHTML = '<button type="button" id="audio-intro">▶ 听玩法</button><button type="button" id="audio-speech" aria-pressed="true">讲解：开</button><button type="button" id="audio-effects" aria-pressed="true">音效：开</button><span id="audio-note"></span>';
   const style = document.createElement('style');
@@ -49,7 +59,7 @@ window.createLabAudio = function ({ intro }) {
     } catch { /* 音频不可用不影响实验。 */ }
   }
   document.getElementById('audio-intro').addEventListener('click', () => {
-    if (!speechEnabled) { speechEnabled = true; render(); }
+    if (!speechEnabled) { speechEnabled = true; savePreferences(); render(); }
     effect(); say(intro);
   });
   function render() {
@@ -58,10 +68,10 @@ window.createLabAudio = function ({ intro }) {
     effects.textContent = '音效：' + (effectsEnabled ? '开' : '关'); effects.setAttribute('aria-pressed', String(effectsEnabled));
   }
   document.getElementById('audio-speech').addEventListener('click', () => {
-    speechEnabled = !speechEnabled; if (!speechEnabled) synth?.cancel(); render();
+    speechEnabled = !speechEnabled; savePreferences(); if (!speechEnabled) synth?.cancel(); render();
     if (speechEnabled) say('语音讲解已打开。');
   });
-  document.getElementById('audio-effects').addEventListener('click', () => { effectsEnabled = !effectsEnabled; render(); if (effectsEnabled) effect(); });
+  document.getElementById('audio-effects').addEventListener('click', () => { effectsEnabled = !effectsEnabled; savePreferences(); render(); if (effectsEnabled) effect(); });
   if (!synth) {
     document.getElementById('audio-intro').disabled = true;
     document.getElementById('audio-speech').disabled = true;
@@ -69,5 +79,6 @@ window.createLabAudio = function ({ intro }) {
   }
   document.addEventListener('visibilitychange', () => { if (document.hidden) { synth?.cancel(); context?.suspend().catch(() => {}); } });
   window.addEventListener('pagehide', () => { synth?.cancel(); context?.suspend().catch(() => {}); });
+  render();
   return { say, effect, stop() { synth?.cancel(); } };
 };

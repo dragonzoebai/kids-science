@@ -643,8 +643,10 @@ const _spinAxis = new THREE.Vector3(0, 1, 0);  // 复用，避免每帧分配
 const _invQ     = new THREE.Quaternion();
 const _spinQ    = new THREE.Quaternion();
 const clock = new THREE.Clock();
+let animationFrame;
 function animate() {
-  requestAnimationFrame(animate);
+  if (document.hidden) return;
+  animationFrame = requestAnimationFrame(animate);
   const dt = clock.getDelta() * speedFactor;
 
   sunMesh.rotation.y += dt * 0.18;
@@ -694,6 +696,11 @@ function animate() {
   renderer.render(scene, camera);
   drawLabels();
 }
+document.addEventListener('visibilitychange', () => {
+  cancelAnimationFrame(animationFrame);
+  clock.getDelta();
+  if (!document.hidden) animate();
+});
 animate();
 </script>
 <script src="../speak.js"></script>

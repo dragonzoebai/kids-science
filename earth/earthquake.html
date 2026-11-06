@@ -749,31 +749,32 @@
       }
 
       /* ── 加载 USGS 数据 ── */
-      function loadData() {
-        document.getElementById("loading").style.display = "flex";
-
-        fetch(USGS[currentPeriod])
-          .then((r) => r.json())
-          .then((data) => {
-            allFeatures = data.features.map((f) => ({
-              ...f,
-              properties: {
-                ...f.properties,
-                mag: f.properties.mag ?? 0,
-                depth: f.geometry?.coordinates?.[2] ?? 0,
-              },
-            }));
-
-            const t = new Date(data.metadata.generated);
-            document.getElementById("update-time").textContent =
-              `数据来源：USGS · 更新于 ${t.toLocaleString("zh-CN")}`;
-
-            applyFilter();
-          })
-          .catch(() => {
-            document.getElementById("loading").innerHTML =
-              "⚠ 数据加载失败，请检查网络";
-          });
+      let dataRequest;
+      async function loadData() {
+        dataRequest?.abort();
+        const request = new AbortController(); dataRequest = request;
+        const loading = document.getElementById('loading');
+        loading.style.display = 'flex'; loading.textContent = '正在加载地震数据…';
+        let timedOut = false;
+        const timer = setTimeout(() => { timedOut = true; request.abort(); }, 15000);
+        try {
+          const response = await fetch(USGS[currentPeriod], {signal: request.signal});
+          if (!response.ok) throw new Error('HTTP ' + response.status);
+          const data = await response.json();
+          if (dataRequest !== request) return;
+          if (!Array.isArray(data.features)) throw new Error('Invalid data');
+          allFeatures = data.features.map(f => ({...f, properties: {...f.properties,
+            mag: f.properties.mag ?? 0, depth: f.geometry?.coordinates?.[2] ?? 0}}));
+          const t = new Date(data.metadata.generated);
+          document.getElementById('update-time').textContent = `数据来源：USGS · 更新于 ${t.toLocaleString('zh-CN')}`;
+          applyFilter();
+        } catch (error) {
+          if (dataRequest !== request) return;
+          loading.textContent = timedOut ? '网络有点慢，请再试一次。' : '数据加载失败，请检查网络。';
+          const retry = document.createElement('button'); retry.type = 'button';
+          retry.textContent = '重新加载'; retry.style.cssText = 'min-height:44px;margin:12px;padding:10px 20px;cursor:pointer';
+          retry.onclick = loadData; loading.append(retry);
+        } finally { clearTimeout(timer); }
       }
 
       /* ── 应用筛选 ── */
