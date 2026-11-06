@@ -16,11 +16,16 @@ test('latitude circles lie on Earth and the terminator stays perpendicular to su
   follow.setEarthFollowing(true);
   assert.deepEqual(camera.position.toArray(), [0, 200, 500], 'switch starts without jumping');
   follow.updateFollowCamera(new THREE.Vector3(-200, 0, 0), 500);
-  assert.deepEqual(camera.position.toArray(), [-100, 200, 500]);
+  const closeOffset = new THREE.Vector3(200, 200, 500).setLength(56);
+  const halfway = new THREE.Vector3(0, 200, 500).lerp(new THREE.Vector3(-200, 0, 0).add(closeOffset), 0.5);
+  assert.ok(camera.position.distanceTo(halfway) < 1e-10);
   follow.updateFollowCamera(new THREE.Vector3(-180, 0, 20), 1000);
   assert.deepEqual(controls.target.toArray(), [-180, 0, 20]);
-  assert.deepEqual(camera.position.toArray(), [-180, 200, 520]);
+  assert.ok(camera.position.distanceTo(new THREE.Vector3(-180, 0, 20).add(closeOffset)) < 1e-10);
+  assert.ok(Math.abs(camera.position.distanceTo(controls.target) - 56) < 1e-10, 'follow zooms in');
   assert.equal(controls.enabled, true);
+  follow.updateFollowCamera(new THREE.Vector3(-160, 0, 40), 1100);
+  assert.ok(camera.position.distanceTo(new THREE.Vector3(-160, 0, 40).add(closeOffset)) < 1e-10, 'close view follows orbital motion');
   follow.setEarthFollowing(false);
   follow.updateFollowCamera(new THREE.Vector3(-180, 0, 20), 1000);
   assert.deepEqual(camera.position.toArray(), [0, 200, 500]);

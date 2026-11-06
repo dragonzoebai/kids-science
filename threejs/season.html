@@ -405,7 +405,9 @@ function setEarthFollowing(value) {
   followTransition = {
     start: performance.now(), duration: 1000, damping,
     position: camera.position.clone(), target: controls.target.clone(),
-    offset: camera.position.clone().sub(controls.target)
+    // 靠近到距地心约七个地球半径，同时保留从当前相机看地球的方向。
+    offset: value ? camera.position.clone().sub(followPosition).setLength(56)
+      : camera.position.clone().sub(controls.target)
   };
   followingEarth = value;
   controls.enablePan = !value;
