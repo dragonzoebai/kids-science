@@ -109,7 +109,7 @@
   }
   LYRICS.forEach(([line],index) => {
     const button = document.createElement('button'); button.textContent = line;
-    button.style.cssText = 'display:block;min-height:44px;width:100%;text-align:left;border:0;border-radius:8px;padding:6px 12px;background:transparent';
+    button.style.cssText = 'display:block;min-height:52px;width:100%;text-align:left;border:0;border-radius:8px;padding:10px 12px;background:transparent;font-size:19px;line-height:1.7;font-weight:550';
     button.addEventListener('click', () => { stopPoem(); poemIndex = index; readLine(); });
     lyricButtons.push(button); document.getElementById('poem-lines').appendChild(button);
   });
