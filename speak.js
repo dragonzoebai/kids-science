@@ -28,7 +28,7 @@
   let lastSpeakAt = 0;
   function speak(text) {
     text = clean(text);
-    if (!enabled || !text) return;
+    if (!enabled || document.hidden || !text) return;
     lastSpeakAt = performance.now();
     speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text);
@@ -133,6 +133,15 @@
   // 悬停朗读
   let hoverTimer = 0;
   let lastHoverEl = null;
+  function stopReading() {
+    clearTimeout(hoverTimer);
+    clearTimeout(autoTimer);
+    autoTimer = 0;
+    lastHoverEl = null;
+    speechSynthesis.cancel();
+  }
+  document.addEventListener('visibilitychange', () => { if (document.hidden) stopReading(); });
+  window.addEventListener('pagehide', stopReading);
   document.addEventListener("mouseover", (e) => {
     if (!enabled) return;
     const hit = findReadable(e.target);
@@ -205,6 +214,15 @@
   });
 
   // 开关按钮
+  let renderToggle = () => {};
+  function syncPreference() {
+    try { enabled = localStorage.getItem(STORE_KEY) !== '0'; } catch {}
+    if (!enabled) stopReading();
+    renderToggle();
+  }
+  window.addEventListener('storage', event => { if (event.key === STORE_KEY || event.key === null) syncPreference(); });
+  window.addEventListener('kid-speak-setting', syncPreference);
+  window.addEventListener('pageshow', syncPreference);
   function mountToggle() {
     const btn = document.createElement("button");
     btn.id = "ks-toggle";
@@ -213,12 +231,16 @@
       btn.textContent = enabled ? "🔊" : "🔇";
       btn.title = enabled ? "朗读已打开，点击关闭" : "朗读已关闭，点击打开";
       btn.classList.toggle("off", !enabled);
+      btn.setAttribute('aria-label', btn.title);
+      btn.setAttribute('aria-pressed', String(enabled));
     };
+    renderToggle = render;
     btn.addEventListener("click", () => {
       enabled = !enabled;
       try {
         localStorage.setItem(STORE_KEY, enabled ? "1" : "0");
       } catch {}
+      window.dispatchEvent(new CustomEvent('kid-speak-setting'));
       if (enabled) speak("朗读已打开");
       else speechSynthesis.cancel();
       render();

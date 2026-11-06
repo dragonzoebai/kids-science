@@ -662,7 +662,7 @@
       drawRain();
       drawOptics(sun);
       drawSparkles();
-      drawFrame = requestAnimationFrame(draw);
+      if (!paused) drawFrame = requestAnimationFrame(draw);
     }
 
     function burst(x, y) {
@@ -698,6 +698,14 @@
     [sunAngle, rainAmount, beamPower].forEach(input => input.addEventListener('input', updateUI));
     window.addEventListener('resize', resize);
 
+    function refreshScene() {
+      cancelAnimationFrame(drawFrame);
+      draw();
+    }
+    // 暂停时仅在操作或尺寸变化后重绘，恢复播放仍只保留一条动画循环。
+    document.addEventListener('click', refreshScene);
+    document.addEventListener('input', refreshScene);
+    window.addEventListener('resize', refreshScene);
     document.addEventListener('visibilitychange', () => {
       cancelAnimationFrame(drawFrame);
       if (!document.hidden) draw();

@@ -12,7 +12,9 @@ test('lab narration starts on demand, can be muted, resumes and cancels on leavi
   }
   const window = { speechSynthesis: { cancel() { cancelled++; }, speak(u) { spoken.push(u); }, getVoices: () => [{ lang: 'zh-CN' }] }, addEventListener(type, fn) { windowHandlers[type] = fn; } };
   const document = { hidden: false, getElementById: element, createElement: () => ({}), head: { appendChild() {} }, addEventListener(type, fn) { documentHandlers[type] = fn; } };
-  vm.runInNewContext(fs.readFileSync(require.resolve('../physics/lab-audio.js'), 'utf8'), { window, document, SpeechSynthesisUtterance: function(text) { this.text = text; } });
+  const preferences = new Map();
+  const localStorage = {getItem: key => preferences.get(key) ?? null, setItem: (key, value) => preferences.set(key, value)};
+  vm.runInNewContext(fs.readFileSync(require.resolve('../physics/lab-audio.js'), 'utf8'), { window, document, localStorage, SpeechSynthesisUtterance: function(text) { this.text = text; } });
   const audio = window.createLabAudio({ intro: '三原色实验' });
   assert.equal(spoken.length, 0, 'no autoplay');
   element('audio-intro').handlers.click();
@@ -36,4 +38,17 @@ test('lab narration starts on demand, can be muted, resumes and cancels on leavi
   const before = cancelled;
   document.hidden = true; documentHandlers.visibilitychange(); windowHandlers.pagehide();
   assert.equal(cancelled, before + 2);
+  const hiddenCount = spoken.length;
+  audio.say('后台不朗读');
+  assert.equal(spoken.length, hiddenCount);
+  document.hidden = false;
+  localStorage.setItem('kid-speak-enabled', '0');
+  windowHandlers.storage({key: 'kid-speak-enabled'});
+  assert.equal(element('audio-speech')['aria-pressed'], 'false');
+  audio.say('其他标签页已静音');
+  assert.equal(spoken.length, hiddenCount);
+  localStorage.setItem('kid-speak-enabled', '1');
+  windowHandlers.pageshow();
+  assert.equal(element('audio-speech')['aria-pressed'], 'true');
+  assert.equal(spoken.length, hiddenCount, 'syncing preferences does not autoplay');
 });

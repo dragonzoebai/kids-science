@@ -11,6 +11,7 @@ window.createLabAudio = function ({ intro }) {
       localStorage.setItem('kid-speak-enabled', speechEnabled ? '1' : '0');
       localStorage.setItem('kid-effects-enabled', effectsEnabled ? '1' : '0');
     } catch {}
+    window.dispatchEvent?.(new CustomEvent('kid-speak-setting'));
   }
   const container = document.getElementById('audio-controls');
   container.innerHTML = '<button type="button" id="audio-intro">▶ 听玩法</button><button type="button" id="audio-speech" aria-pressed="true">讲解：开</button><button type="button" id="audio-effects" aria-pressed="true">音效：开</button><span id="audio-note"></span>';
@@ -22,7 +23,7 @@ window.createLabAudio = function ({ intro }) {
       .replace(/[0-9#*]\uFE0F?\u20E3/gu, " ")
       .replace(/[\p{Extended_Pictographic}\p{Regional_Indicator}\p{Emoji_Modifier}\uFE0E\uFE0F\u200D\u{E0020}-\u{E007F}]/gu, " ")
       .replace(/\s+/g, " ").trim();
-    if (!speechEnabled || !synth || !text) return;
+    if (!speechEnabled || document.hidden || !synth || !text) return;
     try {
       synth.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
@@ -67,6 +68,19 @@ window.createLabAudio = function ({ intro }) {
     speech.textContent = '讲解：' + (speechEnabled ? '开' : '关'); speech.setAttribute('aria-pressed', String(speechEnabled));
     effects.textContent = '音效：' + (effectsEnabled ? '开' : '关'); effects.setAttribute('aria-pressed', String(effectsEnabled));
   }
+  function syncPreferences() {
+    try {
+      speechEnabled = localStorage.getItem('kid-speak-enabled') !== '0';
+      effectsEnabled = localStorage.getItem('kid-effects-enabled') !== '0';
+    } catch {}
+    if (!speechEnabled) synth?.cancel();
+    render();
+  }
+  window.addEventListener('storage', event => {
+    if (event.key === null || ['kid-speak-enabled', 'kid-effects-enabled'].includes(event.key)) syncPreferences();
+  });
+  window.addEventListener('kid-speak-setting', syncPreferences);
+  window.addEventListener('pageshow', syncPreferences);
   document.getElementById('audio-speech').addEventListener('click', () => {
     speechEnabled = !speechEnabled; savePreferences(); if (!speechEnabled) synth?.cancel(); render();
     if (speechEnabled) say('语音讲解已打开。');

@@ -850,7 +850,7 @@
       drawEar();
       drawSparks();
       updateUI();
-      animationFrame = requestAnimationFrame(animate);
+      if (!paused) animationFrame = requestAnimationFrame(animate);
     }
 
     hitDrum.addEventListener('click', () => trigger('drum'));
@@ -883,6 +883,14 @@
 
     resize();
     updateUI();
+    function refreshScene() {
+      cancelAnimationFrame(animationFrame);
+      animate();
+    }
+    // 暂停时仅在操作或尺寸变化后重绘，恢复播放仍只保留一条动画循环。
+    document.addEventListener('click', refreshScene);
+    document.addEventListener('input', refreshScene);
+    window.addEventListener('resize', refreshScene);
     document.addEventListener('visibilitychange', () => {
       cancelAnimationFrame(animationFrame);
       if (!document.hidden) animate();
