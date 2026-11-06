@@ -96,7 +96,7 @@
     document.getElementById('heading').textContent = '儿歌 · 第 ' + (poemIndex + 1) + ' 句';
     document.getElementById('description').textContent = LYRICS[poemIndex][0];
     document.getElementById('province-name').textContent = poemCodes.length === CODES.length ? '中国 · 全图' : poemCodes.map(code => shortName(code) || '南海诸岛').join(' · ');
-    status.textContent = `正在朗读第 ${poemIndex + 1} / ${LYRICS.length} 句。暖黄色与当前句对应。`;
+    status.textContent = '';
     update(); poemControls();
     const utterance = audio.say(LYRICS[poemIndex][0], () => {
       if (generation !== poemGeneration || !poemPlaying) return;
