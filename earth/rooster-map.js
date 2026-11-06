@@ -85,6 +85,12 @@
       button.setAttribute('aria-current', String(index === poemIndex));
       button.style.background = index === poemIndex ? '#f7d890' : 'transparent';
     });
+    // 只滚动歌词容器，不使用 scrollIntoView，避免带动整页和地图。
+    const lyricPanel = document.getElementById('poem-lines');
+    const activeLine = lyricButtons[poemIndex];
+    if (Number.isFinite(activeLine.offsetTop) && lyricPanel.clientHeight > 0) {
+      lyricPanel.scrollTop = Math.max(0, activeLine.offsetTop - (lyricPanel.clientHeight - activeLine.offsetHeight) / 2);
+    }
     document.getElementById('heading').textContent = '儿歌 · 第 ' + (poemIndex + 1) + ' 句';
     document.getElementById('description').textContent = LYRICS[poemIndex][0];
     document.getElementById('province-name').textContent = poemCodes.length === CODES.length ? '中国 · 全图' : poemCodes.map(code => shortName(code) || '南海诸岛').join(' · ');

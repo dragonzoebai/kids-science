@@ -37,10 +37,15 @@ test('rooster map renders all 34 regions, highlights provinces and supports guid
   assert.equal(paths.filter(path => path.classList.contains('active')).length, 6);
   assert.equal(spoken.length, 0, 'narration waits for interaction');
   // Speech completion, rather than estimated timers, advances the highlighted line.
+  const lyricPanel = document.getElementById('poem-lines');
+  lyricPanel.clientHeight = 180;
+  lyricPanel.children.forEach((button,index) => { button.offsetTop = index * 44; button.offsetHeight = 44; });
   document.getElementById('poem-lines').children[2].handlers.click();
+  assert.equal(lyricPanel.scrollTop, 20);
   assert.equal(paths.filter(path => path.classList.contains('active')).length, 6);
   assert.match(document.getElementById('description').textContent, /东北三省/);
   utterances.at(-1).onend();
+  assert.equal(lyricPanel.scrollTop, 64, 'lyric container follows the next spoken line');
   assert.match(document.getElementById('description').textContent, /内蒙甘肃/);
   assert.equal(paths.filter(path => path.classList.contains('active')).length, 4);
   const stale = utterances.at(-1).onend;
@@ -49,6 +54,7 @@ test('rooster map renders all 34 regions, highlights provinces and supports guid
   document.getElementById('poem-play').handlers.click();
   assert.match(spoken.at(-1), /内蒙甘肃/);
   document.getElementById('poem-restart').handlers.click();
+  assert.equal(lyricPanel.scrollTop, 0, 'restarting returns the lyric panel to the top');
   assert.match(spoken.at(-1), /中国地图像雄鸡/);
   assert.equal(paths.filter(path => path.classList.contains('active')).length, 68);
   spoken.length = 0;
