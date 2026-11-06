@@ -20,6 +20,7 @@ main{padding:14px 18px 24px;max-width:1440px}header{gap:12px}h1{font-size:28px;m
 main{max-width:none;padding:8px}.lab{gap:10px}.map-card{padding:8px}.map-card>.map-note{display:none}#map{margin:4px 0 0}
 @media(min-width:900px) and (min-height:500px){.lab{grid-template-columns:minmax(0,1fr) 240px;height:calc(100svh - 24px)}}
 @media(min-width:600px) and (max-width:899px){#map{max-height:calc(100svh - 60px)}}
+.map-top{font-size:20px;font-weight:700;padding:4px 6px}.poem-panel>div>strong{font-size:18px}
 </style>
 </head>
 <body><main>
@@ -27,10 +28,10 @@ main{max-width:none;padding:8px}.lab{gap:10px}.map-card{padding:8px}.map-card>.m
 <div id="audio-controls" hidden aria-hidden="true"></div>
 
 <section class="lab" aria-label="雄鸡地图互动实验">
-<div class="map-card"><div class="map-top"><span>地图里，藏着一只雄鸡</span><span>北 ↑ · 东 →</span></div><p id="error" class="error" hidden>地图数据暂时没有加载成功，请刷新重试。你仍可以点右侧部位听讲解。</p><svg id="map" viewBox="0 0 900 680" role="img" aria-label="中国省级行政区地图，点选下方省份按钮也能查看与听讲解"><defs><clipPath id="main-clip"><rect width="900" height="560"/></clipPath><clipPath id="sea-clip"><rect x="742" y="450" width="142" height="214"/></clipPath></defs><g id="main-map" clip-path="url(#main-clip)"></g><g id="labels"></g><rect x="742" y="450" width="142" height="214" rx="10" fill="#e6f1eb" stroke="#b7cdbd"/><g id="sea-map" clip-path="url(#sea-clip)"></g><text x="813" y="650" text-anchor="middle" class="map-label">南海诸岛</text><text x="42" y="625" class="map-label">暖黄色：当前认识的区域</text></svg><p class="map-note">小地方在地图上不容易点到？下方有全部 34 个省级行政区的轻触按钮。</p></div>
-<aside class="panel poem-panel" aria-label="&#20799;&#27468;&#36880;&#21477;&#26391;&#35835;"><div><strong>中国行政区儿歌 · 逐句朗读</strong><div class="actions"><button id="poem-play">▶ 朗读儿歌</button><button id="poem-restart">从头朗读</button></div></div><div id="poem-lines"  aria-label="儿歌歌词，点选一句从该句开始朗读"></div><div hidden aria-hidden="true"><h2 id="heading"></h2><p id="description"></p><div id="province-name"></div><p id="status"></p></div></aside>
+<div class="map-card"><div class="map-top"><span>地图里，藏着一只雄鸡</span></div><p id="error" class="error" hidden>地图加载失败，请刷新重试。</p><svg id="map" viewBox="0 0 900 680" role="img" aria-label="中国省级行政区地图，随儿歌高亮对应区域"><defs><clipPath id="main-clip"><rect width="900" height="560"/></clipPath><clipPath id="sea-clip"><rect x="742" y="450" width="142" height="214"/></clipPath></defs><g id="main-map" clip-path="url(#main-clip)"></g><g id="labels"></g><rect x="742" y="450" width="142" height="214" rx="10" fill="#e6f1eb" stroke="#b7cdbd"/><g id="sea-map" clip-path="url(#sea-clip)"></g><text x="813" y="650" text-anchor="middle" class="map-label">南海诸岛</text></svg></div>
+<aside class="panel poem-panel" aria-label="&#20799;&#27468;&#36880;&#21477;&#26391;&#35835;"><div><strong>中国行政区儿歌</strong><div class="actions"><button id="poem-play">▶ 朗读儿歌</button><button id="poem-restart">从头朗读</button></div></div><div id="poem-lines"  aria-label="儿歌歌词，点选一句从该句开始朗读"></div><div hidden aria-hidden="true"><h2 id="heading"></h2><p id="description"></p><div id="province-name"></div><p id="status"></p></div></aside>
 </section>
-<details class="province-picker"><summary>34 个省级行政区 · 点名字找位置</summary><div class="province-list" id="province-list"></div></details>
+
 
 </main>
 <script src="../physics/lab-audio.js"></script>

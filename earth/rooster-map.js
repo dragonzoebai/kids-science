@@ -123,8 +123,9 @@
     if (event.target.closest?.('#audio-speech, #audio-intro')) { stopPoem(); update(); }
   });
   document.addEventListener?.('visibilitychange', () => { if (document.hidden && poemPlaying) stopPoem(false); });
-  NAMES.forEach((name,index) => {
-    const button = document.createElement('button'); button.textContent = name; button.dataset.province = CODES[index]; button.addEventListener('click', () => selectProvince(CODES[index])); document.getElementById('province-list').appendChild(button);
+  const provinceList = document.getElementById('province-list');
+  if (provinceList) NAMES.forEach((name,index) => {
+    const button = document.createElement('button'); button.textContent = name; button.dataset.province = CODES[index]; button.addEventListener('click', () => selectProvince(CODES[index])); provinceList.appendChild(button);
   });
   const project = ([lon,lat]) => [(lon - 73) * 12.2 + 28, (54 - lat) * 14.3 + 12];
   const seaProject = ([lon,lat]) => [750 + (lon - 105) * 6.4, 465 + (24 - lat) * 8.1];
