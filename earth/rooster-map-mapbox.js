@@ -31,7 +31,7 @@ window.createRoosterMapbox = function (onSelect) {
   }
   try {
     if (!window.mapboxgl || !mapboxgl.supported()) throw new Error('Mapbox unavailable');
-    map = new mapboxgl.Map({ container: 'mapbox-map', style: 'mapbox://styles/mapbox/dark-v11', center: [105, 32], zoom: 3, projection: 'globe', antialias: true, attributionControl: false });
+    map = new mapboxgl.Map({ container: 'mapbox-map', style: 'mapbox://styles/mapbox/dark-v11', center: [105, 32], zoom: 3.4, projection: 'globe', antialias: true, attributionControl: false });
     map.addControl(new mapboxgl.AttributionControl({ compact: true }), 'bottom-left');
     map.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), 'top-left');
     // 与地铁页一致：底图所有文字图层优先显示简体中文。
@@ -52,7 +52,7 @@ window.createRoosterMapbox = function (onSelect) {
     });
     map.on('error', fail);
     const resize = new ResizeObserver(() => { map.resize(); map.setPadding(viewPadding()); }); resize.observe(document.getElementById('mapbox-map'));
-    document.getElementById('map-home').addEventListener('click', () => map.flyTo({ center: [105, 32], zoom: 3, bearing: 0, pitch: 0, padding: viewPadding(), duration: 900, essential: false }));
+    document.getElementById('map-home').addEventListener('click', () => map.flyTo({ center: [105, 32], zoom: 3.4, bearing: 0, pitch: 0, padding: viewPadding(), duration: 900, essential: false }));
   } catch { fail(); }
   return { highlight, setData(value) { data = value; render(); } };
 };
