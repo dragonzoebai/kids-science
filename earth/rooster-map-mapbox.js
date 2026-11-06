@@ -3,7 +3,7 @@ window.createRoosterMapbox = function (onSelect) {
   let map, data, ready = false, codes = [], selected = null;
   function viewPadding() {
     if (window.innerWidth <= 640) return { top: 64, right: 20, bottom: Math.max(210, Math.min(window.innerHeight * .36, 300)) + 24, left: 20 };
-    return { top: 64, right: window.innerWidth <= 900 ? 290 : 340, bottom: 50, left: 40 };
+    return { top: 64, right: window.innerWidth <= 900 ? 320 : 340, bottom: 50, left: 40 };
   }
   function fail() { error.hidden = false; error.textContent = 'Mapbox 底图暂不可用，请检查网络或使用 SVG 版；儿歌与省份按钮仍可使用。'; }
   function highlight(nextCodes, nextSelected) {

@@ -21,8 +21,8 @@ button:disabled { opacity: .5; cursor: default; }
 .mapboxgl-ctrl-top-left { top: 64px; left: 6px; }
 .error { position: fixed; bottom: 110px; left: 16px; right: 340px; z-index: 4; padding: 12px; border: 1px solid #d7b25e; border-radius: 12px; background: #302614ed; color: #ffe4a6; font-size: 13px; line-height: 1.7; }
 @media (max-width: 900px) and (min-width: 641px) {
-  .poem-panel { width: 260px; padding: 14px; right: 12px; top: 12px; bottom: 12px; }
-  .map-top, .error { right: 290px; }
+  .poem-panel { width: 290px; padding: 14px; right: 12px; top: 12px; bottom: 12px; }
+  .map-top, .error { right: 320px; }
   .poem-panel strong { font-size: 15px; }
 }
 @media (max-width: 640px) {
