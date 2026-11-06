@@ -34,6 +34,16 @@ window.createRoosterMapbox = function (onSelect) {
     map = new mapboxgl.Map({ container: 'mapbox-map', style: 'mapbox://styles/mapbox/dark-v11', center: [105, 32], zoom: 2.5, projection: 'globe', antialias: true, attributionControl: false });
     map.addControl(new mapboxgl.AttributionControl({ compact: true }), 'bottom-left');
     map.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), 'top-left');
+    // 与地铁页一致：底图所有文字图层优先显示简体中文。
+    map.on('style.load', () => {
+      for (const layer of map.getStyle().layers || []) {
+        if (layer.type === 'symbol' && layer.layout?.['text-field']) {
+          map.setLayoutProperty(layer.id, 'text-field', [
+            'coalesce', ['get', 'name_zh-Hans'], ['get', 'name_zh'], ['get', 'name'],
+          ]);
+        }
+      }
+    });
     map.on('load', () => {
       ready = true;
       map.setPadding(viewPadding());
