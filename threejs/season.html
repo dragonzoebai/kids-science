@@ -84,7 +84,6 @@
     <li class="season-marker">● 绿色点 — 四季节点</li>
     <li>🔴 红线 — 地球自转轴</li>
     <li>🟢 绿线 — 赤道</li>
-    <li>🟡 黄面 — 黄道面</li>
   </ul>
 </div>
 
@@ -197,19 +196,6 @@ for (const [scale, opacity, color] of [
 const EARTH_DIST = 200;          // 地球公转半径
 const EARTH_R = 8;               // 地球半径
 const OBLIQUITY = 0.409;         // 黄赤交角（约23.5度）
-
-/* ── 黄道面（黄色半透明圆盘）──────────────────────── */
-const eclipticPlane = new THREE.Mesh(
-  new THREE.CircleGeometry(EARTH_DIST * 1.5, 128),
-  new THREE.MeshBasicMaterial({
-    color: 0xffcc44,
-    transparent: true,
-    opacity: 0.08,
-    side: THREE.DoubleSide
-  })
-);
-eclipticPlane.rotation.x = -Math.PI / 2;
-scene.add(eclipticPlane);
 
 /* ── 地球公转轨道 ───────────────────────────────── */
 function orbitLine(radius) {
