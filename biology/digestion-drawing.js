@@ -67,14 +67,16 @@ window.drawDigestiveSystem = function (g, state, time = 0) {
   path([['moveTo', 339, 78], ['bezierCurveTo', 335, 29, 462, 25, 461, 79],
     ['bezierCurveTo', 470, 118, 444, 151, 401, 154],
     ['bezierCurveTo', 360, 153, 330, 124, 339, 78], ['closePath']], '#ffe0c6');
-  path([['moveTo', 338, 84], ['bezierCurveTo', 327, 53, 345, 27, 371, 29],
-    ['quadraticCurveTo', 377, 15, 396, 24], ['quadraticCurveTo', 411, 12, 423, 27],
-    ['bezierCurveTo', 458, 22, 476, 52, 462, 85],
-    ['quadraticCurveTo', 447, 79, 439, 58],
-    ['quadraticCurveTo', 429, 76, 414, 77], ['quadraticCurveTo', 418, 69, 415, 62],
-    ['quadraticCurveTo', 395, 82, 374, 75], ['quadraticCurveTo', 378, 69, 376, 64],
-    ['quadraticCurveTo', 357, 82, 338, 84], ['closePath']], '#70513f');
-  path([['moveTo', 351, 53], ['quadraticCurveTo', 364, 37, 381, 40]], null, '#947056', 4);
+  // 贴合头形的短发，露出额头和耳朵，前额仅保留短短的碎发。
+  path([['moveTo', 339, 82], ['bezierCurveTo', 335, 53, 352, 33, 376, 31],
+    ['quadraticCurveTo', 387, 25, 397, 30], ['quadraticCurveTo', 408, 24, 418, 31],
+    ['bezierCurveTo', 446, 32, 464, 53, 461, 82],
+    ['lineTo', 453, 77], ['lineTo', 449, 62],
+    ['quadraticCurveTo', 434, 55, 424, 59], ['lineTo', 420, 65], ['lineTo', 414, 59],
+    ['lineTo', 403, 61], ['lineTo', 398, 67], ['lineTo', 392, 61],
+    ['quadraticCurveTo', 369, 56, 351, 64], ['lineTo', 347, 77],
+    ['closePath']], '#70513f');
+  path([['moveTo', 357, 49], ['quadraticCurveTo', 371, 38, 384, 40]], null, '#947056', 3);
   // 有高光的大眼睛、轻轻上扬的眉毛与腮红。
   path([['moveTo', 369, 86], ['quadraticCurveTo', 377, 80, 385, 85]], null, '#70513f', 2.5);
   path([['moveTo', 415, 85], ['quadraticCurveTo', 423, 80, 431, 86]], null, '#70513f', 2.5);
