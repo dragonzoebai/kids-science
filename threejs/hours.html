@@ -94,7 +94,9 @@
     <span style="color:#00ff88">━ 赤道 0°纬线</span><br>
     <span style="color:#ffd700">━ 本初子午线 0°经线</span><br>
     <span style="color:#ffd700">━ 国际日期变更线（180°经线示意）</span>
+    <br><span style="color:#ffee66">➜ 太阳直射光线</span>
   </p>
+  <p id="solar-info" style="font-size:12px;line-height:1.7;margin:6px 0 0;color:#ffee99"></p>
 </div>
 
 <div id="clock-panel">
@@ -248,6 +250,26 @@ const earthMesh = new THREE.Mesh(
   })
 );
 earthGroup.add(earthMesh);
+
+// Parallel sunlight reaches the subsolar point along world +X.
+// Keep the Sun fixed: the Earth's seasonal tilt changes the latitude beneath this ray.
+const solarRay = new THREE.ArrowHelper(
+  new THREE.Vector3(-1, 0, 0),
+  new THREE.Vector3(SUN_POS.x - SUN_R, 0, 0),
+  SUN_POS.x - SUN_R - EARTH_R - 1,
+  0xffee66, 14, 7
+);
+scene.add(solarRay);
+// Repeat direction arrows near Earth so the ray is readable even with the Sun offscreen.
+for (const x of [160, 230, 310]) {
+  scene.add(new THREE.ArrowHelper(new THREE.Vector3(-1, 0, 0), new THREE.Vector3(x + 20, 0, 0), 20, 0xffee66, 9, 5));
+}
+const subsolarMarker = new THREE.Mesh(
+  new THREE.SphereGeometry(2, 16, 16),
+  new THREE.MeshBasicMaterial({ color: 0xffee66 })
+);
+subsolarMarker.position.set(EARTH_R + 1, 0, 0);
+scene.add(subsolarMarker);
 
 // Atmosphere rim
 const atmo = new THREE.Mesh(
@@ -511,6 +533,8 @@ let currentSeason = 0; // Default to 春分
 function setSeason(seasonIndex) {
   currentSeason = seasonIndex;
   seasonGroup.rotation.y = SEASON_ANGLES[seasonIndex];
+  const destination = ['赤道（0°）', '北回归线（23.44°N）', '赤道（0°）', '南回归线（23.44°S）'][seasonIndex];
+  document.getElementById('solar-info').textContent = `${SEASON_NAMES[seasonIndex]}：太阳直射${destination}。箭头指向直射点；季节变化由地轴倾斜示意。`;
 
   // Update pole positions for label drawing
   for (const pole of POLES) {
@@ -576,6 +600,19 @@ const cityLabelHits = [];
 function drawLabels() {
   cityLabelHits.length = 0;
   lctx.clearRect(0, 0, labelCanvas.width, labelCanvas.height);
+
+  const solarProjection = subsolarMarker.position.clone().project(camera);
+  const solarToCamera = camera.position.clone().sub(subsolarMarker.position);
+  if (solarToCamera.x > 0 && solarProjection.z >= -1 && solarProjection.z <= 1) {
+    const x = (solarProjection.x * .5 + .5) * labelCanvas.width;
+    const y = (-solarProjection.y * .5 + .5) * labelCanvas.height;
+    lctx.font = 'bold 14px Arial';
+    lctx.lineWidth = 4;
+    lctx.strokeStyle = 'rgba(0,0,0,.85)';
+    lctx.strokeText('太阳直射点', x + 10, y - 10);
+    lctx.fillStyle = '#ffee66';
+    lctx.fillText('太阳直射点', x + 10, y - 10);
+  }
 
   for (const city of CITIES) {
     const wp = new THREE.Vector3();
