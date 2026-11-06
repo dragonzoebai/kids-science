@@ -20,3 +20,5 @@ aside{position:fixed;z-index:3;top:max(16px,env(safe-area-inset-top));right:max(
  #result{top:max(12px,env(safe-area-inset-top));bottom:auto;left:12px;right:12px;max-height:110px;font-size:15px}
  #controls{display:block}label{margin-bottom:4px}input[type=range]{margin:0}#audio-controls{margin:6px 0 0}
 }
+
+#audio-controls[hidden]{display:none!important}
