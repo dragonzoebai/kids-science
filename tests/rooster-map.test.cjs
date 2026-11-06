@@ -5,10 +5,10 @@ const vm = require('node:vm');
 const data = JSON.parse(fs.readFileSync(require.resolve('../earth/china-provinces.json'), 'utf8'));
 
 test('rooster map renders all 34 regions, highlights provinces and supports guided reset', async () => {
-  const nodes = [], ids = new Map(), spoken = [];
+  const nodes = [], ids = new Map(), spoken = [], utterances = [];
   function node() {
     const classes = new Set();
-    const el = { dataset: {}, children: [], attributes: {}, handlers: {}, textContent: '', hidden: true,
+    const el = { dataset: {}, style: {}, children: [], attributes: {}, handlers: {}, textContent: '', hidden: true,
       setAttribute(key, value) { this.attributes[key] = String(value); if (key === 'class') String(value).split(' ').forEach(item => classes.add(item)); },
       addEventListener(key, value) { this.handlers[key] = value; }, appendChild(child) { this.children.push(child); },
       classList: { toggle(key, enabled) { if (enabled) classes.add(key); else classes.delete(key); }, contains: key => classes.has(key) },
@@ -25,7 +25,7 @@ test('rooster map renders all 34 regions, highlights provinces and supports guid
     },
   };
   vm.runInNewContext(fs.readFileSync(require.resolve('../earth/rooster-map.js'), 'utf8'), {
-    document, createLabAudio: () => ({ say(text) { spoken.push(text); }, effect() {} }),
+    document, createLabAudio: () => ({ say(text, onend) { spoken.push(text); const u = { onend }; utterances.push(u); return u; }, effect() {}, stop() {} }),
     fetch: async () => ({ ok: true, json: async () => data }),
   });
   await new Promise(resolve => setImmediate(resolve));
@@ -36,6 +36,23 @@ test('rooster map renders all 34 regions, highlights provinces and supports guid
   assert.ok(paths.every(path => !/NaN|undefined/.test(path.attributes.d)));
   assert.equal(paths.filter(path => path.classList.contains('active')).length, 6);
   assert.equal(spoken.length, 0, 'narration waits for interaction');
+  // Speech completion, rather than estimated timers, advances the highlighted line.
+  document.getElementById('poem-lines').children[2].handlers.click();
+  assert.equal(paths.filter(path => path.classList.contains('active')).length, 6);
+  assert.match(document.getElementById('description').textContent, /东北三省/);
+  utterances.at(-1).onend();
+  assert.match(document.getElementById('description').textContent, /内蒙甘肃/);
+  assert.equal(paths.filter(path => path.classList.contains('active')).length, 4);
+  const stale = utterances.at(-1).onend;
+  document.getElementById('poem-pause').handlers.click(); stale();
+  assert.match(document.getElementById('description').textContent, /内蒙甘肃/);
+  document.getElementById('poem-play').handlers.click();
+  assert.match(spoken.at(-1), /内蒙甘肃/);
+  document.getElementById('poem-restart').handlers.click();
+  assert.match(spoken.at(-1), /中国地图像雄鸡/);
+  document.getElementById('reset').handlers.click();
+  assert.equal(paths.filter(path => path.classList.contains('active')).length, 6);
+  spoken.length = 0;
   const taiwan = document.querySelectorAll('[data-province]').find(button => Number(button.dataset.province) === 710000);
   taiwan.handlers.click();
   assert.equal(paths.filter(path => path.classList.contains('chosen')).length, 2);

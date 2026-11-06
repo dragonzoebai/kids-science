@@ -7,12 +7,13 @@ window.createLabAudio = function ({ intro }) {
   const style = document.createElement('style');
   style.textContent = '#audio-controls{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:18px}#audio-controls button{font:inherit;font-size:13px;min-height:44px;padding:10px 14px;border:1px solid #8194a366;border-radius:14px;background:#8194a318;color:inherit;cursor:pointer;touch-action:manipulation}#audio-controls button[aria-pressed="false"]{opacity:.65}#audio-note{font-size:12px;opacity:.7}';
   document.head.appendChild(style);
-  function say(text) {
+  function say(text, onend) {
     if (!speechEnabled || !synth || !text) return;
     try {
       synth.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = 'zh-CN'; utterance.rate = .9; utterance.pitch = 1.05;
+      if (onend) utterance.onend = onend;
       const voices = synth.getVoices();
       const voice = voices.find(v => /^zh[-_]CN/i.test(v.lang)) || voices.find(v => /^zh/i.test(v.lang));
       if (voice) utterance.voice = voice;
@@ -20,6 +21,7 @@ window.createLabAudio = function ({ intro }) {
         if (!['canceled', 'interrupted'].includes(event.error)) document.getElementById('audio-note').textContent = '语音暂不可用，请阅读页面提示。';
       };
       synth.speak(utterance);
+      return utterance;
     } catch { document.getElementById('audio-note').textContent = '语音暂不可用，请阅读页面提示。'; }
   }
   function effect(kind = 'add') {
@@ -63,5 +65,5 @@ window.createLabAudio = function ({ intro }) {
   }
   document.addEventListener('visibilitychange', () => { if (document.hidden) { synth?.cancel(); context?.suspend().catch(() => {}); } });
   window.addEventListener('pagehide', () => { synth?.cancel(); context?.suspend().catch(() => {}); });
-  return { say, effect };
+  return { say, effect, stop() { synth?.cancel(); } };
 };

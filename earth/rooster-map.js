@@ -13,10 +13,23 @@
   const NS = 'http://www.w3.org/2000/svg';
   const audio = createLabAudio({ intro: '中国地图的外形，让人联想到一只昂首挺胸的雄鸡。点选鸡头、鸡背、鸡尾等部位，听讲解、找省份。下一处按钮带你按顺序认识。也可以轻触地图或下方的省份名字，单独认识一个省级行政区。' });
   let current = 0, chosen = null, features = [];
+  const LYRICS = [
+    ['中国地图像雄鸡，', CODES], ['昂首挺胸真神气。', CODES],
+    ['东北三省在鸡头，', [210000,220000,230000]], ['内蒙甘肃在鸡背；', [150000,620000]],
+    ['新疆西藏在鸡尾，', [650000,540000]], ['云南广东在鸡腿；', [530000,440000]],
+    ['海南南海诸群岛，', [460000,'100000_JD']], ['就像雄鸡长长的脚；', [460000,'100000_JD']],
+    ['广西福建在鸡腹，', [450000,350000]], ['浙江上海在鸡胸；', [330000,310000]],
+    ['江苏山东临黄海，', [320000,370000]], ['台湾围在东海中；', [710000]],
+    ['天津河北守鸡口，', [120000,130000]], ['保卫首都北京城。', [110000]],
+    ['看地图，记地名，', CODES], ['祖国就在我心中', CODES],
+  ];
+  let poemCodes = null, poemIndex = 0, poemPlaying = false, poemGeneration = 0;
+  const lyricButtons = [];
   const status = document.getElementById('status');
   function svgElement(name, attributes) { const el = document.createElementNS(NS, name); Object.entries(attributes).forEach(([key,value]) => el.setAttribute(key,value)); return el; }
   function shortName(code) { return NAMES[CODES.indexOf(Number(code))] || ''; }
   function selectPart(index, speak = true) {
+    stopPoem();
     current = index; chosen = null;
     const part = PARTS[index];
     document.getElementById('heading').textContent = part.title;
@@ -26,6 +39,7 @@
     update(); if (speak) { audio.effect(); audio.say(part.text); }
   }
   function selectProvince(code) {
+    stopPoem();
     const name = shortName(code); if (!name) return;
     chosen = Number(code);
     const index = PARTS.findIndex(part => part.codes.includes(chosen));
@@ -44,10 +58,62 @@
     document.querySelectorAll('[data-province]').forEach(button => button.setAttribute('aria-pressed', String(Number(button.dataset.province) === chosen)));
     document.querySelectorAll('.province').forEach(path => {
       const code = Number(path.dataset.code);
-      path.classList.toggle('active', chosen === null && PARTS[current].codes.includes(code));
+      path.classList.toggle('active', poemCodes ? poemCodes.includes(code) : chosen === null && PARTS[current].codes.includes(code));
       path.classList.toggle('chosen', code === chosen);
     });
+    document.querySelectorAll('.border-lines').forEach(path => {
+      path.setAttribute('stroke', poemCodes?.includes('100000_JD') ? '#dc8933' : '#718f86');
+      path.setAttribute('stroke-width', poemCodes?.includes('100000_JD') ? 3 : 1.2);
+    });
   }
+  function poemControls() {
+    document.getElementById('poem-play').textContent = poemPlaying ? '正在朗读…' : poemCodes ? '▶ 继续本句' : '▶ 朗读儿歌';
+    document.getElementById('poem-play').disabled = poemPlaying;
+    document.getElementById('poem-pause').disabled = !poemPlaying;
+  }
+  function stopPoem(clear = true) {
+    poemGeneration++;
+    if (poemPlaying) audio.stop?.();
+    poemPlaying = false;
+    if (clear) { poemCodes = null; lyricButtons.forEach(button => { button.setAttribute('aria-current', 'false'); button.style.background = 'transparent'; }); }
+    poemControls();
+  }
+  function readLine() {
+    const generation = ++poemGeneration;
+    poemPlaying = true; chosen = null; poemCodes = LYRICS[poemIndex][1];
+    lyricButtons.forEach((button,index) => {
+      button.setAttribute('aria-current', String(index === poemIndex));
+      button.style.background = index === poemIndex ? '#f7d890' : 'transparent';
+    });
+    document.getElementById('heading').textContent = '儿歌 · 第 ' + (poemIndex + 1) + ' 句';
+    document.getElementById('description').textContent = LYRICS[poemIndex][0];
+    document.getElementById('province-name').textContent = poemCodes.length === CODES.length ? '中国 · 全图' : poemCodes.map(code => shortName(code) || '南海诸岛').join(' · ');
+    status.textContent = `正在朗读第 ${poemIndex + 1} / ${LYRICS.length} 句。暖黄色与当前句对应。`;
+    update(); poemControls();
+    const utterance = audio.say(LYRICS[poemIndex][0], () => {
+      if (generation !== poemGeneration || !poemPlaying) return;
+      if (poemIndex < LYRICS.length - 1) { poemIndex++; readLine(); }
+      else { stopPoem(false); poemIndex = 0; document.getElementById('poem-play').textContent = '▶ 再读一遍'; status.textContent = '儿歌朗读完成！点选一句可以从那里重新开始。'; }
+    });
+    if (!utterance) { stopPoem(false); status.textContent = '请先打开“讲解”开关；若浏览器不支持语音，仍可点选歌词查看区域。'; }
+    else {
+      const originalError = utterance.onerror;
+      utterance.onerror = event => { originalError?.(event); if (generation === poemGeneration) { stopPoem(false); status.textContent = '朗读已停止，可点继续重试。'; } };
+    }
+  }
+  LYRICS.forEach(([line],index) => {
+    const button = document.createElement('button'); button.textContent = line;
+    button.style.cssText = 'display:block;min-height:44px;width:100%;text-align:left;border:0;border-radius:8px;padding:6px 12px;background:transparent';
+    button.addEventListener('click', () => { stopPoem(); poemIndex = index; readLine(); });
+    lyricButtons.push(button); document.getElementById('poem-lines').appendChild(button);
+  });
+  document.getElementById('poem-play').addEventListener('click', readLine);
+  document.getElementById('poem-pause').addEventListener('click', () => { stopPoem(false); status.textContent = '已暂停，继续时从本句重新朗读。'; });
+  document.getElementById('poem-restart').addEventListener('click', () => { stopPoem(); poemIndex = 0; readLine(); });
+  document.getElementById('audio-controls').addEventListener('click', event => {
+    if (event.target.closest?.('#audio-speech, #audio-intro')) { stopPoem(); update(); }
+  });
+  document.addEventListener?.('visibilitychange', () => { if (document.hidden && poemPlaying) stopPoem(false); });
   PARTS.forEach((part,index) => {
     const button = document.createElement('button'); button.textContent = part.name; button.dataset.part = index; button.addEventListener('click', () => selectPart(index)); document.getElementById('regions').appendChild(button);
   });
@@ -55,7 +121,7 @@
     const button = document.createElement('button'); button.textContent = name; button.dataset.province = CODES[index]; button.addEventListener('click', () => selectProvince(CODES[index])); document.getElementById('province-list').appendChild(button);
   });
   document.getElementById('next').addEventListener('click', () => selectPart((current + 1) % PARTS.length));
-  document.getElementById('listen').addEventListener('click', () => audio.say(document.getElementById('description').textContent));
+  document.getElementById('listen').addEventListener('click', () => { stopPoem(false); audio.say(document.getElementById('description').textContent); });
   document.getElementById('reset').addEventListener('click', () => { audio.effect('reset'); selectPart(0); });
   const project = ([lon,lat]) => [(lon - 73) * 12.2 + 28, (54 - lat) * 14.3 + 12];
   const seaProject = ([lon,lat]) => [750 + (lon - 105) * 6.4, 465 + (24 - lat) * 8.1];
