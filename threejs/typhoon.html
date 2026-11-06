@@ -500,12 +500,12 @@
         group.add(ring);
       }
 
-      const eye = new THREE.Mesh(new THREE.CircleGeometry(7.2, 64), eyeMat);
+      const eye = new THREE.Mesh(new THREE.CircleGeometry(2.8, 64), eyeMat);
       eye.position.z = 4.2;
       group.add(eye);
 
       const wall = new THREE.Mesh(
-        new THREE.TorusGeometry(9.8, 1.4, 12, 80),
+        new THREE.TorusGeometry(3.6, .6, 12, 80),
         new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: .74, depthWrite: false, blending: THREE.AdditiveBlending })
       );
       wall.position.z = 4.4;
@@ -662,10 +662,10 @@
         dot.scale.setScalar(.7 + Math.sin(t * 7 + i) * .18 + state.energy * .35);
       });
 
-      const stormPos = pointOnRoute(state.travel).normalize().multiplyScalar(EARTH_R + 13.5);
+      const stormPos = pointOnRoute(state.travel).normalize().multiplyScalar(EARTH_R + 2.5);
       typhoon.position.copy(stormPos);
       orientStorm(typhoon, stormPos, -t * (1.4 + state.energy * 3.2));
-      typhoon.scale.setScalar(.26 + state.energy * .92);
+      typhoon.scale.setScalar(.05 + state.energy * .17);
       typhoon.visible = state.energy > .025;
 
       typhoon.children.forEach((child, i) => {
@@ -683,17 +683,17 @@
       debrisPoints.forEach((p, i) => {
         const spread = Math.max(0, (state.u - .70) / .30);
         const angle = p.userData.seed + t * (.4 + p.userData.drift * .1);
-        const radius = 8 + spread * (28 + i % 9 * 3.5);
+        const radius = 1.5 + spread * (5 + i % 9 * .6);
         const normal = stormPos.clone().normalize();
         const tangent = new THREE.Vector3(0, 1, 0).cross(normal).normalize();
         const bitangent = normal.clone().cross(tangent).normalize();
         const pos = stormPos.clone()
           .add(tangent.multiplyScalar(Math.cos(angle) * radius))
           .add(bitangent.multiplyScalar(Math.sin(angle) * radius))
-          .add(normal.multiplyScalar(spread * (6 + i % 5)));
+          .add(normal.multiplyScalar(spread * (1 + (i % 5) * .2)));
         p.position.copy(pos);
         p.material.opacity = spread * (1 - state.energy) * (.25 + Math.random() * .08);
-        p.scale.setScalar(.5 + spread * 1.4);
+        p.scale.setScalar(.1 + spread * .26);
       });
 
       controls.update();
