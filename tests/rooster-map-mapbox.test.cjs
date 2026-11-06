@@ -15,9 +15,9 @@ test('Mapbox adapter retains early highlights until data and style are loaded', 
   const elements = new Map();
   const document = { createElement: () => ({ style: {} }), getElementById(id) { if (!elements.has(id)) elements.set(id, { addEventListener() {} }); return elements.get(id); } };
   const mapboxgl = { supported: () => true, Map: function () { return map; }, AttributionControl: function () {}, NavigationControl: function () {} };
-  const window = { mapboxgl, innerWidth: 1024, innerHeight: 768 };
+  const window = { mapboxgl, innerWidth: 1024, innerHeight: 768, location: { href: 'http://127.0.0.1:5500/earth/rooster-map-mapbox.html' } };
   mapboxgl.Marker = function () { markerCount++; this.setLngLat = () => this; this.addTo = () => this; this.remove = () => {}; };
-  vm.runInNewContext(fs.readFileSync(require.resolve('../earth/rooster-map-mapbox.js'), 'utf8'), { window, mapboxgl, document, setTimeout(fn) { timer = fn; return 1; }, clearTimeout() {}, ResizeObserver: class { observe() {} } });
+  vm.runInNewContext(fs.readFileSync(require.resolve('../earth/rooster-map-mapbox.js'), 'utf8'), { window, mapboxgl, document, URL, setTimeout(fn) { timer = fn; return 1; }, clearTimeout() {}, ResizeObserver: class { observe() {} } });
   const renderer = window.createRoosterMapbox(code => { selected = code; });
   renderer.highlight([210000,220000,230000], null);
   renderer.setData(JSON.parse(fs.readFileSync(require.resolve('../earth/china-provinces.json'), 'utf8')));
@@ -38,12 +38,13 @@ test('Mapbox adapter retains early highlights until data and style are loaded', 
   assert.ok(JSON.stringify(paints.get('province-fill:fill-color')).includes('710000'));
   // A failed Mapbox resource switches once and restores the current selection.
   handlers.get('error')({ error: { message: 'Failed to fetch https://api.mapbox.com/styles/v1/mapbox/dark-v11' } });
-  assert.equal(satelliteStyle.sources['amap-satellite'].type, 'raster');
-  assert.ok(satelliteStyle.sources['amap-satellite'].tiles.every(url => url.startsWith('https://webst')));
+  assert.equal(satelliteStyle.sources['local-earth'].type, 'raster');
+  assert.equal(satelliteStyle.sources['local-earth'].tiles[0], 'http://127.0.0.1:5500/earth/earth-tiles/{z}/{x}/{y}.webp');
+  assert.equal(satelliteStyle.sources['local-earth'].maxzoom, 3);
   assert.equal(satelliteStyle.glyphs, undefined);
   handlers.get('style.load')();
   assert.ok(layers.has('province-fill'));
-  assert.equal(markerCount, 34, 'satellite labels work without Mapbox glyph requests');
+  assert.equal(markerCount, 34, 'local Earth labels work without Mapbox glyph requests');
   assert.ok(JSON.stringify(paints.get('province-fill:fill-color')).includes('710000'));
   timer();
   handlers.get('error')({ error: { message: 'satellite unavailable' } });

@@ -3,13 +3,13 @@ window.createRoosterMapbox = function (onSelect) {
   let map, data, ready = false, codes = [], selected = null, fallback = false, health;
   const markers = [];
   let styleTimer;
-  function useSatellite() {
+  function useLocalEarth() {
     if (fallback || !map) return;
     fallback = true; ready = false; clearTimeout(styleTimer);
-    // 卫星兜底不依赖 Mapbox 的样式、字体和精灵服务。
+    // 本地地球纹理兜底不依赖外部样式、瓦片、字体和精灵服务。
     map.setStyle({ version: 8, projection: { name: 'globe' }, sources: {
-      'amap-satellite': { type: 'raster', tiles: [1, 2, 3, 4].map(n => `https://webst0${n}.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}`), tileSize: 256, maxzoom: 18, attribution: '© 高德地图' },
-    }, layers: [{ id: 'amap-satellite', type: 'raster', source: 'amap-satellite' }] });
+      'local-earth': { type: 'raster', tiles: [new URL('earth-tiles/{z}/{x}/{y}.webp', window.location.href).href.replace(/%7B/g, '{').replace(/%7D/g, '}')], tileSize: 256, maxzoom: 3, attribution: 'Earth texture: <a href="https://www.solarsystemscope.com/textures/">Solar System Scope</a> · CC BY 4.0' },
+    }, layers: [{ id: 'local-earth', type: 'raster', source: 'local-earth' }] });
   }
   function viewPadding() {
     if (window.innerWidth <= 640) return { top: 64, right: 20, bottom: Math.max(210, Math.min(window.innerHeight * .36, 300)) + 24, left: 20 };
@@ -49,9 +49,9 @@ window.createRoosterMapbox = function (onSelect) {
     if (!window.mapboxgl || !mapboxgl.supported()) throw new Error('Mapbox unavailable');
     map = new mapboxgl.Map({ container: 'mapbox-map', style: 'mapbox://styles/mapbox/dark-v11', center: [105, 32], zoom: 3.4, projection: 'globe', antialias: true, attributionControl: false });
     health = window.watchKidMap?.(map);
-    styleTimer = setTimeout(useSatellite, 15000);
+    styleTimer = setTimeout(useLocalEarth, 15000);
     map.on('error', event => {
-      if (!fallback && (!ready || /api\.mapbox\.com|mapbox:\/\//i.test(event.error?.message || ''))) useSatellite();
+      if (!fallback && (!ready || /api\.mapbox\.com|mapbox:\/\//i.test(event.error?.message || ''))) useLocalEarth();
     });
     map.on('click', 'province-fill', event => { const code = Number(event.features?.[0]?.properties.adcode); if (Number.isFinite(code)) onSelect(code); });
     map.on('mouseenter', 'province-fill', () => { map.getCanvas().style.cursor = 'pointer'; });
