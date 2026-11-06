@@ -76,6 +76,15 @@
 </main>
 <script>
   const groups = [
+    { dir: 'threejs', name: '天文与气象（Three.js）', pages: [
+      ['threejs/ar-earth.html', 'AR 地球 · 转动手机看地球'],
+      ['threejs/hours.html', '北京时间 · 地球自转'],
+      ['threejs/moon.html', '月相 Moon Phases'],
+      ['threejs/season.html', '地球公转与四季 - 黄赤交角'],
+      ['threejs/solar.html', '太阳系 Solar System'],
+      ['threejs/typhoon.html', '台风路径 · 西北太平洋到华南'],
+      ['threejs/watercycle.html', '水循环 · 从太平洋到中国'],
+    ]},
     { dir: 'biology', name: '生物', pages: [
       ['biology/digestion.html', '食物去哪儿了 · 消化之旅'],
       ['biology/food-chain.html', '食物链小森林 · 谁的午饭'],
@@ -101,15 +110,6 @@
       ['physics/rainbow.html', '彩虹形成实验 · 光的魔法小剧场'],
       ['physics/sound.html', '声音是怎么传播的 · 声波小剧场'],
     ]},
-    { dir: 'threejs', name: '天文与气象（Three.js）', pages: [
-      ['threejs/ar-earth.html', 'AR 地球 · 转动手机看地球'],
-      ['threejs/hours.html', '北京时间 · 地球自转'],
-      ['threejs/moon.html', '月相 Moon Phases'],
-      ['threejs/season.html', '地球公转与四季 - 黄赤交角'],
-      ['threejs/solar.html', '太阳系 Solar System'],
-      ['threejs/typhoon.html', '台风路径 · 西北太平洋到华南'],
-      ['threejs/watercycle.html', '水循环 · 从太平洋到中国'],
-    ]},
   ];
 
   const list = document.getElementById('list');
@@ -129,8 +129,8 @@
       const a = document.createElement('a');
       a.className = 'card';
       a.href = href;
-      const pictures = ['🍎','🐰','🌻','🚇','🌏','🐓','🌍','🏙️','🌃','🌋','🚄','🚗','🌐','🚉','🕒','🎨','🔦','🌈','🥁','🌎','☀️','🌙','🍂','🪐','🌀','🌧️'];
-      const names = ['食物去哪儿','谁的午饭','种小花','北京地铁','认识中国','雄鸡地图','唱儿歌看中国','中国城市','世界城市','看看地震','坐高铁','走高速','经线和纬线','找地铁','世界的时间','调颜色','玩彩色光','找彩虹','听声音','转动看地球','白天和黑夜','看月亮','春夏秋冬','太阳系','看台风','小水滴旅行'];
+      const pictures = ['🌎','☀️','🌙','🍂','🪐','🌀','🌧️','🍎','🐰','🌻','🚇','🌏','🐓','🌍','🏙️','🌃','🌋','🚄','🚗','🌐','🚉','🕒','🎨','🔦','🌈','🥁'];
+      const names = ['转动看地球','白天和黑夜','看月亮','春夏秋冬','太阳系','看台风','小水滴旅行','食物去哪儿','谁的午饭','种小花','北京地铁','认识中国','雄鸡地图','唱儿歌看中国','中国城市','世界城市','看看地震','坐高铁','走高速','经线和纬线','找地铁','世界的时间','调颜色','玩彩色光','找彩虹','听声音'];
       const number = [...list.querySelectorAll('a.card')].length + grid.children.length;
       a.setAttribute('data-speak', names[number]);
       const picture = document.createElement('span'); picture.className = 'picture'; picture.setAttribute('aria-hidden', 'true'); picture.textContent = pictures[number];
