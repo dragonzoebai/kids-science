@@ -44,6 +44,8 @@
       bottom: 24px; left: 50%;
       transform: translateX(-50%);
       display: flex; align-items: center; gap: 14px;
+      width: max-content; max-width: calc(100vw - 24px);
+      white-space: nowrap; flex-wrap: nowrap; overflow-x: auto;
       background: rgba(0,0,0,.55);
       border: 1px solid rgba(255,255,255,.12);
       border-radius: 30px;
@@ -51,13 +53,14 @@
       color: #cce; font-size: 13px;
     }
     #panel input[type=range] { width: 160px; accent-color: #ffe066; }
+    #panel > * { flex-shrink: 0; }
 
     #label-canvas { position: absolute; top: 0; left: 0; pointer-events: none; }
 
 @media (max-width: 900px) {
   #ui { top: 10px; left: 10px; max-width: 55vw; font-size: 11px; }
   #ui h2 { font-size: 17px; }
-  #panel { bottom: max(12px, env(safe-area-inset-bottom)); max-width: calc(100vw - 24px); width: max-content; flex-wrap: wrap; justify-content: center; gap: 8px; padding: 8px 12px; border-radius: 16px; }
+  #panel { bottom: max(12px, env(safe-area-inset-bottom)); max-width: calc(100vw - 24px); width: max-content; flex-wrap: nowrap; justify-content: flex-start; gap: 8px; padding: 8px 12px; border-radius: 16px; }
   #panel input[type=range] { width: min(130px, 30vw); }
   #info { top: 115px; left: 10px; width: min(290px, 65vw); max-height: calc(100dvh - 230px); overflow-y: auto; }
   #bodies { right: 8px; max-height: 58dvh; overflow-y: auto; padding: 4px; }
@@ -129,7 +132,7 @@
   <span>速度</span>
   <input type="range" id="speed" min="1" max="2000" step="1" value="1">
   <span id="speed-val" style="min-width:46px">1×</span>
-  <span style="margin-left:20px">季节</span>
+  <span>季节</span>
   <select id="season" style="background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.2);border-radius:4px;padding:4px 8px;color:#cce;font-size:13px;">
     <option value="0" selected>春分 (3月)</option>
     <option value="1">夏至 (6月)</option>
