@@ -27,7 +27,7 @@
   g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,canvas.width,canvas.height);
   g.fillStyle='#f8fcfd';g.fillRect(0,0,canvas.width,canvas.height);
   // 人体图两侧无需保留原画布的空白，竖屏时让人物充分放大。
-  const contentWidth=activity===ScienceActivities.digestion?580:800;
+  const contentWidth=580;
   const scale=Math.min(width/contentWidth,height/500);
   g.setTransform(scale*dpr,0,0,scale*dpr,(width/2-400*scale)*dpr,(height/2-250*scale)*dpr);
   const value=activity.evaluate(state);activity.draw(g,state,value,elapsed);
@@ -37,17 +37,14 @@
  document.getElementById('reset').onclick=()=>{state=Object.fromEntries(activity.controls.map(c=>[c.key,c.value]));elapsed=0;stop();sync();audio.stop();};
  document.getElementById('explain').onclick=()=>audio.say(activity.evaluate(state).message+' '+activity.fact);
  const run=document.getElementById('run');
- const key=document.body.dataset.activity;
- if(['butterfly','digestion','eclipses','friction','weather-lab','water-states'].includes(key)){
+ {
   run.hidden=false;run.textContent=key==='friction'?'释放':'播放';
   run.onclick=()=>{if(running){stop();return;}elapsed=0;startStage=state.stage||0;running=true;run.textContent='暂停';};
  }
  function tick(now){const dt=previous?Math.min(.05,(now-previous)/1000):0;previous=now;
   if(running){elapsed+=dt;
-   if(['butterfly','digestion'].includes(key)){state.stage=Math.min(activity.controls[0].max,startStage+Math.floor(elapsed/2.5));if(elapsed>(activity.controls[0].max-startStage+1)*2.5)stop();}
-   if(key==='eclipses')state.angle=(state.angle+dt*14)%360;
-   if(key==='water-states'){state.energy=Math.min(220,state.energy+dt*8);if(state.energy===220)stop();}
-   if(key==='friction'&&elapsed>25)stop();sync();
+   {state.stage=Math.min(activity.controls[0].max,startStage+Math.floor(elapsed/2.5));if(elapsed>(activity.controls[0].max-startStage+1)*2.5)stop();}
+   sync();
   }frame=requestAnimationFrame(tick);
  }
  document.addEventListener('visibilitychange',()=>{if(document.hidden){stop();cancelAnimationFrame(frame);previous=0;}else{cancelAnimationFrame(frame);frame=requestAnimationFrame(tick);}});
