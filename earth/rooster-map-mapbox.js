@@ -1,6 +1,10 @@
 window.createRoosterMapbox = function (onSelect) {
   const error = document.getElementById('error');
   let map, data, ready = false, codes = [], selected = null;
+  function viewPadding() {
+    if (window.innerWidth <= 640) return { top: 64, right: 20, bottom: Math.max(210, Math.min(window.innerHeight * .36, 300)) + 24, left: 20 };
+    return { top: 64, right: window.innerWidth <= 900 ? 290 : 340, bottom: 50, left: 40 };
+  }
   function fail() { error.hidden = false; error.textContent = 'Mapbox 底图暂不可用，请检查网络或使用 SVG 版；儿歌与省份按钮仍可使用。'; }
   function highlight(nextCodes, nextSelected) {
     codes = nextCodes; selected = nextSelected;
@@ -29,15 +33,16 @@ window.createRoosterMapbox = function (onSelect) {
     if (!window.mapboxgl || !mapboxgl.supported()) throw new Error('Mapbox unavailable');
     map = new mapboxgl.Map({ container: 'mapbox-map', style: 'mapbox://styles/mapbox/dark-v11', center: [105, 32], zoom: 2.5, projection: 'globe', antialias: true, attributionControl: false });
     map.addControl(new mapboxgl.AttributionControl({ compact: true }), 'bottom-left');
-    map.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), 'top-right');
+    map.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), 'top-left');
     map.on('load', () => {
       ready = true;
+      map.setPadding(viewPadding());
       map.setFog({ color: '#182c4e', 'high-color': '#2278be', 'horizon-blend': .03, 'space-color': '#020617', 'star-intensity': .65 });
       render();
     });
     map.on('error', fail);
-    const resize = new ResizeObserver(() => map.resize()); resize.observe(document.getElementById('mapbox-map'));
-    document.getElementById('map-home').addEventListener('click', () => map.flyTo({ center: [105, 32], zoom: 2.5, bearing: 0, pitch: 0, duration: 900, essential: false }));
+    const resize = new ResizeObserver(() => { map.resize(); map.setPadding(viewPadding()); }); resize.observe(document.getElementById('mapbox-map'));
+    document.getElementById('map-home').addEventListener('click', () => map.flyTo({ center: [105, 32], zoom: 2.5, bearing: 0, pitch: 0, padding: viewPadding(), duration: 900, essential: false }));
   } catch { fail(); }
   return { highlight, setData(value) { data = value; render(); } };
 };
