@@ -47,6 +47,8 @@ test('rooster map renders all 34 regions, highlights provinces and supports guid
   utterances.at(-1).onend();
   assert.equal(lyricPanel.scrollTop, 64, 'lyric container follows the next spoken line');
   assert.match(document.getElementById('description').textContent, /内蒙甘肃/);
+  assert.equal(spoken.at(-1), '内蒙甘肃在鸡贝；', 'speech uses bèi while keeping the visible lyric unchanged');
+  assert.equal(lyricPanel.children[3].textContent, '内蒙甘肃在鸡背；');
   assert.equal(paths.filter(path => path.classList.contains('active')).length, 4);
   const stale = utterances.at(-1).onend;
   assert.match(document.getElementById('poem-play').textContent, /暂停/);

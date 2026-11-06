@@ -97,7 +97,9 @@
     document.getElementById('province-name').textContent = poemCodes.length === CODES.length ? '中国 · 全图' : poemCodes.map(code => shortName(code) || '南海诸岛').join(' · ');
     status.textContent = '';
     update(); poemControls();
-    const utterance = audio.say(LYRICS[poemIndex][0], () => {
+    // 仅对朗读使用同音字，避免部分系统语音把“鸡背”读得像“鸡尾”；歌词仍显示原文。
+    const speechText = LYRICS[poemIndex][0].replace(/鸡背/g, '鸡贝');
+    const utterance = audio.say(speechText, () => {
       if (generation !== poemGeneration || !poemPlaying) return;
       if (poemIndex < LYRICS.length - 1) { poemIndex++; readLine(); }
       else { stopPoem(false); poemIndex = 0; document.getElementById('poem-play').textContent = '▶ 再读一遍'; status.textContent = '儿歌朗读完成！点选一句可以从那里重新开始。'; }
