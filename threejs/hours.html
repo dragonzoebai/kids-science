@@ -529,6 +529,8 @@ setSeason(0);
 document.getElementById('season').addEventListener('change', e => {
   const seasonIndex = parseInt(e.target.value);
   setSeason(seasonIndex);
+  clearCityFocus();
+  initialViewSet = false;
 });
 
 /* ── Simulated time (driven by speed slider) ──── */
@@ -824,14 +826,19 @@ function animate() {
   earthMesh.rotation.y = earthRotation(utcH);
   earthMesh.updateWorldMatrix(true, true);
 
-  // Set the opening view after applying the current time and seasonal tilt.
+  // Return to China after applying the current time and seasonal tilt.
   if (!initialViewSet) {
-    const distance = camera.position.length();
+    const distance = Math.max(EARTH_R * 2, camera.position.length());
+    // Flush any remaining drag inertia before setting the new viewing direction.
+    const damping = controls.enableDamping;
+    controls.enableDamping = false;
+    controls.update();
     const chinaDirection = earthMesh.localToWorld(latLon3D(35, 105, EARTH_R)).normalize();
     camera.position.copy(chinaDirection.multiplyScalar(distance));
     controls.target.set(0, 0, 0);
     camera.lookAt(controls.target);
     controls.update();
+    controls.enableDamping = damping;
     initialViewSet = true;
   }
 
