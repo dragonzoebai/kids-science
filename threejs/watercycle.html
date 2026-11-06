@@ -605,7 +605,9 @@
       ctx.closePath();
     }
 
+    let animationFrame;
     function animate() {
+      if (document.hidden) return;
       const dt = clock.getDelta();
       const t = clock.elapsedTime * speed;
       const active = phaseFor(t);
@@ -676,7 +678,7 @@
       earthGroup.updateMatrixWorld();
       drawLabels();
       renderer.render(scene, camera);
-      requestAnimationFrame(animate);
+      animationFrame = requestAnimationFrame(animate);
     }
 
     document.getElementById('speed').addEventListener('input', (event) => {
@@ -692,6 +694,13 @@
     });
 
     updateHud(0);
+    document.addEventListener('visibilitychange', () => {
+      cancelAnimationFrame(animationFrame);
+      if (document.hidden) { clock.stop(); return; }
+      const elapsed = clock.elapsedTime;
+      clock.start(); clock.elapsedTime = elapsed;
+      animate();
+    });
     animate();
   </script>
 <script src="../speak.js"></script>

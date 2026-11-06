@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 
 function setup() {
-  const requests = [], timers = [];
+  const requests = [], timers = [], handlers = {};
   class Texture {
     constructor(image) {this.image = image; this.disposed = 0;}
     dispose() {this.disposed++;}
@@ -13,13 +13,14 @@ function setup() {
     set src(value) {this.url = value; requests.push(this);}
   }
   const context = vm.createContext({THREE: {Texture}, Image,
+    window: {addEventListener(type, fn) {handlers[type] = fn;}},
     setTimeout: fn => timers.push(fn),
     document: {createElement: () => ({getContext: () => ({fillRect() {}})})},
   });
   const code = fs.readFileSync(require.resolve('../threejs/progressive-texture.js'), 'utf8')
     .replace(/^import .*;\r?\n/m, '').replace(/export function /g, 'function ');
   vm.runInContext(code, context);
-  return {context, requests, timers};
+  return {context, requests, timers, handlers};
 }
 const settle = async () => {for (let i=0;i<8;i++) await Promise.resolve();};
 
@@ -55,4 +56,18 @@ test('full image downloads are limited to two concurrent requests and release sl
   requests[3].onerror(); await settle();
   assert.equal(requests.length, 6);
   assert.equal(requests[5].url, 'textures/2k_mars.webp');
+});
+
+test('network recovery retries failed full textures once without duplicating active or successful downloads', async () => {
+  const {context, requests, timers, handlers} = setup();
+  const texture = context.loadProgressiveTexture('textures/2k_moon.webp');
+  requests[0].onload(); await settle(); timers.shift()();
+  requests[1].onerror(); await settle();
+  assert.equal(texture.image, requests[0]);
+  handlers.online(); handlers.online();
+  assert.equal(requests.length, 3);
+  requests[2].onload(); await settle();
+  assert.equal(texture.image, requests[2]);
+  handlers.online();
+  assert.equal(requests.length, 3);
 });

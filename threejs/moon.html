@@ -507,8 +507,10 @@ const earthWP = new THREE.Vector3();
 const moonWP = new THREE.Vector3();
 const sunDirForEarth = new THREE.Vector3();
 const sunDirForMoon = new THREE.Vector3();
+let animationFrame;
 function animate() {
-  requestAnimationFrame(animate);
+  if (document.hidden) return;
+  animationFrame = requestAnimationFrame(animate);
   const frameDt = clock.getDelta();
   const dt = playing ? frameDt * speedFactor : 0;
 
@@ -540,6 +542,13 @@ function animate() {
   updatePhasePanel();
 }
 updatePhasePanel();
+document.addEventListener('visibilitychange', () => {
+  cancelAnimationFrame(animationFrame);
+  if (document.hidden) { clock.stop(); return; }
+  const elapsed = clock.elapsedTime;
+  clock.start(); clock.elapsedTime = elapsed;
+  animate();
+});
 animate();
 </script>
 <script src="../speak.js"></script>

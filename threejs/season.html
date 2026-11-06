@@ -605,8 +605,10 @@ const _spinQ = new THREE.Quaternion();
 let spinAngle = 0;
 let orbitAngle = Math.PI; // 从春分位置开始
 
+let animationFrame;
 function animate() {
-  requestAnimationFrame(animate);
+  if (document.hidden) return;
+  animationFrame = requestAnimationFrame(animate);
   const dt = clock.getDelta() * speedFactor * (playing ? 1 : 0);
   const previousAngle = orbitAngle;
   orbitAngle = advanceOrbit(orbitAngle, dt * 0.25);
@@ -645,6 +647,13 @@ function animate() {
   updateLabels();
   renderer.render(scene, camera);
 }
+document.addEventListener('visibilitychange', () => {
+  cancelAnimationFrame(animationFrame);
+  if (document.hidden) { clock.stop(); return; }
+  const elapsed = clock.elapsedTime;
+  clock.start(); clock.elapsedTime = elapsed;
+  animate();
+});
 animate();
 </script>
 <script src="../speak.js"></script>

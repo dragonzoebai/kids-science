@@ -92,7 +92,7 @@ test('canvas taps work while drags, pinch gestures and cancelled gestures do not
 test('all project HTML pages have a viewport and valid inline JavaScript', () => {
   const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'science-pages-check-'));
   try {
-    for (const dir of ['.', 'earth', 'threejs', 'biology', 'physics', 'wave']) {
+    for (const dir of ['.', 'earth', 'threejs', 'biology', 'physics']) {
       for (const file of fs.readdirSync(path.join(root, dir))) {
         if (!file.endsWith('.html')) continue;
         const name = path.join(dir, file);

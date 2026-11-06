@@ -838,7 +838,9 @@
       steps.forEach((el, i) => el.classList.toggle('active', i === phase));
     }
 
+    let animationFrame;
     function animate() {
+      if (document.hidden) return;
       if (!paused) t += .016;
       drawSky();
       drawGround();
@@ -848,7 +850,7 @@
       drawEar();
       drawSparks();
       updateUI();
-      requestAnimationFrame(animate);
+      animationFrame = requestAnimationFrame(animate);
     }
 
     hitDrum.addEventListener('click', () => trigger('drum'));
@@ -881,6 +883,10 @@
 
     resize();
     updateUI();
+    document.addEventListener('visibilitychange', () => {
+      cancelAnimationFrame(animationFrame);
+      if (!document.hidden) animate();
+    });
     animate();
   </script>
 <script src="../speak.js"></script>

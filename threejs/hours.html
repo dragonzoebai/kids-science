@@ -903,8 +903,10 @@ document.getElementById('reference-frame').addEventListener('change', e => {
   clearCityFocus();
   initialViewSet = false;
 });
+let animationFrame;
 function animate() {
-  requestAnimationFrame(animate);
+  if (document.hidden) return;
+  animationFrame = requestAnimationFrame(animate);
   const dt = clock.getDelta();
   let seasonProgress = 0;
   if (seasonTransition) {
@@ -1010,6 +1012,13 @@ function animate() {
   renderer.render(scene, camera);
   drawLabels();
 }
+document.addEventListener('visibilitychange', () => {
+  cancelAnimationFrame(animationFrame);
+  if (document.hidden) { clock.stop(); return; }
+  const elapsed = clock.elapsedTime;
+  clock.start(); clock.elapsedTime = elapsed;
+  animate();
+});
 animate();
 </script>
 <script src="../speak.js"></script>

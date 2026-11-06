@@ -76,65 +76,60 @@
 </main>
 <script>
   const groups = [
-    { dir: 'threejs', name: '天文与气象（Three.js）', pages: [
-      ['threejs/ar-earth.html', 'AR 地球 · 转动手机看地球'],
-      ['threejs/hours.html', '北京时间 · 地球自转'],
-      ['threejs/moon.html', '月相 Moon Phases'],
-      ['threejs/season.html', '地球公转与四季 - 黄赤交角'],
-      ['threejs/solar.html', '太阳系 Solar System'],
-      ['threejs/typhoon.html', '台风路径 · 西北太平洋到华南'],
-      ['threejs/watercycle.html', '水循环 · 从太平洋到中国'],
+    { dir: 'threejs', name: '天文与气象', pages: [
+      { href: 'threejs/ar-earth.html', title: '转动看地球', icon: '🌎' },
+      { href: 'threejs/hours.html', title: '白天和黑夜', icon: '☀️' },
+      { href: 'threejs/moon.html', title: '看月亮', icon: '🌙' },
+      { href: 'threejs/season.html', title: '春夏秋冬', icon: '🍂' },
+      { href: 'threejs/solar.html', title: '太阳系', icon: '🪐' },
+      { href: 'threejs/typhoon.html', title: '看台风', icon: '🌀' },
+      { href: 'threejs/watercycle.html', title: '小水滴旅行', icon: '🌧️' },
     ]},
     { dir: 'earth', name: '地球与地图', pages: [
-      ['earth/beijing-subway.html', '北京地铁图'],
-      ['earth/china.html', '中国省份与省会 · 三维地球'],
-      ['earth/rooster-map.html', '雄鸡地图 · 点一点认识中国省份'],
-      ['earth/rooster-map-mapbox.html', '雄鸡地图 Mapbox · 儿歌与三维地球'],
-      ['earth/city-china.html', '中国城市人口排行 · 三维地球'],
-      ['earth/city.html', '全球城市人口排行 · 三维地球'],
-      ['earth/earthquake.html', '全球地震可视化 · 三维地球'],
-      ['earth/hsr.html', '中国高速铁路 · 三维地球'],
-      ['earth/highway.html', '全国主要高速公路 · 三维地球'],
-      ['earth/longitude.html', '经纬网可视化 · 三维地球'],
-      ['earth/subway.html', '中国地铁城市 · 三维地球'],
-      ['earth/timezone.html', '理论标准时区边界线 · 三维地球'],
+      { href: 'earth/beijing-subway.html', title: '北京地铁', icon: '🚇' },
+      { href: 'earth/china.html', title: '认识中国', icon: '🌏' },
+      { href: 'earth/rooster-map.html', title: '雄鸡地图', icon: '🐓' },
+      { href: 'earth/rooster-map-mapbox.html', title: '唱儿歌看中国', icon: '🌍' },
+      { href: 'earth/city-china.html', title: '中国城市', icon: '🏙️' },
+      { href: 'earth/city.html', title: '世界城市', icon: '🌃' },
+      { href: 'earth/earthquake.html', title: '看看地震', icon: '🌋' },
+      { href: 'earth/hsr.html', title: '坐高铁', icon: '🚄' },
+      { href: 'earth/highway.html', title: '走高速', icon: '🚗' },
+      { href: 'earth/longitude.html', title: '经线和纬线', icon: '🌐' },
+      { href: 'earth/subway.html', title: '找地铁', icon: '🚉' },
+      { href: 'earth/timezone.html', title: '世界的时间', icon: '🕒' },
     ]},
     { dir: 'biology', name: '生物', pages: [
-      ['biology/digestion.html', '食物去哪儿了 · 消化之旅'],
-      ['biology/food-chain.html', '食物链小森林 · 谁的午饭'],
-      ['biology/plant.html', '小种子花园 · 亲手种与比一比'],
+      { href: 'biology/digestion.html', title: '食物去哪儿', icon: '🍎' },
+      { href: 'biology/food-chain.html', title: '谁的午饭', icon: '🐰' },
+      { href: 'biology/plant.html', title: '种小花', icon: '🌻' },
     ]},
     { dir: 'physics', name: '物理', pages: [
-      ['physics/color-mixing.html', '染料三原色 CMY · 调色实验'],
-      ['physics/light-mixing.html', '光的三原色 RGB · 叠加实验'],
-      ['physics/rainbow.html', '彩虹形成实验 · 光的魔法小剧场'],
-      ['physics/sound.html', '声音是怎么传播的 · 声波小剧场'],
+      { href: 'physics/color-mixing.html', title: '调颜色', icon: '🎨' },
+      { href: 'physics/light-mixing.html', title: '玩彩色光', icon: '🔦' },
+      { href: 'physics/rainbow.html', title: '找彩虹', icon: '🌈' },
+      { href: 'physics/sound.html', title: '听声音', icon: '🥁' },
     ]},
   ];
 
   const list = document.getElementById('list');
-  let total = 0;
   for (const g of groups) {
-    total += g.pages.length;
     const group = document.createElement('details');
     group.className = 'group';
     group.open = true;
     group.classList.toggle('is-expanded', group.open);
     const summary = document.createElement('summary');
     const h = document.createElement('h2');
-    h.textContent = g.name.replace('（Three.js）', '');
+    h.textContent = g.name;
     const grid = document.createElement('div');
     grid.className = 'grid';
-    for (const [href, title] of g.pages) {
+    for (const {href, title, icon} of g.pages) {
       const a = document.createElement('a');
       a.className = 'card';
       a.href = href;
-      const pictures = ['🌎','☀️','🌙','🍂','🪐','🌀','🌧️','🚇','🌏','🐓','🌍','🏙️','🌃','🌋','🚄','🚗','🌐','🚉','🕒','🍎','🐰','🌻','🎨','🔦','🌈','🥁'];
-      const names = ['转动看地球','白天和黑夜','看月亮','春夏秋冬','太阳系','看台风','小水滴旅行','北京地铁','认识中国','雄鸡地图','唱儿歌看中国','中国城市','世界城市','看看地震','坐高铁','走高速','经线和纬线','找地铁','世界的时间','食物去哪儿','谁的午饭','种小花','调颜色','玩彩色光','找彩虹','听声音'];
-      const number = [...list.querySelectorAll('a.card')].length + grid.children.length;
-      a.setAttribute('data-speak', names[number]);
-      const picture = document.createElement('span'); picture.className = 'picture'; picture.setAttribute('aria-hidden', 'true'); picture.textContent = pictures[number];
-      const caption = document.createElement('span'); caption.className = 'title'; caption.textContent = names[number];
+      a.setAttribute('data-speak', title);
+      const picture = document.createElement('span'); picture.className = 'picture'; picture.setAttribute('aria-hidden', 'true'); picture.textContent = icon;
+      const caption = document.createElement('span'); caption.className = 'title'; caption.textContent = title;
       a.append(picture, caption);
       grid.appendChild(a);
     }
