@@ -2,12 +2,8 @@
  const activity=ScienceActivities[document.body.dataset.activity];
  const canvas=document.getElementById('scene'),g=canvas.getContext('2d');
  const controls=document.getElementById('controls'),result=document.getElementById('result');
- document.title=activity.title;document.getElementById('title').textContent=activity.title;
- document.getElementById('question').textContent=activity.question;
- document.getElementById('fact').textContent=activity.fact;
- document.getElementById('note').textContent=activity.note;
+ document.title=activity.title;
  canvas.setAttribute('aria-label',activity.title+'示意图；使用下方或右侧控件操作，结果显示在图下方。');
- if(activity.source){const link=document.createElement('a');link.href=activity.source;link.textContent='知识来源';link.target='_blank';link.rel='noopener';document.getElementById('source').append(link);}
  const audio=window.createLabAudio({intro:activity.question+' '+activity.fact});
  let state={},elapsed=0,running=false,previous=0,frame=0,startStage=0;
  const fields=new Map();
