@@ -33,7 +33,7 @@
       color: #cce; font-size: 13px;
     }
     #panel input[type=range] { width: 160px; accent-color: #ffe066; }
-    #follow-earth, #play-pause { min-height: 44px; padding: 8px 14px; border: 1px solid #ffe066; border-radius: 18px; background: #172439; color: #ffe066; cursor: pointer; }
+    #follow-earth, #play-pause, #north-sky { min-height: 44px; padding: 8px 14px; border: 1px solid #ffe066; border-radius: 18px; background: #172439; color: #ffe066; cursor: pointer; }
 
     #season-info {
       position: absolute;
@@ -84,6 +84,7 @@
     <li class="season-marker">● 绿色点 — 四季节点</li>
     <li>🔴 红线 — 地球自转轴</li>
     <li>🟢 绿线 — 赤道</li>
+    <li>⭐ 北方星空 — 查看北极星与北斗七星（示意）</li>
   </ul>
 </div>
 
@@ -98,6 +99,7 @@
   <input type="range" id="speed" min="0" max="5" step="0.2" value="1">
   <span id="speed-val" style="min-width:36px">1.0×</span>
   <button id="follow-earth" type="button" aria-pressed="false">跟随地球</button>
+  <button id="north-sky" type="button" aria-pressed="false">北方星空</button>
 </div>
 
 <script type="importmap">
@@ -286,9 +288,46 @@ const seasonMarkers = seasons.map(s => {
   return { marker, line, label, labelPos, ...s };
 });
 
+/* ── 北方星空示意：北极星位于地轴北端延长方向 ──── */
+const northDirection = new THREE.Vector3(-Math.sin(OBLIQUITY), Math.cos(OBLIQUITY), 0);
+const skyRight = new THREE.Vector3(0, 0, 1);
+const skyUp = new THREE.Vector3().crossVectors(skyRight, northDirection).normalize();
+function skyPosition(x, y) {
+  return northDirection.clone().addScaledVector(skyRight, x)
+    .addScaledVector(skyUp, y).normalize().multiplyScalar(28000);
+}
+// 教学示意布局，不作为精确星图；七星连成斗形。
+const northernStars = [
+  { name: '北极星', x: 0, y: 0, color: '#ffe066' },
+  { name: '天枢', x: 0.20, y: -0.10 },
+  { name: '天璇', x: 0.24, y: -0.12 },
+  { name: '天玑', x: 0.23, y: -0.23 },
+  { name: '天权', x: 0.12, y: -0.24 },
+  { name: '玉衡', x: 0.04, y: -0.29 },
+  { name: '开阳', x: -0.06, y: -0.28 },
+  { name: '摇光', x: -0.16, y: -0.34 },
+];
+const skyLabels = northernStars.map((star, index) => {
+  const position = skyPosition(star.x, star.y);
+  const geometry = new THREE.BufferGeometry().setFromPoints([position]);
+  scene.add(new THREE.Points(geometry, new THREE.PointsMaterial({
+    color: star.color || '#bbddff', size: index === 0 ? 12 : 8, sizeAttenuation: false
+  })));
+  const label = createTextLabel(star.name, star.color || '#bbddff');
+  label.style.fontSize = '12px';
+  label.style.padding = '3px 6px';
+  label.style.transform = 'translate(-50%, -145%)';
+  return { label, labelPos: position };
+});
+const dipperPoints = [1, 2, 3, 4, 1, 4, 5, 6, 7].map(index => skyLabels[index].labelPos);
+scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(dipperPoints),
+  new THREE.LineBasicMaterial({ color: 0x88bbff, transparent: true, opacity: 0.7 })));
+const dipperLabel = createTextLabel('北斗七星（示意）', '#bbddff');
+skyLabels.push({ label: dipperLabel, labelPos: skyPosition(0.08, -0.43) });
+
 /* ── 更新标签位置 ───────────────────────────────── */
 function updateLabels() {
-  for (const { label, labelPos } of seasonMarkers) {
+  for (const { label, labelPos } of [...seasonMarkers, ...skyLabels]) {
     const projected = labelPos.clone().project(camera);
     const x = (projected.x * 0.5 + 0.5) * window.innerWidth;
     const y = (-projected.y * 0.5 + 0.5) * window.innerHeight;
@@ -346,6 +385,31 @@ function setEarthFollowing(value) {
   followButton.setAttribute('aria-pressed', String(value));
 }
 followButton.addEventListener('click', () => setEarthFollowing(!followingEarth));
+const northButton = document.getElementById('north-sky');
+const savedSkyPosition = new THREE.Vector3();
+const savedSkyTarget = new THREE.Vector3();
+let viewingNorth = false;
+northButton.addEventListener('click', () => {
+  setEarthFollowing(false);
+  const damping = controls.enableDamping;
+  controls.enableDamping = false;
+  controls.update();
+  if (!viewingNorth) {
+    savedSkyPosition.copy(camera.position);
+    savedSkyTarget.copy(controls.target);
+    camera.position.copy(northDirection).multiplyScalar(-650);
+    controls.target.copy(skyPosition(0.04, -0.18).normalize().multiplyScalar(600))
+      .add(camera.position);
+  } else {
+    camera.position.copy(savedSkyPosition);
+    controls.target.copy(savedSkyTarget);
+  }
+  viewingNorth = !viewingNorth;
+  northButton.textContent = viewingNorth ? '返回公转视角' : '北方星空';
+  northButton.setAttribute('aria-pressed', String(viewingNorth));
+  controls.update();
+  controls.enableDamping = damping;
+});
 const earthRaycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
 renderer.domElement.addEventListener('click', event => {
@@ -516,9 +580,8 @@ function animate() {
   updateSeasonInfo(-orbitAngle);
 
   // 更新标签位置
-  updateLabels();
-
   controls.update();
+  updateLabels();
   renderer.render(scene, camera);
 }
 animate();
