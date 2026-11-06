@@ -174,17 +174,27 @@ async function enableGyro() {
 /* ── 摄像头背景 ───────────────────────────────── */
 const video = document.getElementById('cam');
 let camStream = null;
+let cameraRequest = 0;
+let cameraPageActive = !document.hidden;
 async function setCamera(on) {
+  const request = ++cameraRequest;
   btnCam.disabled = true;
   if (on) {
     try {
       if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) throw new Error('CAMERA_UNAVAILABLE');
-      camStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false });
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false });
+      if (request !== cameraRequest || !cameraPageActive) {
+        stream.getTracks().forEach(track => track.stop());
+        return;
+      }
+      camStream = stream;
       video.srcObject = camStream;
       await video.play();
+      if (request !== cameraRequest || !cameraPageActive) return;
       video.style.display = 'block';
       stars.visible = false;
     } catch (err) {
+      if (request !== cameraRequest || !cameraPageActive) return;
       console.warn('摄像头不可用', err);
       setHint(window.isSecureContext
         ? '摄像头不可用，请检查浏览器网站权限后轻触相机重试；当前使用星空背景'
@@ -365,8 +375,18 @@ function renderFrame(now) {
   renderer.render(scene, camera);
 }
 renderer.setAnimationLoop(renderFrame);
-window.addEventListener('pagehide', () => { if (camStream) setCamera(false); });
+window.addEventListener('pagehide', () => {
+  cameraPageActive = false;
+  setCamera(false);
+  renderer.setAnimationLoop(null);
+});
+window.addEventListener('pageshow', () => {
+  cameraPageActive = !document.hidden;
+  if (cameraPageActive) renderer.setAnimationLoop(renderFrame);
+});
 document.addEventListener('visibilitychange', () => {
+  cameraPageActive = !document.hidden;
+  if (!cameraPageActive) setCamera(false);
   renderer.setAnimationLoop(document.hidden ? null : renderFrame);
 });
 </script>
