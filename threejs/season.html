@@ -383,8 +383,16 @@ const overviewPosition = new THREE.Vector3();
 const overviewTarget = new THREE.Vector3();
 const followPosition = new THREE.Vector3();
 const followDelta = new THREE.Vector3();
+let followTransition = null;
+function cancelFollowTransition() {
+  if (!followTransition) return;
+  controls.enableDamping = followTransition.damping;
+  controls.enabled = true;
+  followTransition = null;
+}
 function setEarthFollowing(value) {
   if (value === followingEarth) return;
+  cancelFollowTransition();
   // Flush damping before changing the orbit center.
   const damping = controls.enableDamping;
   controls.enableDamping = false;
@@ -393,19 +401,34 @@ function setEarthFollowing(value) {
     overviewPosition.copy(camera.position);
     overviewTarget.copy(controls.target);
     earthMesh.getWorldPosition(followPosition);
-    followDelta.copy(followPosition).sub(controls.target);
-    camera.position.add(followDelta);
-    controls.target.copy(followPosition);
-  } else {
-    camera.position.copy(overviewPosition);
-    controls.target.copy(overviewTarget);
   }
+  followTransition = {
+    start: performance.now(), duration: 1000, damping,
+    position: camera.position.clone(), target: controls.target.clone(),
+    offset: camera.position.clone().sub(controls.target)
+  };
   followingEarth = value;
   controls.enablePan = !value;
-  controls.update();
-  controls.enableDamping = damping;
+  controls.enabled = false;
   followButton.textContent = value ? '返回全景' : '跟随地球';
   followButton.setAttribute('aria-pressed', String(value));
+}
+function updateFollowCamera(earthPos, now) {
+  if (followTransition) {
+    const transition = followTransition;
+    const progress = Math.min(1, Math.max(0, (now - transition.start) / transition.duration));
+    const eased = progress * progress * (3 - 2 * progress);
+    const destination = followingEarth ? earthPos.clone().add(transition.offset) : overviewPosition;
+    camera.position.lerpVectors(transition.position, destination, eased);
+    controls.target.lerpVectors(transition.target, followingEarth ? earthPos : overviewTarget, eased);
+    followPosition.copy(earthPos);
+    if (progress === 1) cancelFollowTransition();
+  } else if (followingEarth) {
+    followDelta.copy(earthPos).sub(followPosition);
+    camera.position.add(followDelta);
+    controls.target.copy(earthPos);
+    followPosition.copy(earthPos);
+  }
 }
 followButton.addEventListener('click', () => setEarthFollowing(!followingEarth));
 const northButton = document.getElementById('north-sky');
@@ -414,6 +437,7 @@ const savedSkyTarget = new THREE.Vector3();
 let viewingNorth = false;
 northButton.addEventListener('click', () => {
   setEarthFollowing(false);
+  cancelFollowTransition();
   const damping = controls.enableDamping;
   controls.enableDamping = false;
   controls.update();
@@ -608,12 +632,7 @@ function animate() {
   // 更新太阳光线指向
   const earthPos = new THREE.Vector3();
   earthMesh.getWorldPosition(earthPos);
-  if (followingEarth) {
-    followDelta.copy(earthPos).sub(followPosition);
-    camera.position.add(followDelta);
-    controls.target.copy(earthPos);
-    followPosition.copy(earthPos);
-  }
+  updateFollowCamera(earthPos, performance.now());
   const rayDir = earthPos.clone().normalize();
   terminatorRing.position.copy(earthPos);
   terminatorRing.quaternion.setFromUnitVectors(terminatorNormal, rayDir);
