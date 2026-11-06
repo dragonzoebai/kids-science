@@ -904,15 +904,15 @@ function animate() {
     }
   }
 
-  // Return to China after applying the current time and seasonal tilt.
+  // Open above the equator at Beijing's longitude after applying time and tilt.
   if (!initialViewSet) {
     const distance = Math.max(EARTH_R * 2, camera.position.length());
     // Flush any remaining drag inertia before setting the new viewing direction.
     const damping = controls.enableDamping;
     controls.enableDamping = false;
     controls.update();
-    const chinaDirection = earthMesh.localToWorld(latLon3D(35, 105, EARTH_R)).normalize();
-    camera.position.copy(chinaDirection.multiplyScalar(distance));
+    const initialDirection = earthMesh.localToWorld(latLon3D(0, CITIES[0].lon, EARTH_R)).normalize();
+    camera.position.copy(initialDirection.multiplyScalar(distance));
     controls.target.set(0, 0, 0);
     camera.lookAt(controls.target);
     controls.update();
