@@ -649,8 +649,6 @@
       if (state.phase !== lastPhase) lastPhase = state.phase;
       updateHud(state.phase, state.energy);
 
-      earthGroup.rotation.y += dt * .015;
-      oceanVeil.rotation.y -= dt * .026;
       routeLine.material.opacity = .22 + Math.sin(t * 1.8) * .07;
       routeGlow.material.opacity = .08 + Math.sin(t * 2.3) * .04;
 
@@ -702,7 +700,7 @@
       });
 
       earthGroup.updateMatrixWorld();
-      // 同时跟随台风路径和地球自转，平滑转向；保留用户旋转和缩放后的观察偏移。
+      // 跟随台风路径平滑转向；保留用户旋转和缩放后的观察偏移。
       stormWorld.copy(stormPos).applyMatrix4(earthGroup.matrixWorld);
       const nextDirection = followDirection.clone().lerp(
         stormWorld.clone().normalize(), 1 - Math.exp(-dt * 3)
