@@ -385,12 +385,6 @@
     );
     earthGroup.add(oceanVeil);
 
-    const atmo = new THREE.Mesh(
-      new THREE.SphereGeometry(EARTH_R * 1.045, 64, 64),
-      new THREE.MeshBasicMaterial({ color: 0x65d8ff, transparent: true, opacity: .12, side: THREE.BackSide, blending: THREE.AdditiveBlending })
-    );
-    earthGroup.add(atmo);
-
     const PACIFIC = { lat: 18, lon: 156 };
     const CHINA = { lat: 31.6, lon: 108.5 };
     const EAST_SEA = { lat: 30.8, lon: 122.6 };
