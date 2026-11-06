@@ -319,9 +319,17 @@ const skyLabels = northernStars.map((star, index) => {
   label.style.transform = 'translate(-50%, -145%)';
   return { label, labelPos: position };
 });
-const dipperPoints = [1, 2, 3, 4, 1, 4, 5, 6, 7].map(index => skyLabels[index].labelPos);
-scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(dipperPoints),
-  new THREE.LineBasicMaterial({ color: 0x88bbff, transparent: true, opacity: 0.7 })));
+// 使用有实际宽度的连线，避免 iPad/PC 上 WebGL 线宽固定为一像素。
+const dipperMaterial = new THREE.MeshBasicMaterial({ color: 0x99ccff });
+for (const [from, to] of [[1, 2], [2, 3], [3, 4], [4, 1], [4, 5], [5, 6], [6, 7]]) {
+  const start = skyLabels[from].labelPos;
+  const end = skyLabels[to].labelPos;
+  const direction = new THREE.Vector3().subVectors(end, start);
+  const link = new THREE.Mesh(new THREE.CylinderGeometry(26, 26, direction.length(), 8), dipperMaterial);
+  link.position.copy(start).add(end).multiplyScalar(0.5);
+  link.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction.normalize());
+  scene.add(link);
+}
 const dipperLabel = createTextLabel('北斗七星（示意）', '#bbddff');
 skyLabels.push({ label: dipperLabel, labelPos: skyPosition(0.08, -0.43) });
 
