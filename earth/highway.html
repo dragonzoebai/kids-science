@@ -290,7 +290,8 @@
         }
       }
     </style>
-  <script src="../map-health.js"></script>
+  <script src="../map-progressive.js"></script>
+<script src="../map-health.js"></script>
 </head>
   <body>
     <div id="map" aria-label="全国主要高速公路三维地图"></div>
@@ -409,7 +410,7 @@
         active = -1,
         start = 0,
         carTrack = [];
-      const map = new mapboxgl.Map({
+      const map = window.createKidMap({
         container: "map",
         style: "mapbox://styles/mapbox/dark-v11",
         center: [106, 34],

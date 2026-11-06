@@ -381,6 +381,7 @@
     <script src="../map-interactions.js"></script>
   <link rel="stylesheet" href="../touch.css">
 <script src="../touch.js"></script>
+<script src="../map-progressive.js"></script>
 <script src="../map-health.js"></script>
 </head>
   <body>
@@ -517,7 +518,7 @@
 
       /* ── 初始化地图 ── */
       (function initMap() {
-        map = new mapboxgl.Map({
+        map = window.createKidMap({
           container: "map",
           style: "mapbox://styles/mapbox/satellite-streets-v12",
           center: [104, 35],
@@ -534,7 +535,7 @@
         );
         map.addControl(new mapboxgl.ScaleControl(), "bottom-right");
 
-        map.on("style.load", () => {
+        map.once("style.load", () => {
           /* 大气层 & 星空背景 */
           map.setFog({
             // color: 地平线附近的大气散射颜色（低空雾霾色），支持 CSS 颜色字符串或表达式

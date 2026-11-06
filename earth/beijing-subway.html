@@ -636,6 +636,7 @@
     </style>
   <link rel="stylesheet" href="../touch.css">
 <script src="../touch.js"></script>
+<script src="../map-progressive.js"></script>
 <script src="../map-health.js"></script>
 </head>
   <body class="beijing-only" data-zoom="far">
@@ -827,7 +828,7 @@
       let flowEnabled = true;
       let flowStep = -1;
 
-      const map = new mapboxgl.Map({
+      const map = window.createKidMap({
         container: "map",
         style: "mapbox://styles/mapbox/dark-v11",
         center: DEFAULT_VIEW.center,
@@ -843,7 +844,7 @@
       map.addControl(new mapboxgl.AttributionControl({ compact: true }), "bottom-left");
 
 
-      map.on("style.load", () => {
+      map.once("style.load", () => {
         map.setFog({
           color: "rgb(24, 44, 78)",
           "high-color": "rgb(34, 120, 190)",
@@ -881,6 +882,16 @@
       });
 
       map.on("zoom", updateZoomClass);
+
+      // ???????????????????????????????
+      map.on('kid-basemap-ready', () => {
+        baseLabelLayerIds.length = 0;
+        for (const layer of map.getStyle().layers) {
+          if (layer.type === 'symbol' && isBaseLabelLayer(layer)) baseLabelLayerIds.push(layer.id);
+        }
+        const toggle = document.getElementById('base-label-toggle');
+        if (toggle) setLayerGroupVisibility(baseLabelLayerIds, toggle.checked);
+      });
 
       function isBaseLabelLayer(layer) {
         const sourceLayer = layer["source-layer"] || "";

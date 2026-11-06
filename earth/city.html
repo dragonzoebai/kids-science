@@ -417,6 +417,7 @@
     <script src="../map-interactions.js"></script>
   <link rel="stylesheet" href="../touch.css">
 <script src="../touch.js"></script>
+<script src="../map-progressive.js"></script>
 <script src="../map-health.js"></script>
 </head>
   <body>
@@ -534,7 +535,7 @@
       const rankedCities = [...CITIES].sort((a, b) => b.pop - a.pop);
       let activeCityName = null;
 
-      const map = new mapboxgl.Map({
+      const map = window.createKidMap({
         container: "map",
         style: "mapbox://styles/mapbox/satellite-streets-v12",
         center: DEFAULT_VIEW.center,
@@ -552,7 +553,7 @@
       );
       map.addControl(new mapboxgl.ScaleControl(), "bottom-right");
 
-      map.on("style.load", () => {
+      map.once("style.load", () => {
         map.setFog({
           color: "rgb(230, 244, 255)",
           "high-color": "rgb(232, 246, 255)",
@@ -581,6 +582,16 @@
         setupCityInteractions();
         renderCityList();
         updateStats();
+      });
+
+      // ???????????????????????????????
+      map.on('kid-basemap-ready', () => {
+        baseLabelLayerIds.length = 0;
+        for (const layer of map.getStyle().layers) {
+          if (layer.type === 'symbol' && isBaseLabelLayer(layer)) baseLabelLayerIds.push(layer.id);
+        }
+        const toggle = document.getElementById('base-label-toggle');
+        if (toggle) setLayerGroupVisibility(baseLabelLayerIds, toggle.checked);
       });
 
       function isBaseLabelLayer(layer) {

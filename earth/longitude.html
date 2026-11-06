@@ -273,6 +273,7 @@
 </style>
   <link rel="stylesheet" href="../touch.css">
 <script src="../touch.js"></script>
+<script src="../map-progressive.js"></script>
 <script src="../map-health.js"></script>
 </head>
   <body>
@@ -366,7 +367,7 @@
         { value: 66.564, label: "北极圈 66.6°N" },
         { value: -66.564, label: "南极圈 66.6°S" },
       ];
-      const map = new mapboxgl.Map({
+      const map = window.createKidMap({
         container: "map",
         style: "mapbox://styles/mapbox/satellite-streets-v12",
         center: [104, 0],
@@ -382,7 +383,7 @@
       );
       map.addControl(new mapboxgl.ScaleControl(), "bottom-right");
 
-      map.on("style.load", () => {
+      map.once("style.load", () => {
         map.setFog({
           color: "rgb(228, 238, 255)",
           "high-color": "rgb(245, 248, 255)",

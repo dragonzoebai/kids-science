@@ -41,14 +41,21 @@ window.watchKidMap = function (map) {
   }
   let failed = false;
   function show(text) { message.textContent = text; panel.hidden = false; }
-  const slow = setTimeout(() => show('地图加载有点慢，可以稍等或重试。'), 15000);
-  function onError() {
+  const slow = setTimeout(() => {
+    if (map.kidBasemapState && map.isSourceLoaded('kid-local-earth')) return;
+    show('地图加载有点慢，可以稍等或重试。');
+  }, 15000);
+  function onError(event) {
+    // 在线底图失败时仍有本地底图可用；业务数据或本地资源错误继续提示。
+    if (map.kidBasemapState && event?.type === 'error' && !event.sourceId && /mapbox|fetch|network/i.test(event.error?.message || '')) return;
+    if (map.kidBasemapState && event?.sourceId && event.sourceId !== 'kid-local-earth' && !map.getSource(event.sourceId)?.type?.includes('geojson')) return;
     failed = true; clearTimeout(slow);
     show(navigator.onLine === false ? '网络断开了，连上后再试一次。' : '部分地图没加载好，请再试一次。');
   }
   function onIdle() { clearTimeout(slow); if (!failed) panel.hidden = true; }
   function onOnline() { if (failed || !panel.hidden) show('网络恢复了，可以重新加载地图。'); }
   map.on('error', onError); map.on('idle', onIdle);
+  map.on('kid-basemap-ready', () => { failed = false; panel.hidden = true; clearTimeout(slow); });
   window.addEventListener('online', onOnline);
   window.addEventListener('offline', onError);
   map.on('remove', () => {

@@ -435,6 +435,7 @@
     <script src="../map-interactions.js"></script>
   <link rel="stylesheet" href="../touch.css">
 <script src="../touch.js"></script>
+<script src="../map-progressive.js"></script>
 <script src="../map-health.js"></script>
 </head>
   <body>
@@ -576,7 +577,7 @@
       let visibleRegions = [...REGIONS];
       let activeProvinceName = null;
 
-      const map = new mapboxgl.Map({
+      const map = window.createKidMap({
         container: "map",
         style: "mapbox://styles/mapbox/dark-v11",
         center: DEFAULT_VIEW.center,
@@ -594,7 +595,7 @@
       );
       map.addControl(new mapboxgl.ScaleControl(), "bottom-right");
 
-      map.on("style.load", () => {
+      map.once("style.load", () => {
         map.setFog({
           color: "rgb(206, 251, 255)",
           "high-color": "rgb(115, 232, 255)",
@@ -624,6 +625,16 @@
         setupMapInteractions();
         renderProvinceList();
         updateStats();
+      });
+
+      // ???????????????????????????????
+      map.on('kid-basemap-ready', () => {
+        baseLabelLayerIds.length = 0;
+        for (const layer of map.getStyle().layers) {
+          if (layer.type === 'symbol' && isBaseLabelLayer(layer)) baseLabelLayerIds.push(layer.id);
+        }
+        const toggle = document.getElementById('base-label-toggle');
+        if (toggle) setLayerGroupVisibility(baseLabelLayerIds, toggle.checked);
       });
 
       function isBaseLabelLayer(layer) {
