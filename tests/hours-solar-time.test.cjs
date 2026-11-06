@@ -25,6 +25,17 @@ test('solar noon and Beijing morning remain sunlit in all four seasons', async (
       assert.ok(noon.x > 0.91, `solar noon faces sunlight: season=${seasonAngle}, UTC=${utc}`);
       const midnight = earth.localToWorld(new THREE.Vector3(-Math.cos(longitude), 0, Math.sin(longitude)));
       assert.ok(midnight.x < -0.91);
+      // Changing reference frames must preserve illumination and fix Earth's orientation.
+      const root = new THREE.Group();
+      root.add(season);
+      root.quaternion.copy(earth.getWorldQuaternion(new THREE.Quaternion())).invert();
+      root.updateWorldMatrix(true, true);
+      const fixedOrientation = earth.getWorldQuaternion(new THREE.Quaternion());
+      assert.ok(fixedOrientation.angleTo(new THREE.Quaternion()) < 1e-6);
+      const sunDirection = new THREE.Vector3(1, 0, 0).applyQuaternion(root.quaternion);
+      const fixedNoon = earth.localToWorld(new THREE.Vector3(Math.cos(longitude), 0, -Math.sin(longitude)));
+      assert.ok(Math.abs(fixedNoon.dot(sunDirection) - noon.x) < 1e-9);
+      root.remove(season);
     }
     earth.rotation.y = rotation(1 + 33 / 60 + 59 / 3600);
     earth.updateWorldMatrix(true, true);

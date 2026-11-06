@@ -98,6 +98,7 @@
     <br><span style="color:#cc99ff">━ 晨昏线（昼夜分界）</span>
   </p>
   <p id="solar-info" style="font-size:12px;line-height:1.7;margin:6px 0 0;color:#ffee99"></p>
+  <p id="frame-info" style="font-size:12px;line-height:1.7;margin:6px 0 0">太阳固定：观察地球自转与地轴朝向变化。</p>
 </div>
 
 <div id="clock-panel">
@@ -120,6 +121,11 @@
 <canvas id="label-canvas"></canvas>
 
 <div id="panel">
+  <label for="reference-frame">参考系</label>
+  <select id="reference-frame" style="background:#182436;color:#fff;padding:6px;border-radius:4px">
+    <option value="sun">太阳固定</option>
+    <option value="earth">地球固定</option>
+  </select>
   <span>速度</span>
   <input type="range" id="speed" min="1" max="2000" step="1" value="1">
   <span id="speed-val" style="min-width:46px">1×</span>
@@ -152,6 +158,12 @@ document.body.appendChild(renderer.domElement);
 
 /* ── Scene / Camera ───────────────────────────── */
 const scene  = new THREE.Scene();
+const referenceRoot = new THREE.Group();
+scene.add(referenceRoot);
+const sunlightGroup = new THREE.Group();
+referenceRoot.add(sunlightGroup);
+let referenceFrame = 'sun';
+const sunlightDirection = new THREE.Vector3(1, 0, 0);
 const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 80000);
 camera.position.set(0, 100, 320);
 
@@ -200,7 +212,7 @@ const sunMesh = new THREE.Mesh(
   new THREE.MeshBasicMaterial({ color: 0xffee88 })
 );
 sunMesh.position.copy(SUN_POS);
-scene.add(sunMesh);
+sunlightGroup.add(sunMesh);
 
 for (const [sc, op, col] of [
   [1.12, 0.22, 0xffcc44],
@@ -212,7 +224,7 @@ for (const [sc, op, col] of [
     new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: op, side: THREE.BackSide })
   );
   glow.position.copy(SUN_POS);
-  scene.add(glow);
+  sunlightGroup.add(glow);
 }
 
 /* ── Lighting ─────────────────────────────────── */
@@ -221,7 +233,7 @@ scene.add(new THREE.AmbientLight(0x112244, 0.6));
 // Main sunlight from +X direction
 const sunLight = new THREE.DirectionalLight(0xfff4e0, 2.8);
 sunLight.position.set(1, 0, 0);
-scene.add(sunLight);
+sunlightGroup.add(sunLight);
 
 /* ── Earth rotation container ──────────────────── */
 // Create containers for Earth rotation and seasonal tilt
@@ -229,7 +241,7 @@ const AXIAL_TILT = 23.44 * Math.PI / 180;
 
 // Season group: rotates around Y axis first
 const seasonGroup = new THREE.Group();
-scene.add(seasonGroup);
+referenceRoot.add(seasonGroup);
 
 // Tilt group: rotates around X axis second (applies axial tilt)
 const tiltGroup = new THREE.Group();
@@ -260,17 +272,17 @@ const solarRay = new THREE.ArrowHelper(
   SUN_POS.x - SUN_R - EARTH_R - 1,
   0xffee66, 14, 7
 );
-scene.add(solarRay);
+sunlightGroup.add(solarRay);
 // Repeat direction arrows near Earth so the ray is readable even with the Sun offscreen.
 for (const x of [160, 230, 310]) {
-  scene.add(new THREE.ArrowHelper(new THREE.Vector3(-1, 0, 0), new THREE.Vector3(x + 20, 0, 0), 20, 0xffee66, 9, 5));
+  sunlightGroup.add(new THREE.ArrowHelper(new THREE.Vector3(-1, 0, 0), new THREE.Vector3(x + 20, 0, 0), 20, 0xffee66, 9, 5));
 }
 const subsolarMarker = new THREE.Mesh(
   new THREE.SphereGeometry(2, 16, 16),
   new THREE.MeshBasicMaterial({ color: 0xffee66 })
 );
 subsolarMarker.position.set(EARTH_R + 1, 0, 0);
-scene.add(subsolarMarker);
+sunlightGroup.add(subsolarMarker);
 
 // Sunlight is parallel to world X, so the terminator is the great circle in X=0.
 // Attach it to the scene: Earth's rotation and seasonal tilt must not rotate this plane.
@@ -280,7 +292,7 @@ const terminator = new THREE.Mesh(
   new THREE.MeshBasicMaterial({ color: 0xcc99ff })
 );
 terminator.rotation.y = Math.PI / 2;
-scene.add(terminator);
+sunlightGroup.add(terminator);
 
 // Atmosphere rim
 const atmo = new THREE.Mesh(
@@ -602,7 +614,7 @@ function hmsFromUtcOffset(utcMs, offsetHours) {
   };
 }
 
-function isDaytime(worldX) { return worldX > 0; }
+function isDaytime(worldPosition) { return worldPosition.dot(sunlightDirection) > 0; }
 
 function updateClock() {
   const utc = new Date(simMs);
@@ -629,9 +641,10 @@ function drawLabels() {
   cityLabelHits.length = 0;
   lctx.clearRect(0, 0, labelCanvas.width, labelCanvas.height);
 
-  const solarProjection = subsolarMarker.position.clone().project(camera);
-  const solarToCamera = camera.position.clone().sub(subsolarMarker.position);
-  if (solarToCamera.x > 0 && solarProjection.z >= -1 && solarProjection.z <= 1) {
+  const solarPosition = subsolarMarker.getWorldPosition(new THREE.Vector3());
+  const solarProjection = solarPosition.clone().project(camera);
+  const solarToCamera = camera.position.clone().sub(solarPosition);
+  if (solarToCamera.dot(sunlightDirection) > 0 && solarProjection.z >= -1 && solarProjection.z <= 1) {
     const x = (solarProjection.x * .5 + .5) * labelCanvas.width;
     const y = (-solarProjection.y * .5 + .5) * labelCanvas.height;
     lctx.font = 'bold 14px Arial';
@@ -656,7 +669,7 @@ function drawLabels() {
     const sy = (-proj.y * .5 + .5) * labelCanvas.height;
 
     // Day/night status based on world X (sun is at +X)
-    const status = isDaytime(wp.x) ? '☀ 白天' : '🌙 夜晚';
+    const status = isDaytime(wp) ? '☀ 白天' : '🌙 夜晚';
 
     const line1 = city.name;
     const line2 = status;
@@ -681,7 +694,7 @@ function drawLabels() {
     lctx.font = '12px Arial';
     lctx.fillStyle = 'rgba(0,0,0,.4)';
     lctx.fillText(line2, bx + 1, by + 30);
-    lctx.fillStyle = isDaytime(wp.x) ? '#ffcc44' : '#8899cc';
+    lctx.fillStyle = isDaytime(wp) ? '#ffcc44' : '#8899cc';
     lctx.fillText(line2, bx, by + 29);
 
     // Dot connector line
@@ -717,7 +730,7 @@ function drawLabels() {
     { lat: 28, lon: 0, name: '本初子午线（0°）', color: '#ffd700' },
     { lat: -28, lon: 180, name: '国际日期变更线（示意）', color: '#ffd700' }
   );
-  const terminatorDirection = new THREE.Vector3(0, camera.position.y, camera.position.z);
+  const terminatorDirection = camera.position.clone().addScaledVector(sunlightDirection, -camera.position.dot(sunlightDirection));
   if (terminatorDirection.lengthSq() > 0.001) {
     geographicLabels.push({
       name: '晨昏线', color: '#cc99ff',
@@ -882,6 +895,15 @@ window.addEventListener('resize', () => {
 /* ── Animate ──────────────────────────────────── */
 const clock = new THREE.Clock();
 let initialViewSet = false;
+document.getElementById('reference-frame').addEventListener('change', e => {
+  referenceFrame = e.target.value;
+  document.getElementById('frame-info').textContent = referenceFrame === 'earth'
+    ? '地球固定：观察太阳随时间的视运动，以及四季直射纬度变化。可拖动视角寻找太阳，调高速度观察一天的变化。'
+    : '太阳固定：观察地球自转与地轴朝向变化。';
+  seasonTransition = null;
+  clearCityFocus();
+  initialViewSet = false;
+});
 function animate() {
   requestAnimationFrame(animate);
   const dt = clock.getDelta();
@@ -903,16 +925,22 @@ function animate() {
 
   // Set Earth rotation around the tilted axis
   // earthGroup is tilted (fixed), earthMesh rotates inside it
+  referenceRoot.quaternion.identity();
   earthMesh.rotation.y = earthRotation(utcH);
   earthMesh.updateWorldMatrix(true, true);
+  if (referenceFrame === 'earth') {
+    referenceRoot.quaternion.copy(earthMesh.getWorldQuaternion(new THREE.Quaternion())).invert();
+  }
+  referenceRoot.updateWorldMatrix(true, true);
+  sunlightDirection.set(1, 0, 0).applyQuaternion(referenceRoot.quaternion);
 
   // Intersect the tilted equatorial plane with the terminator plane (world X=0).
   const northAxis = new THREE.Vector3(0, 1, 0).applyQuaternion(earthGroup.getWorldQuaternion(new THREE.Quaternion()));
-  const equatorialTerminatorDirection = new THREE.Vector3(0, -northAxis.z, northAxis.y).normalize();
+  const equatorialTerminatorDirection = new THREE.Vector3().crossVectors(sunlightDirection, northAxis).normalize();
 
   if (seasonTransition) {
     const startDirection = seasonTransition.cameraPosition.clone().normalize();
-    const terminatorViewDirection = equatorialTerminatorDirection;
+    const terminatorViewDirection = referenceFrame === 'earth' ? startDirection : equatorialTerminatorDirection;
     const turn = new THREE.Quaternion().setFromUnitVectors(startDirection, terminatorViewDirection);
     const partialTurn = new THREE.Quaternion().slerp(turn, seasonProgress);
     const distance = THREE.MathUtils.lerp(seasonTransition.cameraPosition.length(), seasonTransition.distance, seasonProgress);
