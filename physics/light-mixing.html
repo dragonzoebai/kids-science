@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>光的三原色 · 红绿蓝叠加实验</title>
+<link rel="stylesheet" href="../touch.css">
+<script src="../touch.js"></script>
+<style>
+* { box-sizing: border-box; }
+:root { color-scheme: dark; font-family: system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background: #080d19; color: #eef3ff; }
+body { margin: 0; min-height: 100svh; background: radial-gradient(ellipse at top left, #182746, #080d19 65%); }
+main { max-width: 1160px; margin: auto; padding: 28px 24px 36px; }
+header { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+.eyebrow { font-size: 12px; letter-spacing: .18em; color: #8ea8d6; font-weight: 750; }
+h1 { font-size: clamp(28px, 4vw, 42px); margin: 7px 0 10px; letter-spacing: -.04em; }
+header p { margin: 0; color: #a3b0c8; line-height: 1.7; }
+a { color: #c4d6fc; text-decoration: none; } .home { border: 1px solid #34405b; border-radius: 24px; padding: 12px 18px; white-space: nowrap; }
+button, a, input { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+button { font: inherit; cursor: pointer; border: 1px solid #35425c; background: #1a263e; color: #e5edff; border-radius: 12px; min-height: 46px; padding: 10px 14px; }
+button:active { background: #2a3b5d; } :focus-visible { outline: 3px solid #a3c5ff; outline-offset: 4px; }
+.lab { display: grid; grid-template-columns: minmax(0, 1fr) 290px; gap: 22px; margin-top: 28px; align-items: start; }
+.screen { border: 1px solid #29344c; border-radius: 26px; background: #03050a; overflow: hidden; }
+.screen-title { display: flex; justify-content: space-between; gap: 10px; padding: 18px 20px 0; font-size: 13px; color: #a2b3cf; }
+.dot { display: inline-block; width: 7px; height: 7px; background: #70e3c6; border-radius: 50%; margin-right: 6px; }
+canvas { display: block; width: 100%; aspect-ratio: 960 / 700; background: black; touch-action: none; cursor: grab; }
+canvas:active { cursor: grabbing; }
+.reading { padding: 16px 20px; display: flex; align-items: center; gap: 12px; border-top: 1px solid #202a3f; font-size: 13px; background: #111a2b; }
+#swatch { width: 32px; height: 32px; border-radius: 10px; border: 1px solid #ffffff33; flex-shrink: 0; }
+#sample { color: #b1c0db; font-variant-numeric: tabular-nums; }
+.presets { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; } .presets button { flex: 1 1 auto; font-size: 13px; }
+aside h2 { font-size: 17px; margin: 0 0 12px; }
+.light { border: 1px solid #2c3952; border-radius: 18px; padding: 15px; background: #131e32; margin-bottom: 12px; }
+.light-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.select { border: 0; padding: 4px 8px; background: transparent; display: flex; align-items: center; gap: 9px; font-weight: 750; }
+.select[aria-pressed="true"] { background: #ffffff16; outline: 1px solid #ffffff55; }
+.orb { width: 16px; height: 16px; border-radius: 50%; background: var(--light); box-shadow: 0 0 14px var(--light); }
+.switch { margin-left: auto; display: flex; gap: 7px; align-items: center; font-size: 13px; min-height: 44px; cursor: pointer; }
+input[type="checkbox"] { width: 23px; height: 23px; accent-color: #80c6ec; }
+.range-label { display: flex; justify-content: space-between; font-size: 13px; color: #a4b4cf; }
+input[type="range"] { width: 100%; min-height: 42px; margin: 3px 0 0; accent-color: var(--light); }
+#reset { width: 100%; margin-top: 2px; background: #d7e6ff; color: #1a2942; font-weight: 750; }
+.hint { color: #9aacca; line-height: 1.7; font-size: 13px; margin: 14px 0 0; }
+#status { min-height: 46px; color: #b4c8ec; font-size: 14px; line-height: 1.7; margin: 18px 0 0; }
+.facts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 12px; }
+.fact { border: 1px solid #2b3750; background: #131e31; border-radius: 16px; padding: 16px 12px; text-align: center; font-size: 14px; }
+.fact span { display: block; font-size: 12px; color: #97aacb; margin-top: 6px; }
+.note { font-size: 12px; color: #8598bb; line-height: 1.8; margin: 16px 0 0; }
+@media (max-width: 780px) { main { padding: 20px 14px; } header { align-items: flex-start; } .home { font-size: 12px; padding: 10px 12px; } .lab { grid-template-columns: 1fr; margin-top: 20px; } .light-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; } .light { padding: 10px; margin: 0; } .light-head { flex-wrap: wrap; gap: 0; } .switch { margin: 2px 0 0; width: 100%; } .select { padding: 4px; font-size: 14px; } #reset { margin-top: 14px; } .facts { grid-template-columns: 1fr 1fr; } .screen-title { font-size: 12px; padding: 14px 12px 0; } }
+</style>
+</head>
+<body>
+<main>
+<header><div><div class="eyebrow">LITTLE LIGHT LAB / 小小光学实验室</div><h1>让光，叠出新颜色</h1><p>红、绿、蓝三束光，相遇会发生什么？</p></div><a class="home" href="../index.html">返回目录 ↗</a></header>
+<section class="lab" aria-label="光的三原色实验台">
+  <div>
+    <div class="screen"><div class="screen-title"><span><i class="dot"></i>黑暗中的投影屏</span><span>拖动光斑，寻找重叠区</span></div><canvas id="screen" width="960" height="700" tabindex="0" aria-label="三色光叠加屏幕。先选择右侧光源，再轻触屏幕移动；也可拖动光斑，或使用方向键。"></canvas><div class="reading"><span id="swatch"></span><div>屏幕中心的光<br><span id="sample"></span></div></div></div>
+    <div class="presets" aria-label="一键实验"><button data-preset="redgreen">红 + 绿</button><button data-preset="greenblue">绿 + 蓝</button><button data-preset="redblue">红 + 蓝</button><button data-preset="all">三束重叠</button><button data-preset="apart">三束分开</button></div>
+  </div>
+  <aside><h2>选择你的光源</h2><div class="light-grid">
+    <div class="light" style="--light:#ff5858"><div class="light-head"><button class="select" data-select="0" aria-pressed="true"><i class="orb"></i>红光</button><label class="switch"><input id="enabled-0" type="checkbox" checked>开灯</label></div><label class="range-label" for="power-0">亮度 <output id="value-0">100%</output></label><input id="power-0" type="range" min="0" max="100" value="100"></div>
+    <div class="light" style="--light:#51eb90"><div class="light-head"><button class="select" data-select="1" aria-pressed="false"><i class="orb"></i>绿光</button><label class="switch"><input id="enabled-1" type="checkbox" checked>开灯</label></div><label class="range-label" for="power-1">亮度 <output id="value-1">100%</output></label><input id="power-1" type="range" min="0" max="100" value="100"></div>
+    <div class="light" style="--light:#6f91ff"><div class="light-head"><button class="select" data-select="2" aria-pressed="false"><i class="orb"></i>蓝光</button><label class="switch"><input id="enabled-2" type="checkbox" checked>开灯</label></div><label class="range-label" for="power-2">亮度 <output id="value-2">100%</output></label><input id="power-2" type="range" min="0" max="100" value="100"></div>
+  </div><button id="reset">重新开始 ↻</button><p class="hint">轻触光源名称选中它，再轻触屏幕移动光斑。也可以直接拖动；键盘方向键也能移动。</p></aside>
+</section>
+<p id="status" role="status" aria-live="polite">先看中间：三束等强度的红、绿、蓝光叠加，变成白光。</p>
+<section class="facts" aria-label="光的叠加规律"><div class="fact">红 + 绿 = <b style="color:#ffff66">黄</b><span>少了蓝光</span></div><div class="fact">绿 + 蓝 = <b style="color:#66ffff">青</b><span>少了红光</span></div><div class="fact">红 + 蓝 = <b style="color:#ff83ff">品红</b><span>少了绿光</span></div><div class="fact">红 + 绿 + 蓝 = <b>白</b><span>三束光强度相等时</span></div></section>
+<p class="note">这是光的加色混合，和染料混合不同。黑色表示没有光；RGB 是屏幕显示颜色的三原色。这里用屏幕颜色近似模拟，实际光学效果还与光源的光谱、强度和投影表面有关。</p>
+</main>
+<script src="light-mix.js"></script>
+<script>
+(() => {
+  const { DEFAULT_POSITIONS, RADIUS, sampleLight } = LightMix;
+  const canvas = document.getElementById('screen'), ctx = canvas.getContext('2d');
+  const colors = ['255,0,0', '0,255,0', '0,0,255'], names = ['红光', '绿光', '蓝光'];
+  const status = document.getElementById('status');
+  let lights, selected = 0, activePointer = null;
+  function draw() {
+    ctx.globalCompositeOperation = 'source-over'; ctx.fillStyle = '#000'; ctx.fillRect(0, 0, 960, 700);
+    ctx.globalCompositeOperation = 'lighter';
+    lights.forEach((light, i) => {
+      if (!light.enabled || !light.power) return;
+      const gradient = ctx.createRadialGradient(light.x, light.y, 0, light.x, light.y, RADIUS);
+      const color = `rgba(${colors[i]},${light.power / 100})`;
+      gradient.addColorStop(0, color); gradient.addColorStop(.84, color); gradient.addColorStop(1, `rgba(${colors[i]},0)`);
+      ctx.fillStyle = gradient; ctx.beginPath(); ctx.arc(light.x, light.y, RADIUS, 0, Math.PI * 2); ctx.fill();
+    });
+    ctx.globalCompositeOperation = 'source-over';
+    // 中心取样位置。标记仅用于指示，不参与光色计算。
+    ctx.strokeStyle = '#ffffff88'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(472, 350); ctx.lineTo(488, 350); ctx.moveTo(480, 342); ctx.lineTo(480, 358); ctx.stroke();
+    const sample = sampleLight(lights, 480, 350);
+    document.getElementById('swatch').style.background = `rgb(${sample.join(',')})`;
+    document.getElementById('sample').textContent = `红 ${sample[0]} · 绿 ${sample[1]} · 蓝 ${sample[2]}`;
+  }
+  function sync() {
+    lights.forEach((light, i) => {
+      document.getElementById('enabled-' + i).checked = light.enabled;
+      document.getElementById('power-' + i).value = light.power;
+      document.getElementById('value-' + i).textContent = light.power + '%';
+    });
+    document.querySelectorAll('[data-select]').forEach(button => button.setAttribute('aria-pressed', String(Number(button.dataset.select) === selected)));
+    draw();
+  }
+  function reset() {
+    if (activePointer !== null) canvas.releasePointerCapture(activePointer);
+    activePointer = null; selected = 0;
+    lights = DEFAULT_POSITIONS.map(([x, y]) => ({ x, y, power: 100, enabled: true }));
+    status.textContent = '先看中间：三束等强度的红、绿、蓝光叠加，变成白光。'; sync();
+  }
+  lights = DEFAULT_POSITIONS.map(([x, y]) => ({ x, y, power: 100, enabled: true }));
+  lights.forEach((_, i) => {
+    document.getElementById('enabled-' + i).addEventListener('change', event => {
+      lights[i].enabled = event.target.checked; status.textContent = `${names[i]}已${lights[i].enabled ? '打开' : '关闭'}，看看重叠区有什么变化。`; sync();
+    });
+    document.getElementById('power-' + i).addEventListener('input', event => {
+      lights[i].power = Number(event.target.value); sync();
+      status.textContent = `${names[i]}亮度：${lights[i].power}%。比较三束光的亮度，试着调出不同颜色。`;
+    });
+  });
+  document.querySelectorAll('[data-select]').forEach(button => button.addEventListener('click', () => {
+    selected = Number(button.dataset.select); status.textContent = `已选择${names[selected]}，轻触屏幕就能移动它。`; sync();
+  }));
+  document.querySelectorAll('[data-preset]').forEach(button => button.addEventListener('click', () => {
+    const preset = button.dataset.preset;
+    const enabled = { redgreen: [true, true, false], greenblue: [false, true, true], redblue: [true, false, true], all: [true, true, true], apart: [true, true, true] }[preset];
+    const separated = [[175, 175], [785, 175], [480, 525]];
+    lights.forEach((light, i) => { light.enabled = enabled[i]; light.power = 100; [light.x, light.y] = preset === 'apart' ? separated[i] : [480, 350]; });
+    status.textContent = { redgreen: '红光 + 绿光 = 黄光。试试降低一束光的亮度。', greenblue: '绿光 + 蓝光 = 青光。', redblue: '红光 + 蓝光 = 品红光。', all: '三束等强度的红、绿、蓝光重叠，合成白光！', apart: '三束光分开了。拖动光斑，让它们重新相遇。' }[preset]; sync();
+  }));
+  function point(event) {
+    const rect = canvas.getBoundingClientRect();
+    return { x: (event.clientX - rect.left) / rect.width * 960, y: (event.clientY - rect.top) / rect.height * 700 };
+  }
+  function moveTo(point) {
+    lights[selected].x = Math.max(RADIUS, Math.min(960 - RADIUS, point.x));
+    lights[selected].y = Math.max(RADIUS, Math.min(700 - RADIUS, point.y)); draw();
+  }
+  canvas.addEventListener('pointerdown', event => {
+    if (activePointer !== null || (event.pointerType === 'mouse' && event.button !== 0)) return;
+    const pos = point(event);
+    const hits = lights.map((light, i) => ({ i, distance: Math.hypot(pos.x - light.x, pos.y - light.y) })).filter(hit => lights[hit.i].enabled && hit.distance < RADIUS);
+    // 已选光源优先，方便从完全重叠处拖出指定颜色。
+    if (!hits.some(hit => hit.i === selected) && hits.length) selected = hits.sort((a, b) => a.distance - b.distance)[0].i;
+    activePointer = event.pointerId; canvas.setPointerCapture(event.pointerId); moveTo(pos); sync();
+    status.textContent = `正在移动${names[selected]}，观察相遇处的颜色。`;
+  });
+  canvas.addEventListener('pointermove', event => { if (event.pointerId === activePointer) moveTo(point(event)); });
+  function endPointer(event) { if (event.pointerId === activePointer) { activePointer = null; } }
+  canvas.addEventListener('pointerup', endPointer); canvas.addEventListener('pointercancel', endPointer); canvas.addEventListener('lostpointercapture', endPointer);
+  canvas.addEventListener('keydown', event => {
+    const offsets = { ArrowLeft: [-12, 0], ArrowRight: [12, 0], ArrowUp: [0, -12], ArrowDown: [0, 12] };
+    if (!offsets[event.key]) return;
+    event.preventDefault(); const [dx, dy] = offsets[event.key]; moveTo({ x: lights[selected].x + dx, y: lights[selected].y + dy });
+  });
+  document.getElementById('reset').addEventListener('click', reset);
+  reset();
+})();
+</script>
+</body>
+</html>
