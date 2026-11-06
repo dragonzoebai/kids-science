@@ -806,6 +806,7 @@ window.addEventListener('resize', () => {
 
 /* ── Animate ──────────────────────────────────── */
 const clock = new THREE.Clock();
+let initialViewSet = false;
 function animate() {
   requestAnimationFrame(animate);
   const dt = clock.getDelta();
@@ -822,6 +823,17 @@ function animate() {
   // earthGroup is tilted (fixed), earthMesh rotates inside it
   earthMesh.rotation.y = earthRotation(utcH);
   earthMesh.updateWorldMatrix(true, true);
+
+  // Set the opening view after applying the current time and seasonal tilt.
+  if (!initialViewSet) {
+    const distance = camera.position.length();
+    const chinaDirection = earthMesh.localToWorld(latLon3D(35, 105, EARTH_R)).normalize();
+    camera.position.copy(chinaDirection.multiplyScalar(distance));
+    controls.target.set(0, 0, 0);
+    camera.lookAt(controls.target);
+    controls.update();
+    initialViewSet = true;
+  }
 
   // Update pole positions (they move with Earth rotation)
   for (const pole of POLES) {
