@@ -95,6 +95,7 @@
     <span style="color:#ffd700">━ 本初子午线 0°经线</span><br>
     <span style="color:#ffd700">━ 国际日期变更线（180°经线示意）</span>
     <br><span style="color:#ffee66">➜ 太阳直射光线</span>
+    <br><span style="color:#cc99ff">━ 晨昏线（昼夜分界）</span>
   </p>
   <p id="solar-info" style="font-size:12px;line-height:1.7;margin:6px 0 0;color:#ffee99"></p>
 </div>
@@ -270,6 +271,16 @@ const subsolarMarker = new THREE.Mesh(
 );
 subsolarMarker.position.set(EARTH_R + 1, 0, 0);
 scene.add(subsolarMarker);
+
+// Sunlight is parallel to world X, so the terminator is the great circle in X=0.
+// Attach it to the scene: Earth's rotation and seasonal tilt must not rotate this plane.
+const terminatorRadius = EARTH_R * 1.003;
+const terminator = new THREE.Mesh(
+  new THREE.TorusGeometry(terminatorRadius, 0.4, 6, 256),
+  new THREE.MeshBasicMaterial({ color: 0xcc99ff })
+);
+terminator.rotation.y = Math.PI / 2;
+scene.add(terminator);
 
 // Atmosphere rim
 const atmo = new THREE.Mesh(
@@ -706,9 +717,16 @@ function drawLabels() {
     { lat: 28, lon: 0, name: '本初子午线（0°）', color: '#ffd700' },
     { lat: -28, lon: 180, name: '国际日期变更线（示意）', color: '#ffd700' }
   );
+  const terminatorDirection = new THREE.Vector3(0, camera.position.y, camera.position.z);
+  if (terminatorDirection.lengthSq() > 0.001) {
+    geographicLabels.push({
+      name: '晨昏线', color: '#cc99ff',
+      worldPos: terminatorDirection.normalize().multiplyScalar(terminatorRadius)
+    });
+  }
   for (const circle of geographicLabels) {
-    const localPos = latLon3D(circle.lat, circle.lon, (EARTH_R + 0.5) * 1.003);
-    const wp = earthMesh.localToWorld(localPos.clone());
+    const wp = circle.worldPos ? circle.worldPos.clone()
+      : earthMesh.localToWorld(latLon3D(circle.lat, circle.lon, (EARTH_R + 0.5) * 1.003));
     const center = earthMesh.getWorldPosition(new THREE.Vector3());
     if (wp.clone().sub(center).normalize().dot(camera.position.clone().sub(wp).normalize()) < 0.03) continue;
     const proj = wp.project(camera);
