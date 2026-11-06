@@ -33,7 +33,7 @@
       color: #cce; font-size: 13px;
     }
     #panel input[type=range] { width: 160px; accent-color: #ffe066; }
-    #follow-earth { min-height: 44px; padding: 8px 14px; border: 1px solid #ffe066; border-radius: 18px; background: #172439; color: #ffe066; cursor: pointer; }
+    #follow-earth, #play-pause { min-height: 44px; padding: 8px 14px; border: 1px solid #ffe066; border-radius: 18px; background: #172439; color: #ffe066; cursor: pointer; }
 
     #season-info {
       position: absolute;
@@ -93,6 +93,7 @@
 </div>
 
 <div id="panel">
+  <button id="play-pause" type="button" aria-label="播放动画">播放</button>
   <span>速度</span>
   <input type="range" id="speed" min="0" max="5" step="0.2" value="1">
   <span id="speed-val" style="min-width:36px">1.0×</span>
@@ -445,6 +446,27 @@ function updateSeasonInfo(angle) {
   }
 }
 
+/* ── 播放与节点暂停 ─────────────────────────────── */
+let playing = false;
+const playButton = document.getElementById('play-pause');
+function setPlaying(value) {
+  playing = value;
+  playButton.textContent = value ? '暂停' : '播放';
+  playButton.setAttribute('aria-label', value ? '暂停动画' : '播放动画');
+}
+playButton.addEventListener('click', () => setPlaying(!playing));
+
+function advanceOrbit(angle, step) {
+  const quarter = Math.PI / 2;
+  // 跳过当前节点；跨帧越过下个节点时精确停在节点上。
+  const nextStop = (Math.floor((angle + 1e-10) / quarter) + 1) * quarter;
+  if (angle + step >= nextStop) {
+    setPlaying(false);
+    return nextStop;
+  }
+  return angle + step;
+}
+
 /* ── Speed control ───────────────────────────────── */
 let speedFactor = 1;
 document.getElementById('speed').addEventListener('input', e => {
@@ -470,17 +492,19 @@ let orbitAngle = Math.PI; // 从春分位置开始
 
 function animate() {
   requestAnimationFrame(animate);
-  const dt = clock.getDelta() * speedFactor;
+  const dt = clock.getDelta() * speedFactor * (playing ? 1 : 0);
+  const previousAngle = orbitAngle;
+  orbitAngle = advanceOrbit(orbitAngle, dt * 0.25);
+  const motionDt = (orbitAngle - previousAngle) / 0.25;
 
   // 太阳自转
-  sunMesh.rotation.y += dt * 0.15;
+  sunMesh.rotation.y += motionDt * 0.15;
 
   // 地球公转
-  orbitAngle += dt * 0.25;
   earthPivot.rotation.y = orbitAngle;
 
   // 地球自转（绕倾斜轴）
-  spinAngle += dt * 1.5;
+  spinAngle += motionDt * 1.5;
   _invQ.copy(earthPivot.quaternion).invert();
   _spinQ.setFromAxisAngle(_spinAxis, spinAngle);
   earthMesh.quaternion.copy(_invQ).multiply(_axisQ).multiply(_spinQ);
@@ -501,7 +525,8 @@ function animate() {
   ]);
 
   // 更新季节信息
-  updateSeasonInfo(orbitAngle);
+  // 绕 Y 轴正转对应轨道 XZ 平面中的负角度，与节点位置保持一致。
+  updateSeasonInfo(-orbitAngle);
 
   // 更新标签位置
   updateLabels();
