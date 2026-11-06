@@ -40,7 +40,6 @@
  }
  function stop(){running=false;document.getElementById('run').textContent='播放';}
  document.getElementById('reset').onclick=()=>{state=Object.fromEntries(activity.controls.map(c=>[c.key,c.value]));elapsed=0;stop();sync();audio.stop();};
- document.getElementById('explain').onclick=()=>audio.say(activity.evaluate(state).message+' '+activity.fact);
  const run=document.getElementById('run');
  {
   run.hidden=false;run.textContent='播放';
