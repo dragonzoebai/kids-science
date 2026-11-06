@@ -18,6 +18,11 @@ test('lab narration starts on demand, can be muted, resumes and cancels on leavi
   element('audio-intro').handlers.click();
   assert.equal(spoken.at(-1).text, '三原色实验');
   assert.equal(spoken.at(-1).lang, 'zh-CN');
+  audio.say('📷 相机背景 👩🏽‍🔬 23.5°');
+  assert.equal(spoken.at(-1).text, '相机背景 23.5°');
+  const beforeIcon = spoken.length;
+  audio.say('🔊');
+  assert.equal(spoken.length, beforeIcon);
   element('audio-speech').handlers.click();
   const count = spoken.length;
   audio.say('静音时不朗读');

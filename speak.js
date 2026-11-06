@@ -27,7 +27,7 @@
 
   let lastSpeakAt = 0;
   function speak(text) {
-    text = (text || "").replace(/\s+/g, " ").trim();
+    text = clean(text);
     if (!enabled || !text) return;
     lastSpeakAt = performance.now();
     speechSynthesis.cancel();
@@ -40,7 +40,18 @@
   }
   window.kidSpeak = speak;
 
-  const clean = (s) => (s || "").replace(/\s+/g, " ").trim();
+  // 统一覆盖点击、悬停、自动朗读和 kidSpeak；保留数字、单位及数学符号。
+  const clean = (s) => (s || "")
+    .replace(/[0-9#*]\uFE0F?\u20E3/gu, " ")
+    .replace(/[\p{Extended_Pictographic}\p{Regional_Indicator}\p{Emoji_Modifier}\uFE0E\uFE0F\u200D\u{E0020}-\u{E007F}]/gu, " ")
+    .replace(/\s+/g, " ").trim();
+  const ICON_SELECTOR = "svg, img, [aria-hidden='true'], [role='img'], [data-speak-ignore], .icon, .emoji";
+  function readableText(el) {
+    if (el.matches(ICON_SELECTOR)) return "";
+    if (!el.querySelector(ICON_SELECTOR)) return clean(el.innerText);
+    return clean([...el.childNodes].map((node) => node.nodeType === 3 ? node.textContent
+      : node.nodeType === 1 ? readableText(node) : "").join(" "));
+  }
 
   function ownText(el) {
     return clean([...el.childNodes].filter((n) => n.nodeType === 3).map((n) => n.textContent).join(" "));
@@ -66,20 +77,20 @@
     if (/^(INPUT|SELECT|TEXTAREA)$/.test(target.tagName)) return { el: target, text: controlText(target) };
     // Icons must not inherit speech from a parent card, button or title.
     // Explicit data-speak above still allows opting an image into speech.
-    if (target.closest("svg, img, [aria-hidden='true'], [role='img']")) return null;
-    if (!/[\p{L}\p{N}]/u.test(clean(target.innerText))) return null;
+    if (target.closest(ICON_SELECTOR)) return null;
+    if (!/[\p{L}\p{N}]/u.test(readableText(target))) return null;
 
     // 优先整块读：最近的按钮/卡片/标题等
     const block = target.closest(BLOCK_SELECTOR);
     if (block && block !== document.body) {
-      const text = clean(block.innerText) || clean(block.getAttribute("aria-label") || block.title);
+      const text = readableText(block) || clean(block.getAttribute("aria-label") || block.title);
       if (text && text.length <= MAX_LEN) return { el: block, text };
     }
 
     // 否则往上找最近有文字的元素（最多 3 层）
     let el = target;
     for (let i = 0; i < 3 && el && el !== document.body; i++, el = el.parentElement) {
-      const text = clean(el.innerText);
+      const text = readableText(el);
       if (text) return { el, text: text.length <= MAX_LEN ? text : ownText(el) };
       const attr = clean(el.getAttribute("aria-label") || el.title);
       if (attr) return { el, text: attr };
@@ -172,7 +183,7 @@
   }
   function checkAuto() {
     document.querySelectorAll(AUTO_SELECTOR).forEach((el) => {
-      const text = isShown(el) && !el.closest("[data-speak-ignore]") ? clean(el.innerText) : "";
+      const text = isShown(el) && !el.closest("[data-speak-ignore]") ? readableText(el) : "";
       if (text === (lastAuto.get(el) || "")) return;
       lastAuto.set(el, text);
       if (text) speak(text);

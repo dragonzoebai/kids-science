@@ -8,6 +8,10 @@ window.createLabAudio = function ({ intro }) {
   style.textContent = '#audio-controls{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:18px}#audio-controls button{font:inherit;font-size:13px;min-height:44px;padding:10px 14px;border:1px solid #8194a366;border-radius:14px;background:#8194a318;color:inherit;cursor:pointer;touch-action:manipulation}#audio-controls button[aria-pressed="false"]{opacity:.65}#audio-note{font-size:12px;opacity:.7}';
   document.head.appendChild(style);
   function say(text, onend) {
+    text = (text || "")
+      .replace(/[0-9#*]\uFE0F?\u20E3/gu, " ")
+      .replace(/[\p{Extended_Pictographic}\p{Regional_Indicator}\p{Emoji_Modifier}\uFE0E\uFE0F\u200D\u{E0020}-\u{E007F}]/gu, " ")
+      .replace(/\s+/g, " ").trim();
     if (!speechEnabled || !synth || !text) return;
     try {
       synth.cancel();
