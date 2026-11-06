@@ -11,7 +11,7 @@
   const NAMES = ['北京','天津','河北','山西','内蒙古','辽宁','吉林','黑龙江','上海','江苏','浙江','安徽','福建','江西','山东','河南','湖北','湖南','广东','广西','海南','重庆','四川','贵州','云南','西藏','陕西','甘肃','青海','宁夏','新疆','台湾','香港','澳门'];
   const CODES = [110000,120000,130000,140000,150000,210000,220000,230000,310000,320000,330000,340000,350000,360000,370000,410000,420000,430000,440000,450000,460000,500000,510000,520000,530000,540000,610000,620000,630000,640000,650000,710000,810000,820000];
   const NS = 'http://www.w3.org/2000/svg';
-  const audio = createLabAudio({ intro: '中国地图的外形，让人联想到一只昂首挺胸的雄鸡。点选鸡头、鸡背、鸡尾等部位，听讲解、找省份。下一处按钮带你按顺序认识。也可以轻触地图或下方的省份名字，单独认识一个省级行政区。' });
+  const audio = createLabAudio({ intro: '中国地图的外形，让人联想到一只昂首挺胸的雄鸡。点朗读儿歌，跟着歌词找省份，也可以点选一句从那里开始。朗读时对应区域会变成暖黄色。轻触地图或下方的省份名字，还能单独认识一个省级行政区。' });
   let current = 0, chosen = null, features = [];
   const LYRICS = [
     ['中国地图像雄鸡，', CODES], ['昂首挺胸真神气。', CODES],
@@ -35,7 +35,7 @@
     document.getElementById('heading').textContent = part.title;
     document.getElementById('description').textContent = part.text;
     document.getElementById('province-name').textContent = part.codes.map(shortName).join(' · ');
-    status.textContent = `第 ${index + 1} / ${PARTS.length} 处：${part.name}。点“下一处”继续。`;
+    status.textContent = '点“朗读儿歌”，跟着歌词认识地图。';
     update(); if (speak) { audio.effect(); audio.say(part.text); }
   }
   function selectProvince(code) {
@@ -114,15 +114,9 @@
     if (event.target.closest?.('#audio-speech, #audio-intro')) { stopPoem(); update(); }
   });
   document.addEventListener?.('visibilitychange', () => { if (document.hidden && poemPlaying) stopPoem(false); });
-  PARTS.forEach((part,index) => {
-    const button = document.createElement('button'); button.textContent = part.name; button.dataset.part = index; button.addEventListener('click', () => selectPart(index)); document.getElementById('regions').appendChild(button);
-  });
   NAMES.forEach((name,index) => {
     const button = document.createElement('button'); button.textContent = name; button.dataset.province = CODES[index]; button.addEventListener('click', () => selectProvince(CODES[index])); document.getElementById('province-list').appendChild(button);
   });
-  document.getElementById('next').addEventListener('click', () => selectPart((current + 1) % PARTS.length));
-  document.getElementById('listen').addEventListener('click', () => { stopPoem(false); audio.say(document.getElementById('description').textContent); });
-  document.getElementById('reset').addEventListener('click', () => { audio.effect('reset'); selectPart(0); });
   const project = ([lon,lat]) => [(lon - 73) * 12.2 + 28, (54 - lat) * 14.3 + 12];
   const seaProject = ([lon,lat]) => [750 + (lon - 105) * 6.4, 465 + (24 - lat) * 8.1];
   function pathData(geometry, projection) {
@@ -154,10 +148,10 @@
         document.getElementById('labels').appendChild(label);
       }
     });
-    update(); status.textContent = '地图准备好啦！暖黄色是东北三省。点“再听一遍”开始认识。';
+    update(); status.textContent = '地图准备好啦！点“朗读儿歌”开始，也可以点选一句歌词。';
   }
   selectPart(0,false);
   fetch('china-provinces.json').then(response => { if (!response.ok) throw new Error('Map fetch failed'); return response.json(); }).then(drawMap).catch(() => {
-    document.getElementById('error').hidden = false; status.textContent = '地图加载失败，可以先用部位和省份按钮听讲解，或刷新重试。';
+    document.getElementById('error').hidden = false; status.textContent = '地图加载失败，可以先朗读儿歌，或刷新重试。';
   });
 })();

@@ -30,7 +30,7 @@ test('rooster map renders all 34 regions, highlights provinces and supports guid
   });
   await new Promise(resolve => setImmediate(resolve));
   assert.equal(document.getElementById('province-list').children.length, 34);
-  assert.equal(document.getElementById('regions').children.length, 6);
+  assert.equal(document.getElementById('poem-lines').children.length, 16);
   const paths = document.querySelectorAll('.province');
   assert.equal(paths.length, 68, 'all provinces are drawn on main map and inset');
   assert.ok(paths.every(path => !/NaN|undefined/.test(path.attributes.d)));
@@ -50,20 +50,19 @@ test('rooster map renders all 34 regions, highlights provinces and supports guid
   assert.match(spoken.at(-1), /内蒙甘肃/);
   document.getElementById('poem-restart').handlers.click();
   assert.match(spoken.at(-1), /中国地图像雄鸡/);
-  document.getElementById('reset').handlers.click();
-  assert.equal(paths.filter(path => path.classList.contains('active')).length, 6);
+  assert.equal(paths.filter(path => path.classList.contains('active')).length, 68);
   spoken.length = 0;
   const taiwan = document.querySelectorAll('[data-province]').find(button => Number(button.dataset.province) === 710000);
   taiwan.handlers.click();
   assert.equal(paths.filter(path => path.classList.contains('chosen')).length, 2);
   assert.match(document.getElementById('heading').textContent, /台湾/);
   assert.equal(spoken.length, 1);
-  document.getElementById('next').handlers.click();
-  assert.match(document.getElementById('heading').textContent, /鸡背/);
+  document.getElementById('poem-lines').children[3].handlers.click();
+  assert.match(document.getElementById('description').textContent, /内蒙甘肃/);
   assert.equal(paths.filter(path => path.classList.contains('chosen')).length, 0);
-  document.getElementById('reset').handlers.click();
-  assert.match(document.getElementById('heading').textContent, /鸡头/);
-  assert.equal(paths.filter(path => path.classList.contains('active')).length, 6);
+  document.getElementById('poem-restart').handlers.click();
+  assert.match(document.getElementById('description').textContent, /中国地图像雄鸡/);
+  assert.equal(paths.filter(path => path.classList.contains('active')).length, 68);
 });
 
 test('map data preserves province identities and the South China Sea boundary feature', () => {
