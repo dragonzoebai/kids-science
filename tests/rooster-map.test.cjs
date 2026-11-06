@@ -49,7 +49,9 @@ test('rooster map renders all 34 regions, highlights provinces and supports guid
   assert.match(document.getElementById('description').textContent, /内蒙甘肃/);
   assert.equal(paths.filter(path => path.classList.contains('active')).length, 4);
   const stale = utterances.at(-1).onend;
-  document.getElementById('poem-pause').handlers.click(); stale();
+  assert.match(document.getElementById('poem-play').textContent, /暂停/);
+  document.getElementById('poem-play').handlers.click(); stale();
+  assert.match(document.getElementById('poem-play').textContent, /继续/);
   assert.match(document.getElementById('description').textContent, /内蒙甘肃/);
   document.getElementById('poem-play').handlers.click();
   assert.match(spoken.at(-1), /内蒙甘肃/);

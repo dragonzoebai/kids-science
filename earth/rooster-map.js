@@ -69,9 +69,8 @@
     });
   }
   function poemControls() {
-    document.getElementById('poem-play').textContent = poemPlaying ? '正在朗读…' : poemCodes ? '▶ 继续本句' : '▶ 朗读儿歌';
-    document.getElementById('poem-play').disabled = poemPlaying;
-    document.getElementById('poem-pause').disabled = !poemPlaying;
+    document.getElementById('poem-play').textContent = poemPlaying ? 'Ⅱ 暂停' : poemCodes ? '▶ 继续朗读' : '▶ 朗读儿歌';
+    document.getElementById('poem-play').setAttribute('aria-label', poemPlaying ? '暂停朗读' : poemCodes ? '继续朗读' : '朗读儿歌');
   }
   function stopPoem(clear = true) {
     poemGeneration++;
@@ -115,8 +114,10 @@
     button.addEventListener('click', () => { stopPoem(); poemIndex = index; readLine(); });
     lyricButtons.push(button); document.getElementById('poem-lines').appendChild(button);
   });
-  document.getElementById('poem-play').addEventListener('click', readLine);
-  document.getElementById('poem-pause').addEventListener('click', () => { stopPoem(false); status.textContent = '已暂停，继续时从本句重新朗读。'; });
+  document.getElementById('poem-play').addEventListener('click', () => {
+    if (poemPlaying) { stopPoem(false); status.textContent = '已暂停，继续时从本句重新朗读。'; }
+    else readLine();
+  });
   document.getElementById('poem-restart').addEventListener('click', () => { stopPoem(); poemIndex = 0; readLine(); });
   document.getElementById('audio-controls').addEventListener('click', event => {
     if (event.target.closest?.('#audio-speech, #audio-intro')) { stopPoem(); update(); }
