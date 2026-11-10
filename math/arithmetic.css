@@ -33,3 +33,13 @@ output { display: inline-grid; place-items: center; width: 86px; height: 86px; b
 button:focus-visible, a:focus-visible { outline: 4px solid #397bba; outline-offset: 3px; }
 @media (max-width: 500px) { main { padding: 12px 12px 85px; } h1 { margin: 16px 0; } nav { gap: 6px; } nav button { padding: 10px; font-size: 15px; } .play { padding: 16px 8px; } .basket { padding: 8px; gap: 0; } .apples { gap: 6px; } .keys { gap: 9px; } .keys button { min-height: 64px; } .equation { gap: 10px; } .badge { font-size: 12px; } }
 @media (max-height: 740px) and (min-width: 700px) { main { max-width: 1000px; padding-top: 12px; } h1 { margin: 10px 0; } nav { margin-bottom: 12px; } .play { padding: 12px; } .apples { min-height: 75px; } .equation { margin: 8px 0; } .keys { margin: 14px 0; } .keys button { min-height: 58px; } }
+
+/* 每五个苹果一行，方便计数。 */
+.basket { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); max-width: 46%; flex: 0 1 auto; }
+.basket:only-child { max-width: 100%; }
+.empty { grid-column: 1 / -1; }
+.answer-actions { display: flex; justify-content: center; gap: 14px; margin-bottom: 16px; }
+.answer-actions button { min-width: 130px; font-size: 22px; }
+#check { background: #35694e; color: white; }
+button:disabled { opacity: .55; cursor: default; }
+@media (max-width: 500px) { .basket { padding: 8px 3px; } .apple { font-size: 26px; } }
