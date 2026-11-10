@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>苹果加减法 · 科学游乐园</title>
+  <link rel="stylesheet" href="arithmetic.css">
+  <link rel="stylesheet" href="../touch.css">
+  <script src="../touch.js"></script>
+</head>
+<body>
+  <main>
+    <header><a href="../index.html" aria-label="返回科学游乐园">⌂ 回家</a><span class="badge">玩一玩 · 5 以内</span><button id="read" data-speak-ignore aria-label="听题目">🔊 听题</button></header>
+    <h1>🍎 苹果加减法</h1>
+    <nav aria-label="选择题目类型" data-speak-ignore>
+      <button data-mode="mixed" aria-pressed="true">一起玩 ＋ −</button>
+      <button data-mode="add" aria-pressed="false">加一加 ＋</button>
+      <button data-mode="subtract" aria-pressed="false">减一减 −</button>
+    </nav>
+    <section class="play" aria-label="数学题">
+      <p id="prompt">一共有几个苹果？</p>
+      <div id="apples" class="apples" role="img"></div>
+      <div class="equation" aria-label="算式"><span id="left"></span><span id="operator"></span><span id="right"></span><span>＝</span><output id="answer" aria-label="你的答案">?</output></div>
+      <p id="feedback" role="status" aria-live="polite">数一数，点下面的数字</p>
+    </section>
+    <div id="keys" class="keys" aria-label="数字键盘" data-speak-ignore>
+      <button data-number="0">0</button><button data-number="1">1</button><button data-number="2">2</button><button data-number="3">3</button><button data-number="4">4</button><button data-number="5">5</button><button data-number="6">6</button><button data-number="7">7</button><button data-number="8">8</button><button data-number="9">9</button>
+    </div>
+    <button id="next" class="next" data-speak-ignore>换一题 ↻</button>
+  </main>
+  <script src="../speak.js"></script>
+  <script src="arithmetic.js"></script>
+</body>
+</html>
