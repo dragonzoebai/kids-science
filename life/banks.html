@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#edf6f0">
+<title>认识银行 · 科学游乐园</title>
+<link rel="stylesheet" href="../touch.css">
+<style>
+*{box-sizing:border-box}body{margin:0;background:#edf6f0;color:#203e35;font-family:system-ui,-apple-system,"Microsoft YaHei",sans-serif}main{max-width:1140px;margin:auto;padding:24px 28px 96px}header{display:flex;align-items:center;justify-content:space-between;gap:16px}.back{display:inline-flex;align-items:center;min-height:48px;color:#355e50;text-decoration:none;font-weight:650}.eyebrow{font-size:14px;color:#526c62;letter-spacing:2px}h1{font-size:clamp(32px,5vw,48px);margin:24px 0 8px;letter-spacing:2px}.intro{font-size:18px;margin:0 0 24px;color:#526c62}.help{display:flex;align-items:center;gap:18px;padding:20px 24px;background:#fff7df;border:1px solid #e8d8a6;border-radius:24px;margin-bottom:28px}.help-icon{font-size:44px;flex:none}.help h2{font-size:21px;margin:0 0 6px}.help p{margin:0;font-size:16px;line-height:1.7}.help button{flex:none;margin-left:auto;background:#315f4e;color:white;border:0;border-radius:16px;padding:14px 18px;font:inherit;font-weight:650;min-height:52px;cursor:pointer}.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}.bank-card{font:inherit;appearance:none;display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:0;min-height:210px;padding:24px 18px 20px;background:white;border:2px solid #dce8e0;border-radius:24px;box-shadow:0 5px 0 #dce8e080;cursor:pointer;color:#203e35;transition:transform .15s,border-color .15s}.logo{display:flex;align-items:center;justify-content:center;width:100%;height:100px;margin-bottom:18px}.logo img{display:block;max-width:100%;width:280px;height:100%;object-fit:contain}.bank-name{font-size:22px;font-weight:750;line-height:1.5}.tap{font-size:13px;color:#718078;margin-top:9px}.bank-card:hover,.bank-card.selected{border-color:var(--bank)}.bank-card.selected .tap{color:var(--bank)}.bank-card:active{transform:scale(.97)}button:focus-visible,a:focus-visible,summary:focus-visible{outline:3px solid #246fbd;outline-offset:4px}.parent{margin-top:26px;color:#526c62;font-size:14px;line-height:1.9}.parent summary{cursor:pointer;min-height:44px;display:list-item;padding:10px 0;font-weight:650}.parent p{max-width:850px;margin:8px 0}.parent a{color:#285f4b;display:inline-block;min-height:44px;padding:8px 0}.status{min-height:26px;margin:18px 0 0;color:#315f4e;text-align:center;font-size:16px}@media(max-width:800px){main{padding:20px 20px 90px}.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.help{flex-wrap:wrap}.help button{margin-left:62px}.bank-card{min-height:195px}.bank-name{font-size:20px}}@media(max-width:420px){main{padding:14px 12px 90px}.eyebrow{font-size:12px;letter-spacing:0}.grid{gap:12px}.bank-card{padding:16px 10px;min-height:178px;border-radius:20px}.logo{height:80px;margin-bottom:12px}.bank-name{font-size:17px}.help{padding:16px;gap:12px}.help-icon{font-size:32px}.help h2{font-size:19px}.help p{font-size:15px}.help button{margin-left:0;width:100%}.tap{font-size:12px}}@media(prefers-reduced-motion:reduce){.bank-card{transition:none}}
+</style>
+<script src="../touch.js"></script>
+</head>
+<body>
+<main>
+<header><a class="back" href="../index.html">← 科学游乐园</a><span class="eyebrow">生活安全 · 和家长一起认</span></header>
+<h1>认识银行</h1>
+<p class="intro">认认门口的标志，点一点，听听银行的名字。</p>
+<section class="help" aria-labelledby="help-title"><span class="help-icon" aria-hidden="true">👨‍👩‍👧</span><div><h2 id="help-title">走散了，先停下</h2><p>附近有开门的银行？找大厅里的工作人员帮忙。</p></div><button type="button" id="help-speak" data-speak-ignore>♪ 学说求助的话</button></section>
+<section class="grid" aria-label="九家银行的标志和名称">
+<button class="bank-card" type="button" data-speak="中国邮政储蓄银行" style="--bank:#16845b" aria-label="听中国邮政储蓄银行的名称"><span class="logo"><img src="bank-logos/psbc.svg" alt="中国邮政储蓄银行标志" width="300" height="110"></span><span class="bank-name">中国邮政储蓄银行</span><span class="tap" aria-hidden="true">轻触听名称 ♪</span></button>
+<button class="bank-card" type="button" data-speak="中国工商银行" style="--bank:#c52b36" aria-label="听中国工商银行的名称"><span class="logo"><img src="bank-logos/icbc.svg" alt="中国工商银行标志" width="300" height="110"></span><span class="bank-name">中国工商银行</span><span class="tap" aria-hidden="true">轻触听名称 ♪</span></button>
+<button class="bank-card" type="button" data-speak="北京农商银行" style="--bank:#c52b36" aria-label="听北京农商银行的名称"><span class="logo"><img src="bank-logos/bjrcb.svg" alt="北京农商银行标志" width="300" height="110"></span><span class="bank-name">北京农商银行</span><span class="tap" aria-hidden="true">轻触听名称 ♪</span></button>
+<button class="bank-card" type="button" data-speak="中国建设银行" style="--bank:#1765a1" aria-label="听中国建设银行的名称"><span class="logo"><img src="bank-logos/ccb.svg" alt="中国建设银行标志" width="300" height="110"></span><span class="bank-name">中国建设银行</span><span class="tap" aria-hidden="true">轻触听名称 ♪</span></button>
+<button class="bank-card" type="button" data-speak="中国农业银行" style="--bank:#168b7b" aria-label="听中国农业银行的名称"><span class="logo"><img src="bank-logos/abc.svg" alt="中国农业银行标志" width="300" height="110"></span><span class="bank-name">中国农业银行</span><span class="tap" aria-hidden="true">轻触听名称 ♪</span></button>
+<button class="bank-card" type="button" data-speak="北京银行" style="--bank:#c52b36" aria-label="听北京银行的名称"><span class="logo"><img src="bank-logos/bjb.svg" alt="北京银行标志" width="300" height="110"></span><span class="bank-name">北京银行</span><span class="tap" aria-hidden="true">轻触听名称 ♪</span></button>
+<button class="bank-card" type="button" data-speak="中国银行" style="--bank:#bb2540" aria-label="听中国银行的名称"><span class="logo"><img src="bank-logos/boc.svg" alt="中国银行标志" width="300" height="110"></span><span class="bank-name">中国银行</span><span class="tap" aria-hidden="true">轻触听名称 ♪</span></button>
+<button class="bank-card" type="button" data-speak="招商银行" style="--bank:#bb2540" aria-label="听招商银行的名称"><span class="logo"><img src="bank-logos/cmb.svg" alt="招商银行标志" width="300" height="110"></span><span class="bank-name">招商银行</span><span class="tap" aria-hidden="true">轻触听名称 ♪</span></button>
+<button class="bank-card" type="button" data-speak="交通银行" style="--bank:#145b9a" aria-label="听交通银行的名称"><span class="logo"><img src="bank-logos/bocom.svg" alt="交通银行标志" width="300" height="110"></span><span class="bank-name">交通银行</span><span class="tap" aria-hidden="true">轻触听名称 ♪</span></button>
+</section>
+<p class="status" id="status" role="status" aria-live="polite">选一家银行，认识它的标志吧</p>
+<details class="parent"><summary>给家长的小提醒</summary><p>优先认识家附近、常走路线上的两三家银行。走散后不要让孩子独自走远、过马路寻找银行；有工作人员且正在营业的大厅才适合求助，无人值守的 ATM 自助区不算求助点。请孩子留在大厅，请工作人员联系家长或报警。</p><p>这里展示前面讨论的 9 家银行，供标志认知使用，排列不代表北京市网点数量的精确排名，也不是银行全名单。银行名称可轻触朗读；语音沿用全站声音开关，需要设备支持中文语音。</p><p>标志素材：<a href="https://github.com/icongo/bank-logos" target="_blank" rel="noopener noreferrer">bank-logos 开源素材库</a>，已保存在本地。商标归各银行所有，仅用于识别学习。</p></details>
+</main>
+<script src="../speak.js"></script>
+<script>
+const status = document.getElementById('status');
+document.querySelectorAll('.bank-card').forEach(card => {
+  card.addEventListener('click', () => {
+    document.querySelector('.bank-card.selected')?.classList.remove('selected');
+    card.classList.add('selected');
+    status.textContent = '这是' + card.dataset.speak;
+  });
+});
+document.getElementById('help-speak').addEventListener('click', () => {
+  const words = '我找不到爸爸妈妈了，请帮我联系警察。我在大厅里等。';
+  status.textContent = words;
+  window.kidSpeak?.(words);
+});
+</script>
+</body>
+</html>
