@@ -8,12 +8,13 @@
 <link rel="stylesheet" href="../touch.css">
 <style>
 *{box-sizing:border-box}body{margin:0;background:#edf6f0;color:#203e35;font-family:system-ui,-apple-system,"Microsoft YaHei",sans-serif}main{width:100%;margin:0;padding:16px 12px 96px}.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}.bank-card{font:inherit;appearance:none;display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:0;min-height:160px;padding:24px 18px;background:white;border:2px solid #dce8e0;border-radius:24px;box-shadow:0 5px 0 #dce8e080;cursor:pointer;color:#203e35;transition:transform .15s,border-color .15s}.logo{display:flex;align-items:center;justify-content:center;width:100%;height:100px;margin:0}.logo img{display:block;max-width:100%;width:280px;height:100%;object-fit:contain}.bank-card:hover,.bank-card.selected{border-color:var(--bank)}.bank-card:active{transform:scale(.97)}button:focus-visible,a:focus-visible,summary:focus-visible{outline:3px solid #246fbd;outline-offset:4px}@media(max-width:800px){main{padding:16px 12px 90px}.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.bank-card{min-height:150px}}@media(max-width:420px){main{padding:14px 12px 90px}.grid{gap:12px}.bank-card{padding:16px 10px;min-height:120px;border-radius:20px}.logo{height:80px;margin:0}}@media(prefers-reduced-motion:reduce){.bank-card{transition:none}}
+.other-banks{margin-top:18px}.other-banks summary{min-height:48px;padding:12px 4px;color:#355e50;font-size:18px;font-weight:650;cursor:pointer}.other-banks[open] summary{margin-bottom:12px}
 </style>
 <script src="../touch.js"></script>
 </head>
 <body>
 <main>
-<section class="grid" aria-label="银行标志">
+<section class="grid" aria-label="北京常见银行">
 <button class="bank-card" type="button" data-speak="中国邮政储蓄银行" style="--bank:#16845b" aria-label="听中国邮政储蓄银行的名称"><span class="logo"><img src="bank-logos/psbc.svg" alt="中国邮政储蓄银行标志" width="300" height="110"></span></button>
 <button class="bank-card" type="button" data-speak="中国工商银行" style="--bank:#c52b36" aria-label="听中国工商银行的名称"><span class="logo"><img src="bank-logos/icbc.svg" alt="中国工商银行标志" width="300" height="110"></span></button>
 <button class="bank-card" type="button" data-speak="北京农商银行" style="--bank:#c52b36" aria-label="听北京农商银行的名称"><span class="logo"><img src="bank-logos/bjrcb.svg" alt="北京农商银行标志" width="300" height="110"></span></button>
@@ -23,6 +24,10 @@
 <button class="bank-card" type="button" data-speak="中国银行" style="--bank:#bb2540" aria-label="听中国银行的名称"><span class="logo"><img src="bank-logos/boc.svg" alt="中国银行标志" width="300" height="110"></span></button>
 <button class="bank-card" type="button" data-speak="招商银行" style="--bank:#bb2540" aria-label="听招商银行的名称"><span class="logo"><img src="bank-logos/cmb.svg" alt="招商银行标志" width="300" height="110"></span></button>
 <button class="bank-card" type="button" data-speak="交通银行" style="--bank:#145b9a" aria-label="听交通银行的名称"><span class="logo"><img src="bank-logos/bocom.svg" alt="交通银行标志" width="300" height="110"></span></button>
+</section>
+<details class="other-banks">
+<summary>其他银行</summary>
+<section class="grid" aria-label="其他银行">
 <button class="bank-card" type="button" data-speak="中信银行" style="--bank:#315f4e" aria-label="听中信银行的名称"><span class="logo"><img src="bank-logos/citicbank.svg" alt="中信银行标志" width="300" height="110"></span></button>
 <button class="bank-card" type="button" data-speak="中国光大银行" style="--bank:#315f4e" aria-label="听中国光大银行的名称"><span class="logo"><img src="bank-logos/cebbank.svg" alt="中国光大银行标志" width="300" height="110"></span></button>
 <button class="bank-card" type="button" data-speak="华夏银行" style="--bank:#315f4e" aria-label="听华夏银行的名称"><span class="logo"><img src="bank-logos/hxb.svg" alt="华夏银行标志" width="300" height="110"></span></button>
@@ -51,6 +56,7 @@
 <button class="bank-card" type="button" data-speak="广州农商银行" style="--bank:#315f4e" aria-label="听广州农商银行的名称"><span class="logo"><img src="bank-logos/grcbank.svg" alt="广州农商银行标志" width="300" height="110"></span></button>
 <button class="bank-card" type="button" data-speak="深圳农商银行" style="--bank:#315f4e" aria-label="听深圳农商银行的名称"><span class="logo"><img src="bank-logos/szrcb.svg" alt="深圳农商银行标志" width="300" height="110"></span></button>
 </section>
+</details>
 </main>
 <script src="../speak.js"></script>
 <script>
