@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>元素周期表</title>
+<link rel="stylesheet" href="../table-lab.css">
+<body>
+<header><a href="../index.html" aria-label="返回首页">⌂</a><h1>元素周期表</h1></header>
+<output id="element-detail" aria-live="polite"></output>
+<main class="pan" aria-label="元素周期表">
+  <div class="elements" data-speak-ignore></div>
+</main>
+<script src="../speak.js"></script>
+<script>
+  // 元素符号、原子序数和布局参考 IUPAC 周期表。
+  const periods = [
+    'H氢 He氦',
+    'Li锂 Be铍 B硼 C碳 N氮 O氧 F氟 Ne氖',
+    'Na钠 Mg镁 Al铝 Si硅 P磷 S硫 Cl氯 Ar氩',
+    'K钾 Ca钙 Sc钪 Ti钛 V钒 Cr铬 Mn锰 Fe铁 Co钴 Ni镍 Cu铜 Zn锌 Ga镓 Ge锗 As砷 Se硒 Br溴 Kr氪',
+    'Rb铷 Sr锶 Y钇 Zr锆 Nb铌 Mo钼 Tc锝 Ru钌 Rh铑 Pd钯 Ag银 Cd镉 In铟 Sn锡 Sb锑 Te碲 I碘 Xe氙',
+    'Cs铯 Ba钡 La镧 Ce铈 Pr镨 Nd钕 Pm钷 Sm钐 Eu铕 Gd钆 Tb铽 Dy镝 Ho钬 Er铒 Tm铥 Yb镱 Lu镥 Hf铪 Ta钽 W钨 Re铼 Os锇 Ir铱 Pt铂 Au金 Hg汞 Tl铊 Pb铅 Bi铋 Po钋 At砹 Rn氡',
+    'Fr钫 Ra镭 Ac锕 Th钍 Pa镤 U铀 Np镎 Pu钚 Am镅 Cm锔 Bk锫 Cf锎 Es锿 Fm镄 Md钔 No锘 Lr铹 Rf𬬻 Db𬭊 Sg𬭳 Bh𬭛 Hs𬭶 Mt鿏 Ds𫟼 Rg𬬭 Cn鿔 Nh鿭 Fl𫓧 Mc镆 Lv𫟷 Ts鿬 Og鿫',
+  ];
+  const table = document.querySelector('.elements');
+  const detail = document.querySelector('#element-detail');
+  let atomicNumber = 0;
+  let selected;
+
+  function place(period, index) {
+    if (period === 1) return [1, index ? 18 : 1];
+    if (period <= 3) return [period, index + (index < 2 ? 1 : 11)];
+    if (period <= 5 || index < 2) return [period, index + 1];
+    if (index < 17) return [period + 2, index + 1];
+    return [period, index - 13];
+  }
+
+  for (const [index, period] of periods.entries()) {
+    period.split(' ').forEach((entry, offset) => {
+      const [, symbol, name] = entry.match(/^([A-Z][a-z]?)(.+)$/u);
+      const number = ++atomicNumber;
+      const [row, column] = place(index + 1, offset);
+      const button = document.createElement('button');
+      button.style.gridArea = row + ' / ' + column;
+      button.dataset.block = row > 7 ? 'f' : column <= 2 || symbol === 'He' ? 's' : column < 13 ? 'd' : 'p';
+      const label = name + ' ' + symbol + ' · 原子序数 ' + number;
+      button.setAttribute('aria-label', label);
+      button.setAttribute('aria-pressed', 'false');
+      const indexLabel = document.createElement('small');
+      indexLabel.textContent = number;
+      const symbolLabel = document.createElement('strong');
+      symbolLabel.textContent = symbol;
+      const nameLabel = document.createElement('span');
+      nameLabel.textContent = name;
+      button.append(indexLabel, symbolLabel, nameLabel);
+      function select() {
+        selected?.setAttribute('aria-pressed', 'false');
+        selected = button;
+        button.setAttribute('aria-pressed', 'true');
+        detail.textContent = label;
+      }
+      button.addEventListener('click', () => {
+        select();
+        window.kidSpeak?.(name + '，原子序数 ' + number);
+      });
+      table.append(button);
+      if (number === 1) select();
+    });
+  }
+  for (const [row, text] of [[6, '57–71'], [7, '89–103']]) {
+    const marker = document.createElement('span');
+    marker.className = 'series';
+    marker.style.gridArea = row + ' / 3';
+    marker.textContent = text;
+    table.append(marker);
+  }
+</script>
+</body>
+</html>

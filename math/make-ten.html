@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>凑十法</title>
+<link rel="stylesheet" href="../table-lab.css">
+<body>
+<header><a href="../index.html" aria-label="返回首页">⌂</a><h1>凑十法</h1></header>
+<main class="ten">
+  <div id="dots" class="dots" role="img"></div>
+  <output class="sum" aria-live="polite"><span id="left">1</span> + <span id="right">9</span> = 10</output>
+  <nav id="choices" aria-label="选择第一个数"></nav>
+</main>
+<script src="../speak.js"></script>
+<script>
+  const choices = document.querySelector('#choices');
+  const dots = document.querySelector('#dots');
+  const counters = Array.from({ length: 10 }, () => document.createElement('span'));
+  dots.append(...counters);
+
+  function show(first) {
+    const second = 10 - first;
+    document.querySelector('#left').textContent = first;
+    document.querySelector('#right').textContent = second;
+    dots.setAttribute('aria-label', first + ' 个蓝点和 ' + second + ' 个金点');
+    counters.forEach((counter, index) => counter.classList.toggle('blue', index < first));
+    [...choices.children].forEach((button, index) => button.setAttribute('aria-pressed', index + 1 === first));
+  }
+
+  for (let first = 1; first <= 9; first++) {
+    const button = document.createElement('button');
+    button.textContent = first;
+    button.dataset.speakIgnore = '';
+    button.setAttribute('aria-label', first + ' 加 ' + (10 - first));
+    button.addEventListener('click', () => {
+      show(first);
+      window.kidSpeak?.(first + ' 加 ' + (10 - first) + ' 等于十');
+    });
+    choices.append(button);
+  }
+  show(1);
+</script>
+</body>
+</html>
