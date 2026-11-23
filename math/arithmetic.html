@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>苹果加减法 · 科学游乐园</title>
   <link rel="stylesheet" href="arithmetic.css">
   <link rel="stylesheet" href="../touch.css">
@@ -10,32 +10,33 @@
 </head>
 <body>
   <main>
-    <header><a href="../index.html" aria-label="返回科学游乐园">⌂ 回家</a><span id="range-label" class="badge">玩一玩 · 5 以内</span><button id="read" data-speak-ignore aria-label="听题目">🔊 听题</button></header>
-    <h1>🍎 苹果加减法</h1>
-    <nav aria-label="选择数字范围" data-speak-ignore>
-      <button data-limit="5" aria-pressed="true">5 以内</button>
-      <button data-limit="10" aria-pressed="false">10 以内</button>
-      <button data-limit="20" aria-pressed="false">20 以内</button>
-    </nav>
-    <nav aria-label="选择题目类型" data-speak-ignore>
-      <button data-mode="mixed" aria-pressed="true">一起玩 ＋ −</button>
-      <button data-mode="add" aria-pressed="false">加一加 ＋</button>
-      <button data-mode="subtract" aria-pressed="false">减一减 −</button>
-    </nav>
+    <header><a href="../index.html" aria-label="返回首页">⌂</a><h1>苹果加减法</h1></header>
     <section class="play" aria-label="数学题">
-      <p id="prompt">一共有几个苹果？</p>
       <div id="apples" class="apples" role="img"></div>
       <div class="equation" aria-label="算式"><span id="left"></span><span id="operator"></span><span id="right"></span><span>＝</span><output id="answer" aria-label="你的答案">?</output></div>
-      <p id="feedback" role="status" aria-live="polite">点数字，再点“确定”</p>
+      <p id="feedback" role="status" aria-live="polite" data-speak-ignore></p>
     </section>
-    <div id="keys" class="keys" aria-label="数字键盘" data-speak-ignore>
-      <button data-number="0">0</button><button data-number="1">1</button><button data-number="2">2</button><button data-number="3">3</button><button data-number="4">4</button><button data-number="5">5</button><button data-number="6">6</button><button data-number="7">7</button><button data-number="8">8</button><button data-number="9">9</button>
+    <div class="controls" data-speak-ignore>
+      <nav aria-label="选择数字范围">
+        <button data-limit="5" aria-pressed="true">5 以内</button>
+        <button data-limit="10" aria-pressed="false">10 以内</button>
+        <button data-limit="20" aria-pressed="false">20 以内</button>
+      </nav>
+      <nav aria-label="选择题目类型">
+        <button data-mode="mixed" aria-pressed="true" aria-label="加减混合">＋ −</button>
+        <button data-mode="add" aria-pressed="false" aria-label="加法">＋</button>
+        <button data-mode="subtract" aria-pressed="false" aria-label="减法">−</button>
+      </nav>
+      <div id="keys" class="keys" role="group" aria-label="数字键盘">
+        <button data-number="0">0</button><button data-number="1">1</button><button data-number="2">2</button><button data-number="3">3</button><button data-number="4">4</button><button data-number="5">5</button><button data-number="6">6</button><button data-number="7">7</button><button data-number="8">8</button><button data-number="9">9</button>
+      </div>
+      <div class="answer-actions">
+        <button id="read" aria-label="听题目">听题</button>
+        <button id="erase" aria-label="删掉最后一个数字">⌫</button>
+        <button id="check">确定</button>
+        <button id="next">换题</button>
+      </div>
     </div>
-    <div class="answer-actions" data-speak-ignore>
-      <button id="erase" aria-label="删掉最后一个数字">⌫ 改一改</button>
-      <button id="check">确定 ✓</button>
-    </div>
-    <button id="next" class="next" data-speak-ignore>换一题 ↻</button>
   </main>
   <script src="../speak.js"></script>
   <script src="arithmetic.js"></script>

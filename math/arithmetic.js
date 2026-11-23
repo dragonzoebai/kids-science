@@ -41,10 +41,9 @@
     $('operator').textContent = question.op;
     $('answer').textContent = '?';
     document.querySelector('.play').classList.remove('correct', 'retry');
-    $('feedback').textContent = '点数字，再点“确定”';
-    $('next').textContent = '换一题 ↻';
+    $('feedback').textContent = '';
+    $('next').textContent = '换题';
     document.querySelectorAll('[data-number]').forEach((key) => { key.disabled = false; });
-    $('prompt').textContent = question.op === '+' ? '一共有几个苹果？' : '拿走划掉的，还剩几个？';
     $('apples').replaceChildren(basket(question.a, question.op === '−' ? question.b : 0));
     if (question.op === '+') {
       const plus = document.createElement('span'); plus.className = 'symbol'; plus.textContent = '+';
@@ -60,11 +59,11 @@
     solved = number === question.result;
     document.querySelector('.play').classList.toggle('correct', solved);
     document.querySelector('.play').classList.toggle('retry', !solved);
-    const message = solved ? '答对啦！真棒！⭐' : '再数一数，试试看 🌱';
+    const message = solved ? '答对了！' : '再数数';
     $('feedback').textContent = message;
-    say(solved ? `答对啦！${question.a}${question.op === '+' ? '加' : '减'}${question.b}等于${number}。真棒！` : '再数一数，试试看。');
+    say(solved ? `答对了！${question.a}${question.op === '+' ? '加' : '减'}${question.b}等于${number}。` : '再数数。');
     if (solved) {
-      $('next').textContent = '下一题 →';
+      $('next').textContent = '下一题';
       $('check').disabled = true;
       $('erase').disabled = true;
       document.querySelectorAll('[data-number]').forEach((key) => { key.disabled = true; });
@@ -76,21 +75,20 @@
     input = input === '0' ? String(digit) : input + digit;
     $('answer').textContent = input;
     document.querySelector('.play').classList.remove('retry');
-    $('feedback').textContent = '点“确定”，看看答对了吗';
+    $('feedback').textContent = '';
   }
   function erase() {
     if (solved) return;
     input = input.slice(0, -1);
     $('answer').textContent = input || '?';
     document.querySelector('.play').classList.remove('retry');
-    $('feedback').textContent = '点数字，再点“确定”';
+    $('feedback').textContent = '';
   }
   $('check').addEventListener('click', answer);
   $('erase').addEventListener('click', erase);
   document.querySelectorAll('[data-limit]').forEach((button) => button.addEventListener('click', () => {
     limit = Number(button.dataset.limit);
     document.querySelectorAll('[data-limit]').forEach((item) => item.setAttribute('aria-pressed', String(item === button)));
-    $('range-label').textContent = `玩一玩 · ${limit} 以内`;
     next();
   }));
   $('keys').addEventListener('click', (event) => {
