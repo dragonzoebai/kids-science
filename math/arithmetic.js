@@ -16,7 +16,9 @@
   let question;
   let solved = false;
   const say = (text) => window.kidSpeak?.(text);
-  const spokenQuestion = () => `${question.a}${question.op === '+' ? '加' : '减'}${question.b}等于几？`;
+  const spokenNumber = (number) => number === 2 ? '二' : String(number);
+  const spokenExpression = () => `${spokenNumber(question.a)}${question.op === '+' ? '加' : '减'}${spokenNumber(question.b)}`;
+  const spokenQuestion = () => `${spokenExpression()}等于几？`;
   function basket(count, removed = 0) {
     const group = document.createElement('div');
     group.className = 'basket';
@@ -61,7 +63,7 @@
     document.querySelector('.play').classList.toggle('retry', !solved);
     const message = solved ? '答对了！' : '再数数';
     $('feedback').textContent = message;
-    say(solved ? `答对了！${question.a}${question.op === '+' ? '加' : '减'}${question.b}等于${number}。` : '再数数。');
+    say(solved ? `答对了！${spokenExpression()}等于${spokenNumber(number)}。` : '再数数。');
     if (solved) {
       $('next').textContent = '下一题';
       $('check').disabled = true;

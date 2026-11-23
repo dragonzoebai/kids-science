@@ -19,7 +19,10 @@ test('arithmetic supports bounded random questions, retries, zero, modes and sol
   const document = { getElementById: id => ids[id], createElement: () => element(),
     querySelector: () => element(), querySelectorAll: selector => selector === '[data-mode]' ? modes : selector === '[data-limit]' ? limits : keys,
     addEventListener() {} };
-  vm.runInNewContext(fs.readFileSync(require.resolve('../math/arithmetic.js'), 'utf8'), { document, window: {} });
+  let spoken;
+  vm.runInNewContext(fs.readFileSync(require.resolve('../math/arithmetic.js'), 'utf8'), {
+    document, window: { kidSpeak: text => { spoken = text; } },
+  });
   const clickNumber = number => ids.keys.handlers.click({ target: { closest: () => keys[number] } });
   const seen = new Set();
   for (const range of limits) {
@@ -30,6 +33,10 @@ test('arithmetic supports bounded random questions, retries, zero, modes and sol
     for (let i = 0; i < 300; i++) {
       const a = Number(ids.left.textContent), b = Number(ids.right.textContent), op = ids.operator.textContent;
       const result = op === '+' ? a + b : a - b;
+      const pronunciation = n => n === 2 ? '二' : String(n);
+      const expression = `${pronunciation(a)}${op === '+' ? '加' : '减'}${pronunciation(b)}`;
+      ids.read.handlers.click();
+      assert.equal(spoken, `${expression}等于几？`);
       assert.ok(a >= 0 && a <= limit && b >= 0 && b <= limit && result >= 0 && result <= limit);
       if (mode.dataset.mode !== 'mixed') assert.equal(op, mode.dataset.mode === 'add' ? '+' : '−');
       seen.add(result);
@@ -47,6 +54,7 @@ test('arithmetic supports bounded random questions, retries, zero, modes and sol
       assert.doesNotMatch(ids.feedback.textContent, /^答对/);
       ids.check.handlers.click();
       assert.match(ids.feedback.textContent, /答对/);
+      assert.equal(spoken, `答对了！${expression}等于${pronunciation(result)}。`);
       assert.ok(keys.every(key => key.disabled));
       clickNumber(9);
       assert.equal(Number(ids.answer.textContent), result);
