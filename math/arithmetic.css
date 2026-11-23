@@ -140,3 +140,17 @@ body #ks-toggle {
   .apple { font-size: clamp(20px, 4.5vw, 56px); }
   .equation { font-size: clamp(30px, 7vw, 82px); }
 }
+
+@media (min-width: 700px) and (min-height: 600px) {
+  h1 { font-size: 21px; }
+  .controls { gap: 8px; padding: 8px; }
+  .controls nav, .keys, .answer-actions { gap: 7px; }
+  .controls button {
+    min-height: 56px;
+    font-size: clamp(22px, 2.8vmin, 28px);
+  }
+  .keys button {
+    min-height: clamp(68px, 8vmin, 88px);
+    font-size: clamp(40px, 5.8vmin, 56px);
+  }
+}
