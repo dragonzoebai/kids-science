@@ -6,9 +6,9 @@
 <link rel="stylesheet" href="../table-lab.css">
 <body>
 <header><a href="../index.html" aria-label="返回首页">⌂</a><h1>元素周期表</h1></header>
-<output id="element-detail" aria-live="polite"></output>
+<output id="element-detail" aria-live="polite" data-speak-ignore></output>
 <main class="pan" aria-label="元素周期表">
-  <div class="elements" data-speak-ignore></div>
+  <div class="elements"></div>
 </main>
 <script src="../speak.js"></script>
 <script>
@@ -44,6 +44,7 @@
       button.style.gridArea = row + ' / ' + column;
       button.dataset.block = row > 7 ? 'f' : column <= 2 || symbol === 'He' ? 's' : column < 13 ? 'd' : 'p';
       const label = name + ' ' + symbol + ' · 原子序数 ' + number;
+      button.dataset.speak = name + '，原子序数 ' + number;
       button.setAttribute('aria-label', label);
       button.setAttribute('aria-pressed', 'false');
       const indexLabel = document.createElement('small');
@@ -59,10 +60,7 @@
         button.setAttribute('aria-pressed', 'true');
         detail.textContent = label;
       }
-      button.addEventListener('click', () => {
-        select();
-        window.kidSpeak?.(name + '，原子序数 ' + number);
-      });
+      button.addEventListener('click', select);
       table.append(button);
       if (number === 1) select();
     });
@@ -70,6 +68,7 @@
   for (const [row, text] of [[6, '57–71'], [7, '89–103']]) {
     const marker = document.createElement('span');
     marker.className = 'series';
+    marker.dataset.speakIgnore = '';
     marker.style.gridArea = row + ' / 3';
     marker.textContent = text;
     table.append(marker);

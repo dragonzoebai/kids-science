@@ -4,10 +4,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>乘法口诀表</title>
 <link rel="stylesheet" href="../table-lab.css">
-<body data-speak-ignore>
+<body>
 <header><a href="../index.html" aria-label="返回首页">⌂</a><h1>乘法口诀表</h1></header>
 <main class="pan" aria-label="乘法口诀表">
-  <div class="times" data-speak-ignore></div>
+  <div class="times"></div>
 </main>
 <script src="../speak.js"></script>
 <script>
@@ -29,12 +29,12 @@
       const button = document.createElement('button');
       button.style.gridArea = second + ' / ' + first;
       button.textContent = first + 'x' + second + '=' + first * second;
+      button.dataset.speak = rhyme(first, second);
       button.setAttribute('aria-pressed', 'false');
       button.addEventListener('click', () => {
         selected?.setAttribute('aria-pressed', 'false');
         selected = button;
         button.setAttribute('aria-pressed', 'true');
-        window.kidSpeak?.(rhyme(first, second));
       });
       table.append(button);
     }
