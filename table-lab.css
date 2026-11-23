@@ -56,15 +56,21 @@ main { grid-row: 3; min-height: 0; }
 [data-block="f"] { --accent: #ffcb77; }
 .series { display: grid; place-items: center; color: #ffcb77; font-size: 10px; }
 #element-detail { min-height: 28px; padding: 2px max(12px, env(safe-area-inset-left)); color: #c4d6e9; }
-.ten { display: grid; place-content: center; justify-items: center; gap: clamp(10px, 4vmin, 40px); overflow: auto; padding: 10px 8px max(10px, env(safe-area-inset-bottom)); }
-.dots { display: grid; grid-template-columns: repeat(5, 1fr); gap: clamp(7px, 2vmin, 18px); }
-.dots span { width: clamp(25px, 10vmin, 95px); aspect-ratio: 1; border-radius: 50%; background: #ffcf65; box-shadow: 0 0 14px #ffcf6540; }
-.dots .blue { background: #69dafa; box-shadow: 0 0 14px #69dafa60; }
-.sum { font: 750 clamp(32px, 11vmin, 100px) ui-monospace, monospace; white-space: nowrap; }
-#left { color: #69dafa; }
-#right { color: #ffcf65; }
-#choices { display: flex; flex-wrap: wrap; justify-content: center; gap: 5px; }
-#choices button { width: clamp(44px, 8vw, 80px); min-height: 44px; font-size: clamp(19px, 3.2vmin, 32px); }
+.ten {
+  display: grid;
+  grid-template: repeat(3, minmax(44px, 1fr)) / repeat(3, minmax(0, 1fr));
+  gap: 5px;
+  overflow: auto;
+  padding: 4px max(6px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(6px, env(safe-area-inset-left));
+}
+.ten button {
+  color: #eef6ff;
+  padding: 0;
+  font: 750 clamp(14px, 4.6vw, 56px) ui-monospace, monospace;
+  white-space: nowrap;
+}
+.ten button span:first-child { color: #69dafa; }
+.ten button span:last-child { color: #ffcf65; }
 
 body #ks-toggle {
   top: env(safe-area-inset-top);
