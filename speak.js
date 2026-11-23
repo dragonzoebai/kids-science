@@ -26,21 +26,21 @@
   speechSynthesis.addEventListener?.("voiceschanged", pickVoice);
 
   let lastSpeakAt = 0;
-  function speak(text, onFinish) {
-    text = clean(text);
-    if (!enabled || document.hidden || !text) return;
-    if (!onFinish) stopSequence();
-    lastSpeakAt = performance.now();
-    speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text);
+  function utteranceFor(text) {
+    const u = new SpeechSynthesisUtterance(clean(text));
     u.lang = "zh-CN";
     if (voice) u.voice = voice;
     u.rate = 0.9;
     u.pitch = 1.1;
-    if (onFinish) {
-      u.onend = () => onFinish(true);
-      u.onerror = () => onFinish(false);
-    }
+    return u;
+  }
+  function speak(text) {
+    text = clean(text);
+    if (!enabled || document.hidden || !text) return;
+    stopSequence();
+    lastSpeakAt = performance.now();
+    speechSynthesis.cancel();
+    const u = utteranceFor(text);
     speechSynthesis.speak(u);
   }
   window.kidSpeak = (text) => speak(text);
@@ -157,27 +157,35 @@
       return;
     }
     if (!enabled || document.hidden) return;
-    const items = [...document.querySelectorAll("main button[data-speak]")];
+    const items = [...document.querySelectorAll("main button[data-speak]")]
+      .filter(item => clean(item.dataset.speak));
     if (!items.length) return;
+    speechSynthesis.cancel();
+    lastSpeakAt = performance.now();
     sequence = items;
     readAll.textContent = "停止朗读";
     readAll.setAttribute("aria-pressed", "true");
-    function next(index) {
-      readingItem?.classList.remove("ks-sequence-reading");
-      readingItem = items[index];
-      if (!readingItem) {
-        stopSequence();
-        return;
-      }
-      readingItem.classList.add("ks-sequence-reading");
-      readingItem.scrollIntoView({ block: "nearest", inline: "nearest" });
-      speak(readingItem.dataset.speak, (finished) => {
+    // 在同一次点击中入队，避免上一条结束后重新启动语音。
+    items.forEach((item, index) => {
+      if (sequence !== items) return;
+      const u = utteranceFor(item.dataset.speak);
+      u.onstart = () => {
         if (sequence !== items) return;
-        if (finished) next(index + 1);
-        else stopSequence();
-      });
-    }
-    next(0);
+        readingItem?.classList.remove("ks-sequence-reading");
+        readingItem = item;
+        item.classList.add("ks-sequence-reading");
+        item.scrollIntoView({ block: "nearest", inline: "nearest" });
+      };
+      u.onend = () => {
+        if (sequence === items && index === items.length - 1) stopSequence();
+      };
+      u.onerror = () => {
+        if (sequence !== items) return;
+        stopSequence();
+        speechSynthesis.cancel();
+      };
+      speechSynthesis.speak(u);
+    });
   });
   function stopReading() {
     clearTimeout(hoverTimer);
