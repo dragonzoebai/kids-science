@@ -26,9 +26,10 @@
   speechSynthesis.addEventListener?.("voiceschanged", pickVoice);
 
   let lastSpeakAt = 0;
-  function speak(text) {
+  function speak(text, onFinish) {
     text = clean(text);
     if (!enabled || document.hidden || !text) return;
+    if (!onFinish) stopSequence();
     lastSpeakAt = performance.now();
     speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text);
@@ -36,9 +37,13 @@
     if (voice) u.voice = voice;
     u.rate = 0.9;
     u.pitch = 1.1;
+    if (onFinish) {
+      u.onend = () => onFinish(true);
+      u.onerror = () => onFinish(false);
+    }
     speechSynthesis.speak(u);
   }
-  window.kidSpeak = speak;
+  window.kidSpeak = (text) => speak(text);
 
   // 统一覆盖点击、悬停、自动朗读和 kidSpeak；保留数字、单位及数学符号。
   const clean = (s) => (s || "")
@@ -133,17 +138,59 @@
   // 悬停朗读
   let hoverTimer = 0;
   let lastHoverEl = null;
+  const readAll = document.querySelector("[data-speak-all]");
+  let sequence = null;
+  let readingItem = null;
+  function stopSequence() {
+    if (!sequence) return;
+    sequence = null;
+    readingItem?.classList.remove("ks-sequence-reading");
+    readingItem = null;
+    readAll.textContent = "全部朗读";
+    readAll.setAttribute("aria-pressed", "false");
+  }
+  readAll?.addEventListener("click", () => {
+    clearTimeout(hoverTimer);
+    if (sequence) {
+      stopSequence();
+      speechSynthesis.cancel();
+      return;
+    }
+    if (!enabled || document.hidden) return;
+    const items = [...document.querySelectorAll("main button[data-speak]")];
+    if (!items.length) return;
+    sequence = items;
+    readAll.textContent = "停止朗读";
+    readAll.setAttribute("aria-pressed", "true");
+    function next(index) {
+      readingItem?.classList.remove("ks-sequence-reading");
+      readingItem = items[index];
+      if (!readingItem) {
+        stopSequence();
+        return;
+      }
+      readingItem.classList.add("ks-sequence-reading");
+      readingItem.scrollIntoView({ block: "nearest", inline: "nearest" });
+      speak(readingItem.dataset.speak, (finished) => {
+        if (sequence !== items) return;
+        if (finished) next(index + 1);
+        else stopSequence();
+      });
+    }
+    next(0);
+  });
   function stopReading() {
     clearTimeout(hoverTimer);
     clearTimeout(autoTimer);
     autoTimer = 0;
     lastHoverEl = null;
+    stopSequence();
     speechSynthesis.cancel();
   }
   document.addEventListener('visibilitychange', () => { if (document.hidden) stopReading(); });
   window.addEventListener('pagehide', stopReading);
   document.addEventListener("mouseover", (e) => {
-    if (!enabled) return;
+    if (!enabled || sequence) return;
     const hit = findReadable(e.target);
     clearTimeout(hoverTimer);
     if (!hit) {
@@ -218,12 +265,14 @@
   function syncPreference() {
     try { enabled = localStorage.getItem(STORE_KEY) !== '0'; } catch {}
     if (!enabled) stopReading();
+    if (readAll) readAll.disabled = !enabled;
     renderToggle();
   }
   window.addEventListener('storage', event => { if (event.key === STORE_KEY || event.key === null) syncPreference(); });
   window.addEventListener('kid-speak-setting', syncPreference);
   window.addEventListener('pageshow', syncPreference);
   function mountToggle() {
+    if (readAll) readAll.disabled = !enabled;
     const btn = document.createElement("button");
     btn.id = "ks-toggle";
     btn.setAttribute("data-speak-ignore", "");

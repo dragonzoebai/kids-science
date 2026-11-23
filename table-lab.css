@@ -21,6 +21,14 @@ header {
 }
 h1 { font-size: 17px; margin: 0; }
 header a { display: grid; place-items: center; width: 44px; height: 44px; color: inherit; text-decoration: none; font-size: 25px; }
+.read-all {
+  min-height: 44px;
+  margin-inline-start: auto;
+  margin-inline-end: 48px;
+  padding-inline: 10px;
+  white-space: nowrap;
+}
+.read-all:disabled { opacity: .5; cursor: default; }
 button {
   --accent: #69dafa;
   font: inherit;
@@ -31,7 +39,7 @@ button {
   cursor: pointer;
   touch-action: manipulation;
 }
-button[aria-pressed="true"] {
+button[aria-pressed="true"], button.ks-sequence-reading {
   border-color: var(--accent);
   background: color-mix(in srgb, var(--accent) 24%, #080f19);
   box-shadow: inset 0 0 10px color-mix(in srgb, var(--accent) 18%, transparent);
@@ -58,7 +66,8 @@ main { grid-row: 3; min-height: 0; }
 #element-detail { min-height: 28px; padding: 2px max(12px, env(safe-area-inset-left)); color: #c4d6e9; }
 .ten {
   display: grid;
-  grid-template: repeat(3, minmax(44px, 1fr)) / repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-auto-rows: minmax(64px, 1fr);
   gap: 5px;
   overflow: auto;
   padding: 4px max(6px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(6px, env(safe-area-inset-left));
@@ -72,6 +81,13 @@ main { grid-row: 3; min-height: 0; }
 }
 .ten button span:first-child { color: #69dafa; }
 .ten button span:last-child { color: #ffcf65; }
+@media (max-width: 720px) {
+  .ten { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 420px) {
+  .ten { grid-template-columns: minmax(0, 1fr); }
+  .ten button { font-size: clamp(24px, 8vw, 40px); }
+}
 
 body #ks-toggle {
   top: env(safe-area-inset-top);
