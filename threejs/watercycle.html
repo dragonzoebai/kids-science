@@ -189,17 +189,19 @@
   </style>
 <link rel="stylesheet" href="../touch.css">
 <script src="../touch.js"></script>
+  <link rel="stylesheet" href="../fold-panels.css">
+  <script defer src="../fold-panels.js"></script>
 </head>
 <body>
   <canvas id="label-canvas"></canvas>
   <div id="hud"></div>
 
-  <section id="title">
+  <section id="title" data-fold-panel="left" data-fold-label="水循环介绍">
     <h1>水循环<span>星球剧场</span></h1>
     <p>小水滴从海里出发，变成水汽、云和雨，再沿着河流回到大海。一起跟着它旅行吧！</p>
   </section>
 
-  <section id="controls">
+  <section id="controls" data-fold-panel="right" data-fold-label="播放控制" data-fold-display="block">
     <div class="control-row">
       <label for="speed">演示速度</label>
       <input type="range" id="speed" min="0.4" max="2.8" step="0.1" value="1" aria-label="播放速度">
@@ -208,13 +210,13 @@
     <div id="legend-note">拖拽可旋转视角，滚轮缩放。蓝色光带表示水汽与河流，银白云团表示凝结云，金色粒子表示降雨。</div>
   </section>
 
-  <section id="caption">
+  <section id="caption" data-fold-panel="right" data-fold-label="水循环讲解" data-fold-display="block">
     <div class="tag">Hydrologic Cycle</div>
     <h2 id="phase-title">太平洋蒸发</h2>
     <p id="phase-text">太阳加热海面，水分子从太平洋表层逸出，变成看不见的水汽向上升腾。</p>
   </section>
 
-  <section id="story" aria-label="水循环过程">
+  <section id="story" aria-label="水循环过程" data-fold-panel="left" data-fold-label="水循环过程">
     <div class="step active"><span class="num">1</span><strong>海面蒸发</strong><span>太平洋吸收太阳能，水汽升空。</span></div>
     <div class="step"><span class="num">2</span><strong>云朵凝结</strong><span>水汽冷却，凝结成云滴。</span></div>
     <div class="step"><span class="num">3</span><strong>飘向中国</strong><span>云团随风跨越西太平洋。</span></div>

@@ -13,6 +13,8 @@
 <link rel="stylesheet" href="rooster-map-mapbox.css">
 <script src="../map-progressive.js"></script>
 <script src="../map-health.js"></script>
+  <link rel="stylesheet" href="../fold-panels.css">
+  <script defer src="../fold-panels.js"></script>
 </head>
 <body><main>
 
@@ -20,7 +22,7 @@
 
 <section class="lab" aria-label="雄鸡地图互动实验">
 <div class="map-card"><div class="map-top">地图里，藏着一只雄鸡</div><p id="error" class="error" hidden>地图数据暂时没有加载成功，请刷新重试。你仍可以点右侧部位听讲解。</p><div id="mapbox-map" role="region" aria-label="Mapbox China globe"></div><div class="map-toolbar"><button id="map-home">&#20840;&#22269;&#35270;&#35282;</button></div></div>
-<aside class="panel poem-panel" aria-label="&#20799;&#27468;&#36880;&#21477;&#26391;&#35835;"><div><strong>中国行政区儿歌 · 逐句朗读</strong><div class="actions"><button id="poem-play">▶ 朗读儿歌</button><button id="poem-restart">从头朗读</button></div></div><div id="poem-lines"  aria-label="儿歌歌词，点选一句从该句开始朗读"></div><div hidden aria-hidden="true"><h2 id="heading"></h2><p id="description"></p><div id="province-name"></div><p id="status"></p></div></aside>
+<aside class="panel poem-panel" aria-label="&#20799;&#27468;&#36880;&#21477;&#26391;&#35835;" data-fold-panel="right" data-fold-label="儿歌"><div><strong>中国行政区儿歌 · 逐句朗读</strong><div class="actions"><button id="poem-play">▶ 朗读儿歌</button><button id="poem-restart">从头朗读</button></div></div><div id="poem-lines"  aria-label="儿歌歌词，点选一句从该句开始朗读"></div><div hidden aria-hidden="true"><h2 id="heading"></h2><p id="description"></p><div id="province-name"></div><p id="status"></p></div></aside>
 </section>
 
 

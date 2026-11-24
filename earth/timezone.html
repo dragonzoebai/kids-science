@@ -397,6 +397,8 @@
 <script src="../touch.js"></script>
 <script src="../map-progressive.js"></script>
 <script src="../map-health.js"></script>
+  <link rel="stylesheet" href="../fold-panels.css">
+  <script defer src="../fold-panels.js"></script>
 </head>
   <body>
     <div id="map"></div>
@@ -408,7 +410,7 @@
     </div>
 
     <!-- 控制控件 -->
-    <div id="controls">
+    <div id="controls" data-fold-panel="left" data-fold-label="地图选项" data-fold-display="block">
       <h3>显示控制</h3>
       <div class="filter-row switch-row">
         <label for="equator-toggle">赤道线</label>
@@ -452,7 +454,7 @@
     </div>
 
     <!-- 当前时区 -->
-    <div id="zone-card">
+    <div id="zone-card" data-fold-panel="right" data-fold-label="当前时区">
       <div class="label">鼠标所在时区</div>
       <div class="zone" id="hover-zone">UTC+8</div>
       <div class="city" id="hover-city">北京 / 上海 / 新加坡</div>
@@ -462,13 +464,13 @@
     </div>
 
     <!-- 酒店大堂常见世界时钟 -->
-    <div id="hotel-times">
+    <div id="hotel-times" data-fold-panel="right" data-fold-label="世界时钟">
       <h3>酒店常见世界时钟</h3>
       <div id="city-list"></div>
     </div>
 
     <!-- 图例 -->
-    <div id="legend">
+    <div id="legend" data-fold-panel="left" data-fold-label="图例">
       <h3>图层图例</h3>
       <div class="legend-item">
         <div class="legend-line dashed"></div>

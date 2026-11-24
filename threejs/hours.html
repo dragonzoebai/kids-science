@@ -78,6 +78,8 @@
 </style>
 <link rel="stylesheet" href="../touch.css">
 <script src="../touch.js"></script>
+  <link rel="stylesheet" href="../fold-panels.css">
+  <script defer src="../fold-panels.js"></script>
 </head>
 <body>
 
@@ -104,7 +106,7 @@
   <p id="frame-info" style="font-size:12px;line-height:1.7;margin:6px 0 0">太阳固定：观察地球自转与地轴朝向变化。</p>
 </div>
 
-<div id="clock-panel">
+<div id="clock-panel" data-fold-panel="right" data-fold-label="时钟">
   <div class="time-row">
     <div class="zone-label">&#x1F1E8;&#x1F1F3; 北京时间 CST (UTC+8)</div>
     <div class="time-val china" id="bj-time">--:--:--</div>
@@ -123,7 +125,7 @@
 
 <canvas id="label-canvas"></canvas>
 
-<div id="panel">
+<div id="panel" data-fold-panel="right" data-fold-label="时间控制">
   <label for="reference-frame">参考系</label>
   <select id="reference-frame" style="background:#182436;color:#fff;padding:6px;border-radius:4px">
     <option value="sun">太阳固定</option>

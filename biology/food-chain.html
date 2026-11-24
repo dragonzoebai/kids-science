@@ -5,6 +5,8 @@
 <title>食物链小森林 · 谁的午饭</title>
 <link rel="stylesheet" href="../touch.css"><link rel="stylesheet" href="food-chain.css">
 <script src="../touch.js"></script>
+  <link rel="stylesheet" href="../fold-panels.css">
+  <script defer src="../fold-panels.js"></script>
 </head>
 <body>
 <svg class="art-defs" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs>
@@ -24,7 +26,7 @@
     <svg id="paths" aria-hidden="true"><defs><marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10Z" fill="#d59c3c"/></marker></defs><g id="connections"></g></svg>
     <div id="creatures"></div><div id="parcel" aria-hidden="true"></div>
   </div>
-  <aside>
+  <aside data-fold-panel="right" data-fold-label="食物链控制">
     <nav aria-label="玩法"><button data-mode="feed" data-speak-ignore>找午饭</button><button data-mode="energy" data-speak-ignore>能量旅行</button><button data-mode="change" data-speak-ignore>草地少了</button></nav>
     <div class="branch"><button data-branch="meadow" data-speak-ignore>草地 · 兔子 · 狐狸</button><button data-branch="tree" data-speak-ignore>树叶 · 毛毛虫 · 小鸟</button></div>
     <div class="task" id="task" aria-hidden="true"></div>

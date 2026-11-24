@@ -292,6 +292,8 @@
     </style>
   <script src="../map-progressive.js"></script>
 <script src="../map-health.js"></script>
+  <link rel="stylesheet" href="../fold-panels.css">
+  <script defer src="../fold-panels.js"></script>
 </head>
   <body>
     <div id="map" aria-label="全国主要高速公路三维地图"></div>
@@ -303,7 +305,7 @@
       </p>
     </header>
     <div id="status" role="status">正在加载地球底图…</div>
-    <aside class="panel" aria-label="高速公路名录">
+    <aside class="panel" aria-label="高速公路名录" data-fold-panel="right" data-fold-label="高速公路名录">
       <div class="tools">
         <input
           id="search"

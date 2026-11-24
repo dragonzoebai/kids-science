@@ -437,6 +437,8 @@
 <script src="../touch.js"></script>
 <script src="../map-progressive.js"></script>
 <script src="../map-health.js"></script>
+  <link rel="stylesheet" href="../fold-panels.css">
+  <script defer src="../fold-panels.js"></script>
 </head>
   <body>
     <div id="map"></div>
@@ -446,7 +448,7 @@
       <div id="update-time">在地球上绘制省级行政区边界与省会/首府/驻地点 · 再点当前省份恢复全国视角</div>
     </div>
 
-    <div id="controls">
+    <div id="controls" data-fold-panel="left" data-fold-label="地图选项" data-fold-display="block">
       <h3>图层开关</h3>
       <div class="search-box">
         <input id="search" type="search" placeholder="搜索省份或省会：浙江 / 杭州" autocomplete="off" />
@@ -491,7 +493,7 @@
       </div>
     </div>
 
-    <aside id="province-panel">
+    <aside id="province-panel" data-fold-panel="right" data-fold-label="省份名录" data-fold-display="flex">
       <h3>省份与省会名录</h3>
       <div class="panel-summary">
         <div class="stat-card">
@@ -506,7 +508,7 @@
       <div id="province-list" aria-label="中国省份和省会列表"></div>
     </aside>
 
-    <div id="legend">
+    <div id="legend" data-fold-panel="left" data-fold-label="图例">
       <h3>图例</h3>
       <div class="legend-item"><span class="swatch"></span>省级行政区填色</div>
       <div class="legend-item"><span class="swatch active"></span>当前选中省份</div>

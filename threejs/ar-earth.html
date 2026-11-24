@@ -39,14 +39,16 @@
   </style>
 <link rel="stylesheet" href="../touch.css">
 <script src="../touch.js"></script>
+  <link rel="stylesheet" href="../fold-panels.css">
+  <script defer src="../fold-panels.js"></script>
 </head>
 <body>
 <video id="cam" playsinline muted autoplay></video>
 
-<div id="info" data-speak-ignore><div id="place">地球</div><div id="coord"></div></div>
+<div id="info" data-speak-ignore data-fold-panel="left" data-fold-label="地球信息"><div id="place">地球</div><div id="coord"></div></div>
 <div id="cross"></div>
 <div id="hint"></div>
-<div id="bar">
+<div id="bar" data-fold-panel="right" data-fold-label="地球控制">
   <button id="btnCam" data-speak="相机背景">📷 相机背景</button>
   <button id="btnGyro" data-speak="陀螺仪">🧭 陀螺仪</button>
   <button id="btnReset" data-speak="回到中国">🎯 回到中国</button>

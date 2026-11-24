@@ -638,6 +638,8 @@
 <script src="../touch.js"></script>
 <script src="../map-progressive.js"></script>
 <script src="../map-health.js"></script>
+  <link rel="stylesheet" href="../fold-panels.css">
+  <script defer src="../fold-panels.js"></script>
 </head>
   <body class="beijing-only" data-zoom="far">
     <div id="map"></div>
@@ -647,7 +649,7 @@
       <div id="update-time">北京地铁线路与站点 · 点击右侧线路卡片定位并高亮，按 Esc 可显示全部线路</div>
     </div>
 
-    <div id="controls">
+    <div id="controls" data-fold-panel="left" data-fold-label="地图选项" data-fold-display="block">
       <h3>地图显示</h3>
       <div class="search-box">
         <input id="search" type="search" placeholder="点击右侧线路选择线路" autocomplete="off" />
@@ -706,7 +708,7 @@
       </div>
     </div>
 
-    <aside id="city-panel">
+    <aside id="city-panel" data-fold-panel="right" data-fold-label="地图名录" data-fold-display="flex">
       <div class="panel-head">
         <h3 id="panel-title">地铁城市名录</h3>
         <button id="back-btn" type="button">← 返回全国</button>
@@ -728,7 +730,7 @@
       <div id="panel-list" aria-label="地铁城市与线路列表"></div>
     </aside>
 
-    <div id="legend">
+    <div id="legend" data-fold-panel="left" data-fold-label="图例">
       <h3>图例</h3>
       <div class="legend-item">
         <span class="legend-icon">

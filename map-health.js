@@ -1,6 +1,7 @@
 // 地图网络失败时保留页面上的名录和控件，提供可轻触的重新加载入口。
 window.watchKidMap = function (map) {
-  const options = document.getElementById('controls');
+  const controls = document.getElementById('controls');
+  const options = controls?.hasAttribute?.('data-fold-panel') ? null : controls;
   let optionsButton;
   function syncOptions() {
     if (!options) return;

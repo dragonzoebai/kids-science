@@ -275,6 +275,8 @@
 <script src="../touch.js"></script>
 <script src="../map-progressive.js"></script>
 <script src="../map-health.js"></script>
+  <link rel="stylesheet" href="../fold-panels.css">
+  <script defer src="../fold-panels.js"></script>
 </head>
   <body>
     <div id="map"></div>
@@ -286,7 +288,7 @@
     </div>
 
     <!-- 图层控件 -->
-    <div id="controls">
+    <div id="controls" data-fold-panel="left" data-fold-label="地图选项" data-fold-display="block">
       <h3>图层开关</h3>
       <div class="filter-row switch-row">
         <label for="longitude-toggle">经度图层</label>
@@ -322,7 +324,7 @@
     </div>
 
     <!-- 统计卡片 -->
-    <div id="stats">
+    <div id="stats" data-fold-panel="right" data-fold-label="地图信息">
       <div class="stat-card">
         <div class="num cyan" id="stat-longitude">25</div>
         <div class="lbl">经线数量</div>
@@ -334,7 +336,7 @@
     </div>
 
     <!-- 图例 -->
-    <div id="legend">
+    <div id="legend" data-fold-panel="left" data-fold-label="图例">
       <h3>网格图例</h3>
       <div class="legend-item">
         <div class="legend-line longitude"></div>

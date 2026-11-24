@@ -7,6 +7,8 @@
   <link rel="stylesheet" href="arithmetic.css">
   <link rel="stylesheet" href="../touch.css">
   <script src="../touch.js"></script>
+  <link rel="stylesheet" href="../fold-panels.css">
+  <script defer src="../fold-panels.js"></script>
 </head>
 <body>
   <main>
@@ -16,7 +18,7 @@
       <div class="equation" aria-label="算式"><span id="left"></span><span id="operator"></span><span id="right"></span><span>＝</span><output id="answer" aria-label="你的答案">?</output></div>
       <p id="feedback" role="status" aria-live="polite" data-speak-ignore></p>
     </section>
-    <div class="controls" data-speak-ignore>
+    <div class="controls" data-speak-ignore data-fold-panel="right" data-fold-label="答题控制">
       <nav aria-label="选择数字范围">
         <button data-limit="5" aria-pressed="true">5 以内</button>
         <button data-limit="10" aria-pressed="false">10 以内</button>

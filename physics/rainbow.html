@@ -300,17 +300,19 @@
   </style>
 <link rel="stylesheet" href="../touch.css">
 <script src="../touch.js"></script>
+  <link rel="stylesheet" href="../fold-panels.css">
+  <script defer src="../fold-panels.js"></script>
 </head>
 <body>
   <canvas id="stage" aria-label="彩虹形成实验画布"></canvas>
 
-  <section id="title-card">
+  <section id="title-card" data-fold-panel="left" data-fold-label="彩虹介绍">
     <div class="eyebrow">光的小实验</div>
     <h1>彩虹形成<span>实验</span></h1>
     <p>阳光里藏着许多颜色。光经过小雨滴，就能形成彩虹。拖动滑块，看看彩虹的变化！</p>
   </section>
 
-  <section id="controls" aria-label="实验控制台">
+  <section id="controls" aria-label="实验控制台" data-fold-panel="right" data-fold-label="实验控制">
     <div class="control-head">
       <strong>小小实验台</strong>
       <button id="play" type="button">暂停动画</button>
@@ -333,12 +335,12 @@
     <div id="tip">试试看：太阳低一点、雨滴多一点、阳光强一点，彩虹会更清楚。点击画面里的大雨滴，还会出现光点！</div>
   </section>
 
-  <section id="bubble">
+  <section id="bubble" data-fold-panel="left" data-fold-label="彩虹提示" data-fold-display="block">
     <strong id="bubble-title">白光进雨滴</strong>
     <span id="bubble-text">太阳光看起来是白色，其实里面藏着许多颜色。</span>
   </section>
 
-  <section id="story" aria-label="彩虹形成步骤">
+  <section id="story" aria-label="彩虹形成步骤" data-fold-panel="left" data-fold-label="彩虹形成步骤" data-fold-display="grid">
     <div class="step active"><span class="num">1</span><strong>阳光进入</strong><span>白光斜着钻进雨滴，方向发生改变。</span></div>
     <div class="step"><span class="num">2</span><strong>发生折射</strong><span>不同颜色弯曲程度不同，开始慢慢分开。</span></div>
     <div class="step"><span class="num">3</span><strong>内部反射</strong><span>光在雨滴背面弹一下，像照到小镜子。</span></div>

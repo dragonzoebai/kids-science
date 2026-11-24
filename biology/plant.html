@@ -3,12 +3,14 @@
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>小种子花园 · 亲手种与比一比</title>
 <link rel="stylesheet" href="../touch.css"><link rel="stylesheet" href="plant.css"><script src="../touch.js"></script>
+  <link rel="stylesheet" href="../fold-panels.css">
+  <script defer src="../fold-panels.js"></script>
 </head><body>
 <main>
   <div class="background" aria-hidden="true"><div class="hill"></div><div class="cloud"></div></div>
   <section class="message" aria-live="polite"><h1 id="title"></h1><p id="description"></p></section>
   <section id="garden" aria-label="种子花园，点花盆、根或叶子探索"></section>
-  <aside>
+  <aside data-fold-panel="right" data-fold-label="种植控制">
     <nav aria-label="玩法"><button data-mode="grow" data-speak-ignore>亲手种花</button><button data-mode="compare" data-speak-ignore>两盆比一比</button></nav>
     <div id="tools">
       <button id="sow" class="tool" data-speak-ignore><span aria-hidden="true">🌻</span>种下种子</button>

@@ -340,22 +340,24 @@
   </style>
 <link rel="stylesheet" href="../touch.css">
 <script src="../touch.js"></script>
+  <link rel="stylesheet" href="../fold-panels.css">
+  <script defer src="../fold-panels.js"></script>
 </head>
 <body>
   <canvas id="stage" aria-label="声音传播实验画布"></canvas>
 
-  <section id="title-card">
+  <section id="title-card" data-fold-panel="left" data-fold-label="声音介绍">
     <div class="eyebrow">声音小实验</div>
     <h1>声音怎样<span>跑到耳朵</span></h1>
     <p>敲一下鼓，看振动怎样经过空气传到耳朵。再试试没有空气时会怎样！</p>
   </section>
 
-  <section id="info-card" data-speak-auto>
+  <section id="info-card" data-speak-auto data-fold-panel="left" data-fold-label="声音提示" data-fold-display="block">
     <strong id="info-title">准备敲鼓</strong>
     <p id="info-text">点击“敲一下鼓”或画面里的鼓，看看声波怎样一圈圈传到耳朵。</p>
   </section>
 
-  <section id="controls" aria-label="声音实验控制台">
+  <section id="controls" aria-label="声音实验控制台" data-fold-panel="right" data-fold-label="实验控制">
     <div class="control-head">
       <strong>声音实验台</strong>
       <button class="pill-btn" id="pause" type="button">暂停动画</button>
@@ -382,7 +384,7 @@
     <div id="diagnosis"><strong>空气传声</strong><span>空气分子把振动一个接一个传出去，声波能到达耳朵。</span></div>
   </section>
 
-  <section id="story" aria-label="声音传播步骤">
+  <section id="story" aria-label="声音传播步骤" data-fold-panel="left" data-fold-label="声音传播步骤" data-fold-display="grid">
     <div class="step active"><span class="num">1</span><strong>产生振动</strong><span>鼓面或手掌来回抖动，声音从这里开始。</span></div>
     <div class="step"><span class="num">2</span><strong>压缩空气</strong><span>附近空气分子被挤到一起，形成密集区。</span></div>
     <div class="step"><span class="num">3</span><strong>稀疏空气</strong><span>分子又散开，形成稀疏区。</span></div>

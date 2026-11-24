@@ -228,22 +228,24 @@
   </style>
 <link rel="stylesheet" href="../touch.css">
 <script src="../touch.js"></script>
+  <link rel="stylesheet" href="../fold-panels.css">
+  <script defer src="../fold-panels.js"></script>
 </head>
 <body>
   <canvas id="label-canvas"></canvas>
   <div id="hud"></div>
 
-  <section id="title">
+  <section id="title" data-fold-panel="left" data-fold-label="台风介绍">
     <h1>台风<span>登陆剧场</span></h1>
     <p>看看台风怎样在海上长大，吹向陆地，再慢慢减弱。这是一条示意路线，真实台风会走不同的路。</p>
   </section>
 
-  <section id="meter" aria-label="台风能量">
+  <section id="meter" aria-label="台风能量" data-fold-panel="left" data-fold-label="台风能量">
     <div class="line"><span>台风能量</span><strong id="energy-value">0%</strong></div>
     <div id="energy-shell"><div id="energy-bar"></div></div>
   </section>
 
-  <section id="controls">
+  <section id="controls" data-fold-panel="right" data-fold-label="播放控制" data-fold-display="block">
     <div class="control-row">
       <label for="speed">演示速度</label>
       <input type="range" id="speed" min="0.4" max="2.8" step="0.1" value="1" aria-label="播放速度">
@@ -252,13 +254,13 @@
     <div id="legend-note">拖拽可旋转视角，滚轮缩放。白色螺旋表示云墙，青蓝路径表示引导气流，金红雨带表示登陆前后的强降水。</div>
   </section>
 
-  <section id="caption">
+  <section id="caption" data-fold-panel="right" data-fold-label="台风讲解" data-fold-display="block">
     <div class="tag">Western Pacific Typhoon</div>
     <h2 id="phase-title">太平洋扰动生成</h2>
     <p id="phase-text">暖海水持续蒸发，水汽在低压中心附近汇聚并上升，出现最初的旋转云团。</p>
   </section>
 
-  <section id="story" aria-label="台风过程">
+  <section id="story" aria-label="台风过程" data-fold-panel="left" data-fold-label="台风过程">
     <div class="step active"><span class="num">1</span><strong>洋面生成</strong><span>西北太平洋暖海水提供水汽与热量。</span></div>
     <div class="step"><span class="num">2</span><strong>增强成台风</strong><span>云墙旋转收紧，风眼逐渐清晰。</span></div>
     <div class="step"><span class="num">3</span><strong>趋向海南</strong><span>外围雨带扫过华南近海。</span></div>

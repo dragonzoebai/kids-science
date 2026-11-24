@@ -419,6 +419,8 @@
 <script src="../touch.js"></script>
 <script src="../map-progressive.js"></script>
 <script src="../map-health.js"></script>
+  <link rel="stylesheet" href="../fold-panels.css">
+  <script defer src="../fold-panels.js"></script>
 </head>
   <body>
     <div id="map"></div>
@@ -428,7 +430,7 @@
       <div id="update-time">图标大小代表 UN WUP 2025 城市聚集区人口 · 右侧按人口降序 · 再点当前城市恢复全国视角</div>
     </div>
 
-    <div id="controls">
+    <div id="controls" data-fold-panel="left" data-fold-label="地图选项" data-fold-display="block">
       <h3>图层开关</h3>
       <div class="filter-row switch-row">
         <label for="city-toggle">中国城市图标</label>
@@ -456,7 +458,7 @@
       </div>
     </div>
 
-    <aside id="city-panel">
+    <aside id="city-panel" data-fold-panel="right" data-fold-label="地图名录" data-fold-display="flex">
       <h3>城市人口排行</h3>
       <div class="panel-summary">
         <div class="stat-card">
@@ -471,7 +473,7 @@
       <div id="city-list" aria-label="中国城市人口排行"></div>
     </aside>
 
-    <div id="legend">
+    <div id="legend" data-fold-panel="left" data-fold-label="图例">
       <h3>人口图例</h3>
       <div class="legend-item">
         <span class="bubble large"></span>

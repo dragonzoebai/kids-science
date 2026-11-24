@@ -383,6 +383,8 @@
 <script src="../touch.js"></script>
 <script src="../map-progressive.js"></script>
 <script src="../map-health.js"></script>
+  <link rel="stylesheet" href="../fold-panels.css">
+  <script defer src="../fold-panels.js"></script>
 </head>
   <body>
     <div id="map"></div>
@@ -394,7 +396,7 @@
     </div>
 
     <!-- 筛选控件 -->
-    <div id="controls">
+    <div id="controls" data-fold-panel="left" data-fold-label="地图选项" data-fold-display="block">
       <h3>筛选条件</h3>
       <div class="filter-row">
         <label>最小震级 <span class="val" id="mag-val">1.0</span></label>
@@ -424,7 +426,7 @@
     </div>
 
     <!-- 统计卡片 -->
-    <div id="stats">
+    <div id="stats" data-fold-panel="right" data-fold-label="地图信息">
       <div class="stat-card">
         <div class="num orange" id="stat-total">-</div>
         <div class="lbl">显示地震数</div>
@@ -440,7 +442,7 @@
     </div>
 
     <!-- 图例 -->
-    <div id="legend">
+    <div id="legend" data-fold-panel="left" data-fold-label="图例">
       <h3>震级图例</h3>
       <div class="legend-item">
         <div

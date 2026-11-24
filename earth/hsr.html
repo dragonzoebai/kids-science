@@ -631,6 +631,8 @@
 <script src="../touch.js"></script>
 <script src="../map-progressive.js"></script>
 <script src="../map-health.js"></script>
+  <link rel="stylesheet" href="../fold-panels.css">
+  <script defer src="../fold-panels.js"></script>
 </head>
   <body data-zoom="far">
     <div id="map"></div>
@@ -640,7 +642,7 @@
       <div id="update-time">动画描出中国边界与九段线 · 点击线路或右侧名录可单独高亮、标出沿线车站并开出一列 3D 动车 · 点击闪光点查看该枢纽的全部线路 · Esc 返回</div>
     </div>
 
-    <div id="controls">
+    <div id="controls" data-fold-panel="left" data-fold-label="地图选项" data-fold-display="block">
       <h3>图层开关</h3>
       <div class="search-box">
         <input id="search" type="search" placeholder="搜索线路或车站：京沪 / 长沙南" autocomplete="off" />
@@ -699,7 +701,7 @@
       </div>
     </div>
 
-    <aside id="city-panel">
+    <aside id="city-panel" data-fold-panel="right" data-fold-label="地图名录" data-fold-display="flex">
       <div class="panel-head">
         <h3 id="panel-title">高铁线路名录</h3>
         <button id="back-btn" type="button">← 返回全国</button>
@@ -721,7 +723,7 @@
       <div id="panel-list" aria-label="高铁线路列表"></div>
     </aside>
 
-    <div id="legend">
+    <div id="legend" data-fold-panel="left" data-fold-label="图例">
       <h3>图例</h3>
       <div class="legend-item">
         <span class="legend-icon">
