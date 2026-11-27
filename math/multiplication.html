@@ -17,6 +17,11 @@
   const digits = '〇一二三四五六七八九';
   let selected;
 
+  document.querySelector('[data-speak-all]').addEventListener('click', () => {
+    selected?.setAttribute('aria-pressed', 'false');
+    selected = null;
+  }, { capture: true });
+
   function rhyme(first, second) {
     const product = first * second;
     if (product < 10) return digits[first] + digits[second] + '得' + digits[product];

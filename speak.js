@@ -160,6 +160,9 @@
     const items = [...document.querySelectorAll("main button[data-speak]")]
       .filter(item => clean(item.dataset.speak));
     if (!items.length) return;
+    clearTimeout(flashTimer);
+    flashEl?.classList.remove("ks-reading");
+    flashEl = null;
     speechSynthesis.cancel();
     lastSpeakAt = performance.now();
     sequence = items;
